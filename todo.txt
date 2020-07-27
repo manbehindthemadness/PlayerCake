@@ -1,0 +1,11 @@
+Phase_1:
+
+    Establish a connection and data exchange between Director and Stage.
+
+    Establish connection drop and reconnection recovery.
+
+    Create initial script render capability within Writer.
+
+    Implement script delivery to Director and deployment to stage.
+
+    Implement basic script reading cabilities for Stage.
