@@ -4,22 +4,69 @@ Reference: https://github.com/ninedraft/python-udp/blob/master/client.py
 """
 
 import socket
+import sys
 from director import settings
 
-client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # UDP
 
-# Enable port reusage so we will be able to run multiple clients and servers on single (host, port).
-# Do not use socket.SO_REUSEADDR except you using linux(kernel<3.9): goto https://stackoverflow.com/questions/14388706/how-do-so-reuseaddr-and-so-reuseport-differ for more information.
-# For linux hosts all sockets that want to share the same address and port combination must belong to processes that share the same effective user ID!
-# So, on linux(kernel>=3.9) you have to run multiple servers and clients under one user to share the same (host, port).
-# Thanks to @stevenreddie
-# client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+def udpclient():
+    """
+    Launches a UDP listener.
+    :return: Upstream server connection string.
+    :rtype: list
+    """
+    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # UDP
 
-# Enable broadcasting mode
-client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    # client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-client.bind((settings.BindAddr, 37020))
-while True:
-    data, addr = client.recvfrom(1024)
-    print("received message: %s" % data)
+    # Enable broadcasting mode
+    client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+    client.bind(("", 37020))
+    search = True
+    server_info = None
+    while search:
+        data, addr = client.recvfrom(1024)
+        if settings.DirectorID in str(data):
+            print("received message: %s" % data)
+            server_info = data.decode("utf8").split(':')
+            search = False
+    return server_info
+
+
+def tcpclient():
+    """
+    Launches a TCP client.
+    :return: Nothing.
+    """
+    server_info = None
+    while not server_info:
+        server_info = udpclient()  # Look for upstream server.
+        print('searching for Director...')
+    # Create a TCP/IP socket
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Connect the socket to the port where the server is listening
+    print(server_info[3], int(server_info[4]))
+    server_address = (server_info[3], int(server_info[4]))
+    print(sys.stderr, 'connecting to %s port %s' % server_address)
+    sock.connect(server_address)
+    try:
+
+        # Send data
+        message = b'This is the message.  It will be repeated.'
+        print(sys.stderr, 'sending "%s"' % message)
+        sock.sendall(message)
+
+        # Look for the response
+        amount_received = 0
+        amount_expected = len(message)
+
+        while amount_received < amount_expected:
+            data = sock.recv(16)
+            amount_received += len(data)
+            print(sys.stderr, 'received "%s"' % data)
+
+    finally:
+        print(sys.stderr, 'closing socket')
+        sock.close()
