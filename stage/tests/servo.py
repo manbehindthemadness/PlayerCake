@@ -1,4 +1,3 @@
-
 """Simple test for a standard servo on channel 0 and a continuous rotation servo on channel 1."""
 import time
 from adafruit_servokit import ServoKit
@@ -9,13 +8,13 @@ kit = ServoKit(channels=16)
 cnt = 0
 
 while cnt < 10:
-        for servo in range(4, 15):
-                kit.servo[servo].angle = 180
-        time.sleep(1)
-        for servo in range(4, 15):
-                kit.servo[servo].angle = 0
-        time.sleep(1)
-        cnt += 1
+    for servo in range(4, 15):
+        kit.servo[servo].angle = 180
+    time.sleep(1)
+    for servo in range(4, 15):
+        kit.servo[servo].angle = 0
+    time.sleep(1)
+    cnt += 1
 
 # kit.servo[14].angle = 180
 # kit.continuous_servo[1].throttle = 1.0
