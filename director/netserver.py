@@ -10,6 +10,8 @@ import sys
 from threading import Thread
 from director import settings
 
+term = False
+
 
 def udpserver():
     """
@@ -29,7 +31,7 @@ def udpserver():
     server.settimeout(0.2)
     statement = 'director:' + socket.gethostname() + ':' + settings.DirectorID + ':' + settings.BindAddr + ':' + str(settings.TCPBindPort)
     message = bytes(statement, "utf8")
-    while True:
+    while not term:
         server.sendto(message, ("<broadcast>", 37020))
         print("message sent!")
         time.sleep(1)
@@ -42,6 +44,7 @@ def tcpserver():
     Launches a TCP communication server.
     :return: Nothing.
     """
+    global term
     announcethread = Thread(target=udpserver, args=())
     announcethread.start()
     # Create a TCP/IP socket
@@ -73,4 +76,4 @@ def tcpserver():
         finally:
             # Clean up the connection
             connection.close()
-        announcethread.join()
+            term = False
