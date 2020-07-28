@@ -1,0 +1,154 @@
+DateTime: 19/06/2020 15:27:39 Message: Application started
+DateTime: 19/06/2020 15:27:40 Message: Preparing wizard page WelcomePage
+DateTime: 19/06/2020 15:27:40 Message: Preparing Bonjour check
+DateTime: 19/06/2020 15:27:40 Message: Bonjour check started
+DateTime: 19/06/2020 15:27:40 Message: Wizard page WelcomePage is activated
+DateTime: 19/06/2020 15:27:40 Message: Wizard is visible to user
+DateTime: 19/06/2020 15:27:41 Message: Bonjour check finished: SUCCESS
+DateTime: 19/06/2020 15:27:44 Message: Preparing wizard page EulaPage
+DateTime: 19/06/2020 15:27:44 Message: Wizard page EulaPage is activated
+DateTime: 19/06/2020 15:27:45 Message: Preparing wizard page CheckVersionPage
+DateTime: 19/06/2020 15:27:45 Message: Wizard page CheckVersionPage is activated
+DateTime: 19/06/2020 15:27:45 Message: Started version check
+DateTime: 19/06/2020 15:27:45 Message: Installer version is OK
+DateTime: 19/06/2020 15:27:47 Message: Preparing wizard page SelectAppleTVPage
+DateTime: 19/06/2020 15:27:47 Message: Started AppleTV discovering
+DateTime: 19/06/2020 15:27:47 Message: Wizard page SelectAppleTVPage is activated
+DateTime: 19/06/2020 15:27:47 Message: Found AppleTV (Apple TV (10.4.222.11))
+DateTime: 19/06/2020 15:27:47 Message: Found AppleTV (Apple TV (10.4.222.11))
+DateTime: 19/06/2020 15:27:48 Message: Preparing AppleTV (10.4.222.11) for file transfer
+DateTime: 19/06/2020 15:27:48 Message: AppleTV address was chosen by selecting from the list
+DateTime: 19/06/2020 15:27:48 Message: Preparing wizard page TransferFilesPage
+DateTime: 19/06/2020 15:27:48 Message: Wizard page TransferFilesPage is activated
+DateTime: 19/06/2020 15:27:48 Message: Started install to AppleTV (10.4.222.11) with default password
+DateTime: 19/06/2020 15:27:48 Message: Connecting to AppleTV (10.4.222.11)
+Exception occured
+Application:       FirecoreInstaller
+Version:           2.6.0.18805
+Date:              19/06/2020 15:27:49
+Computer name:     HYDRA
+User name:         Kev0
+OS:                Microsoft Windows NT 6.2.9200.0
+Culture:           en-US
+App up time:       00:00:09.6512069
+
+Exception classes:   
+   Tamir.SharpSsh.jsch.JSchException
+--- Next type:
+   FirecoreInstaller.SSH.SshException
+
+Exception messages: 
+   Algorithm negotiation fail
+--- Next message:
+   Unknown error, connect failed
+
+Stack Traces:
+   at Tamir.SharpSsh.jsch.Session.connect(Int32 connectTimeout)
+   at Tamir.SharpSsh.SshBase.ConnectSession(Int32 tcpPort)
+   at Tamir.SharpSsh.SshBase.Connect(Int32 tcpPort)
+   at Tamir.SharpSsh.SshBase.Connect()
+   at FirecoreInstaller.SSH.SshShell.Connect(String host, String login, String password)
+--- Next Call Stack:
+   at FirecoreInstaller.SSH.SshShell.Connect(String host, String login, String password)
+   at FirecoreInstaller.SSH.AppleTVFlasher.Connect(String host, String login, String password)
+   at FirecoreInstaller.SSH.AppleTVFlasher.Flash(String host, String login, String password)
+   at FirecoreInstaller.SSH.AppleTVFlasher.Flash(String host)
+   at FirecoreInstaller.MVP.Presenters.TransferFilesPagePresenter.<ActivePageHandler>b__0(String x)
+   at FirecoreInstaller.MVP.Presenters.TransferFilesPagePresenter.TransferFilesHelper(Object state)
+
+Loaded Modules:
+J:\Backups\Hardware\Apple TV\Gen 2\aTV Flash (black).exe 2.6.0.18805
+C:\WINDOWS\SYSTEM32\ntdll.dll 10.0.16299.611 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\MSCOREE.DLL 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\KERNEL32.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\KERNELBASE.dll 10.0.16299.611 (WinBuild.160101.0800)
+C:\WINDOWS\System32\ADVAPI32.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\msvcrt.dll 7.0.16299.125 (WinBuild.160101.0800)
+C:\WINDOWS\System32\sechost.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\RPCRT4.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\SspiCli.dll 10.0.16299.755 (WinBuild.160101.0800)
+C:\WINDOWS\System32\CRYPTBASE.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\bcryptPrimitives.dll 10.0.16299.1004 (WinBuild.160101.0800)
+C:\Windows\Microsoft.NET\Framework\v4.0.30319\mscoreei.dll 4.7.2633.0 built by: NET471REL1LAST_C
+C:\WINDOWS\System32\SHLWAPI.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\combase.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\ucrtbase.dll 10.0.16299.1059 (WinBuild.160101.0800)
+C:\WINDOWS\System32\GDI32.dll 10.0.16299.665 (WinBuild.160101.0800)
+C:\WINDOWS\System32\gdi32full.dll 10.0.16299.1087 (WinBuild.160101.0800)
+C:\WINDOWS\System32\msvcp_win.dll 10.0.16299.1059 (WinBuild.160101.0800)
+C:\WINDOWS\System32\USER32.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\win32u.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\IMM32.DLL 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\kernel.appcore.dll 10.0.16299.492 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\VERSION.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\Windows\Microsoft.NET\Framework\v2.0.50727\mscorwks.dll 2.0.50727.8838 (WinRelRS3.050727-8800)
+C:\WINDOWS\WinSxS\x86_microsoft.vc80.crt_1fc8b3b9a1e18e3b_8.0.50727.9348_none_d08c1480442bf1e1\MSVCR80.dll 8.00.50727.9348
+C:\WINDOWS\System32\shell32.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\cfgmgr32.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\shcore.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\windows.storage.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\powrprof.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\profapi.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\assembly\NativeImages_v2.0.50727_32\mscorlib\8578477ac4e60981d465541287dd5a79\mscorlib.ni.dll 2.0.50727.8838 (WinRelRS3.050727-8800)
+C:\WINDOWS\System32\ole32.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\system32\uxtheme.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\Program Files (x86)\Common Files\Microsoft Shared\Ink\tiptsf.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\OLEAUT32.dll 10.0.16299.1087 (WinBuild.160101.0800)
+C:\Windows\Microsoft.NET\Framework\v2.0.50727\mscorjit.dll 2.0.50727.8825 (WinRelRS3.050727-8800)
+C:\WINDOWS\assembly\NativeImages_v2.0.50727_32\System\86a9422e43e9705fac7a55f245f38fc4\System.ni.dll 2.0.50727.8837 (WinRelRS3.050727-8800)
+C:\WINDOWS\assembly\NativeImages_v2.0.50727_32\System.Drawing\e29454b3a3e6f4e01d34d443ced6030a\System.Drawing.ni.dll 2.0.50727.8825 (WinRelRS3.050727-8800)
+C:\WINDOWS\assembly\NativeImages_v2.0.50727_32\System.Windows.Forms\7f980a9cba045523a949890b373ff36d\System.Windows.Forms.ni.dll 2.0.50727.8825 (WinRelRS3.050727-8800)
+C:\WINDOWS\assembly\NativeImages_v2.0.50727_32\System.Configuration\ad423051dbd99c0c427c30fa92184162\System.Configuration.ni.dll 2.0.50727.8825 (WinRelRS3.050727-8800)
+C:\WINDOWS\assembly\NativeImages_v2.0.50727_32\System.Xml\e0e77a93a3b5485972b0674b31d40425\System.Xml.ni.dll 2.0.50727.8827 (WinRelRS3.050727-8800)
+C:\WINDOWS\SYSTEM32\CRYPTSP.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\system32\rsaenh.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\bcrypt.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\shfolder.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\assembly\NativeImages_v2.0.50727_32\Accessibility\5253dd9ba9d766accc01f753044dadd6\Accessibility.ni.dll 2.0.50727.8825 (WinRelRS3.050727-8800)
+C:\WINDOWS\system32\dwmapi.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\WinSxS\x86_microsoft.windows.gdiplus_6595b64144ccf1df_1.1.16299.1087_none_88289e72c9742c8b\gdiplus.dll 10.0.16299.1087 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\DWrite.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\MSCTF.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\RichEd20.DLL 5.31.23.1231
+C:\WINDOWS\SYSTEM32\USP10.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\msls31.dll 3.10.349.0
+C:\WINDOWS\WinSxS\x86_microsoft.windows.common-controls_6595b64144ccf1df_5.82.16299.1087_none_3edce3bab923e35c\comctl32.DLL 6.10 (WinBuild.160101.0800)
+C:\WINDOWS\WinSxS\x86_microsoft.windows.common-controls_6595b64144ccf1df_6.0.16299.1087_none_573dab8d6ee1b2bd\comctl32.dll 6.10 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\WindowsCodecs.dll 10.0.16299.726 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\dnssd.dll 3,1,0,1
+C:\WINDOWS\System32\WS2_32.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\system32\mswsock.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\TextInputFramework.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\CoreUIComponents.dll 10.0.16299.1004
+C:\WINDOWS\System32\CoreMessaging.dll 10.0.16299.15
+C:\WINDOWS\SYSTEM32\ntmarta.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\wintypes.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\clbcatq.dll 2001.12.10941.16384 (WinBuild.160101.0800)
+C:\Windows\System32\uiautomationcore.dll 7.2.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\sxs.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\Windows\System32\OLEACC.dll 7.2.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\rasapi32.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\rasman.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\rtutils.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\winhttp.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\IPHLPAPI.DLL 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\NSI.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\dhcpcsvc6.DLL 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\dhcpcsvc.DLL 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\DNSAPI.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\SYSTEM32\WINNSI.DLL 10.0.16299.15 (WinBuild.160101.0800)
+C:\Program Files (x86)\Bonjour\mdnsNSP.dll 3,1,0,1
+C:\Windows\System32\rasadhlp.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\fwpuclnt.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\psapi.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\system32\napinsp.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\system32\pnrpnsp.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\system32\NLAapi.dll 10.0.16299.248 (WinBuild.160101.0800)
+C:\WINDOWS\System32\winrnr.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\WINDOWS\System32\wshbth.dll 10.0.16299.15 (WinBuild.160101.0800)
+C:\Windows\Microsoft.NET\Framework\v2.0.50727\diasymreader.dll 8.0.50727.8825 (WinRelRS3.050727-8800)
+
+DateTime: 19/06/2020 15:27:50 Message: 10.4.222.11 is invalid IP or not AppleTV
+DateTime: 19/06/2020 15:27:50 Message: Preparing wizard page InvalidIPPage
+DateTime: 19/06/2020 15:27:50 Message: Wizard page InvalidIPPage is activated
+DateTime: 19/06/2020 15:28:21 Message: Application closed
