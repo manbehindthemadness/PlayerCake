@@ -15,3 +15,5 @@ General_notes:
 
     We are going to need to decide if calibrations are handled on the Stage or if they are moved upstream to Writed through the Director.
         I think we will keep positional trims in Writer and transient (pressure and such) on the Stage...
+
+    The first chore involving Audience is going to need to be some sort of QR code onboarding process.

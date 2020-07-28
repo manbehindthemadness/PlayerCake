@@ -48,6 +48,9 @@ def udpclient():
 def tcpclient():
     """
     Launches a TCP client.
+
+    TODO: Find a way to cache the upstream server info.
+
     :return: Nothing.
     """
     server_info = None
