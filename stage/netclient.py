@@ -8,6 +8,18 @@ import sys
 from director import settings
 
 
+def open_file(filename):
+    """
+    Opens a text file.
+    :param filename: File to open.
+    :type filename: Str
+    :return: Contents of file.
+    :rtype: str
+    """
+    file = open(filename)
+    return file.read()
+
+
 def udpclient():
     """
     Launches a UDP listener.
@@ -51,7 +63,8 @@ def tcpclient():
     try:
 
         # Send data
-        message = b'This is the message.  It will be repeated.'  # Define message.
+        # message = b'This is the message.  It will be repeated.'  # Define message.
+        message = bytes(open_file("stage/tests/transmit.log"), "utf8")
         print(sys.stderr, 'sending "%s"' % message)
         sock.sendall(message)  # Send message.
 
@@ -60,7 +73,7 @@ def tcpclient():
         amount_expected = len(message)
 
         while amount_received < amount_expected:  # Loop until expected data is recieved.
-            data = sock.recv(16)  # Break data into 16 bit chunks.
+            data = sock.recv(4096)  # Break data into 16 bit chunks.
             amount_received += len(data)  # Count collected data.
             print(sys.stderr, 'received "%s"' % data)
 

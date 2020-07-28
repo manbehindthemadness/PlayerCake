@@ -32,7 +32,7 @@ def udpserver():
     message = bytes(statement, "utf8")  # Convert data package into bytes.
     while not term:  # Broadcast until termination signal is recieved.
         server.sendto(message, ("<broadcast>", 37020))  # Send message.
-        print("message sent!")
+        # print("message sent!")
         time.sleep(1)
 
 
@@ -58,7 +58,7 @@ def tcpserver():
             print(sys.stderr, 'connection from', client_address)
 
             while True:  # Receive the data in small chunks and retransmit it
-                data = connection.recv(16)
+                data = connection.recv(4096)
                 print(sys.stderr, 'received "%s"' % data)
                 if data:
                     print(sys.stderr, 'sending data back to the client')
