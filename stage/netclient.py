@@ -28,8 +28,8 @@ def udpclient():
     """
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # Create UDP client socket.
 
-    # client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-    client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Specify socket options.
+    client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)  # Specify socket options.
+    # client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Windows compatable version.
 
     client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcasting mode.
 
