@@ -5,7 +5,7 @@ Reference: https://github.com/ninedraft/python-udp/blob/master/client.py
 
 import socket
 import sys
-from director import settings
+from director import settings as _settings
 
 
 def open_file(filename):
@@ -20,9 +20,12 @@ def open_file(filename):
     return file.read()
 
 
-def udpclient():
+def udpclient(settings):
     """
     Launches a UDP listener.
+
+    :param settings: Instance of settings file.
+    :type settings: module
     :return: Upstream server connection string.
     :rtype: list
     """
@@ -46,17 +49,21 @@ def udpclient():
     return server_info  # Return upstream server TCP connection information.
 
 
-def tcpclient():
+def tcpclient(settings, message):
     """
     Launches a TCP client.
 
     TODO: Find a way to cache the upstream server info.
 
+    :param settings: Instance of settings file.
+    :type settings: module
+    :param message: Data to transmit
+    :type message: bytes
     :return: Nothing.
     """
     server_info = None
     while not server_info:  # Look for upstream server.
-        server_info = udpclient()
+        server_info = udpclient(settings)
         print('searching for Director...')
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
 
@@ -65,10 +72,6 @@ def tcpclient():
     print(sys.stderr, 'connecting to %s port %s' % server_address)
     sock.connect(server_address)  # Connect the socket to the port where the server is listening.
     try:
-
-        # Send data
-        # message = b'This is the message.  It will be repeated.'  # Define message.
-        message = bytes(open_file("stage/tests/transmit.log"), "utf8")
         print(sys.stderr, 'sending "%s"' % message)
         sock.sendall(message)  # Send message.
 
@@ -84,3 +87,11 @@ def tcpclient():
     finally:
         print(sys.stderr, 'closing socket')
         sock.close()  # Close socket.
+
+
+def test():
+    """
+    Tests the tcpclient.
+    :return:
+    """
+    tcpclient(_settings, bytes(open_file("stage/tests/transmit.log"), "utf8"))
