@@ -23,3 +23,4 @@ Terms:
     Props: Sensors providing information about the physical world (echolocation, laser, IR...etc)
     Cues: Any conditional interrupt that results in an action being taken (there is a wall in front of me...).
     Performance: This is a rating attached to Scripts, Scenes, plays and Directors respectively. The value signifies effectiveness.
+    Heckles: These are direct commands sent from Audience that effect the behavior of one or more Stages.
