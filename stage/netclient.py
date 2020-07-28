@@ -27,13 +27,14 @@ def udpclient():
     :rtype: list
     """
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # Create UDP client socket.
-
-    client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)  # Specify socket options.
-    # client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Windows compatable version.
-
+    if settings.Envirnment == 'pure':
+        client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)  # Specify socket options.
+        client.bind(("", 37020))  # Bind the socket to all adaptors and the target port.
+    elif settings.Envirnment == 'mixed':
+        client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Windows compatable version.
+        client.bind(("", 37020))  # Bind the socket to all adaptors and the target port.
     client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcasting mode.
 
-    client.bind(("", 37020))  # Bind the socket to all adaptors and the target port.
     search = True
     server_info = None
     while search:  # Listen for upstream server to identify itself.
