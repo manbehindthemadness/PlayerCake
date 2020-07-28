@@ -9,3 +9,9 @@ Phase_1:
     Implement script delivery to Director and deployment to stage.
 
     Implement basic script reading cabilities for Stage.
+
+
+General_notes:
+
+    We are going to need to decide if calibrations are handled on the Stage or if they are moved upstream to Writed through the Director.
+        I think we will keep positional trims in Writer and transient (pressure and such) on the Stage...
