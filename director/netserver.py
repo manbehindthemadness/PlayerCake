@@ -9,6 +9,8 @@ import time
 import sys
 from threading import Thread
 from director import settings
+from warehouse.loggers import dprint
+
 
 term = False
 
@@ -47,26 +49,28 @@ def tcpserver():
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
     server_address = (settings.BindAddr, settings.TCPBindPort)  # Create connection string.
-    print(sys.stderr, 'starting up on %s port %s' % server_address)
+    dprint(settings, ('starting up on %s port %s' % server_address,))
     sock.bind(server_address)  # Bind connection string to socket.
     sock.listen(1)  # Listen for incoming connections.
 
     while True:
-        print(sys.stderr, 'waiting for a connection')
+        output = b''
+        dprint(settings, (sys.stderr, 'waiting for a connection',))
         connection, client_address = sock.accept()  # This waits until a client connects.
         try:
-            print(sys.stderr, 'connection from', client_address)
+            dprint(settings, ('connection from', client_address,))
 
             while True:  # Receive the data in small chunks and retransmit it
                 data = connection.recv(4096)
-                print(sys.stderr, 'received "%s"' % data)
+                output += data
+                # print(sys.stderr, 'received "%s"' % data)
                 if data:
-                    print(sys.stderr, 'sending data back to the client')
+                    # print(sys.stderr, 'sending data back to the client')
                     connection.sendall(data)
                 else:
-                    print(sys.stderr, 'no more data from', client_address)
+                    dprint(settings, (output,))
+                    dprint(settings, ('no more data from', client_address,))
                     break
-
         finally:
             connection.close()  # Clean up the connection.
             term = False  # Close transmitter thread.

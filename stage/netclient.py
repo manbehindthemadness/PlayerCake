@@ -4,8 +4,9 @@ Reference: https://github.com/ninedraft/python-udp/blob/master/client.py
 """
 
 import socket
-import sys
+# import sys
 from director import settings as _settings
+from warehouse.loggers import dprint
 
 
 def open_file(filename):
@@ -43,7 +44,7 @@ def udpclient(settings):
     while search:  # Listen for upstream server to identify itself.
         data, addr = client.recvfrom(1024)
         if settings.DirectorID in str(data):
-            print("received message: %s" % data)
+            dprint(settings, ("received message: %s" % data,))
             server_info = data.decode("utf8").split(':')
             search = False
     return server_info  # Return upstream server TCP connection information.
@@ -64,15 +65,15 @@ def tcpclient(settings, message):
     server_info = None
     while not server_info:  # Look for upstream server.
         server_info = udpclient(settings)
-        print('searching for Director...')
+        dprint(settings, ('searching for Director...',))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
 
-    print(server_info[3], int(server_info[4]))
+    # print(server_info[3], int(server_info[4]))
     server_address = (server_info[3], int(server_info[4]))  # Collect server connection string.
-    print(sys.stderr, 'connecting to %s port %s' % server_address)
+    dprint(settings, ('connecting to %s port %s' % server_address,))
     sock.connect(server_address)  # Connect the socket to the port where the server is listening.
     try:
-        print(sys.stderr, 'sending "%s"' % message)
+        # print(sys.stderr, 'sending "%s"' % message)
         sock.sendall(message)  # Send message.
 
         # Look for the response
@@ -80,12 +81,12 @@ def tcpclient(settings, message):
         amount_expected = len(message)
 
         while amount_received < amount_expected:  # Loop until expected data is recieved.
-            data = sock.recv(4096)  # Break data into 16 bit chunks.
+            data = sock.recv(4096)  # Break data into chunks.
             amount_received += len(data)  # Count collected data.
-            print(sys.stderr, 'received "%s"' % data)
+            # print(sys.stderr, 'received "%s"' % data)
 
     finally:
-        print(sys.stderr, 'closing socket')
+        dprint(settings, ('closing socket',))
         sock.close()  # Close socket.
 
 
