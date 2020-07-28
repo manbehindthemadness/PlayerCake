@@ -14,24 +14,23 @@ def udpclient():
     :return: Upstream server connection string.
     :rtype: list
     """
-    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # UDP
+    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # Create UDP client socket.
 
     # client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-    client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Specify socket options.
 
-    # Enable broadcasting mode
-    client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcasting mode.
 
-    client.bind(("", 37020))
+    client.bind(("", 37020))  # Bind the socket to all adaptors and the target port.
     search = True
     server_info = None
-    while search:
+    while search:  # Listen for upstream server to identify itself.
         data, addr = client.recvfrom(1024)
         if settings.DirectorID in str(data):
             print("received message: %s" % data)
             server_info = data.decode("utf8").split(':')
             search = False
-    return server_info
+    return server_info  # Return upstream server TCP connection information.
 
 
 def tcpclient():
@@ -40,33 +39,31 @@ def tcpclient():
     :return: Nothing.
     """
     server_info = None
-    while not server_info:
-        server_info = udpclient()  # Look for upstream server.
+    while not server_info:  # Look for upstream server.
+        server_info = udpclient()
         print('searching for Director...')
-    # Create a TCP/IP socket
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
 
-    # Connect the socket to the port where the server is listening
     print(server_info[3], int(server_info[4]))
-    server_address = (server_info[3], int(server_info[4]))
+    server_address = (server_info[3], int(server_info[4]))  # Collect server connection string.
     print(sys.stderr, 'connecting to %s port %s' % server_address)
-    sock.connect(server_address)
+    sock.connect(server_address)  # Connect the socket to the port where the server is listening.
     try:
 
         # Send data
-        message = b'This is the message.  It will be repeated.'
+        message = b'This is the message.  It will be repeated.'  # Define message.
         print(sys.stderr, 'sending "%s"' % message)
-        sock.sendall(message)
+        sock.sendall(message)  # Send message.
 
         # Look for the response
         amount_received = 0
         amount_expected = len(message)
 
-        while amount_received < amount_expected:
-            data = sock.recv(16)
-            amount_received += len(data)
+        while amount_received < amount_expected:  # Loop until expected data is recieved.
+            data = sock.recv(16)  # Break data into 16 bit chunks.
+            amount_received += len(data)  # Count collected data.
             print(sys.stderr, 'received "%s"' % data)
 
     finally:
         print(sys.stderr, 'closing socket')
-        sock.close()
+        sock.close()  # Close socket.
