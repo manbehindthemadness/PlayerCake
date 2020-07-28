@@ -18,25 +18,22 @@ def udpserver():
     Launches a UDP announce server.
     :return: Nothing.
     """
-    server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # Create UDP transmission socket.
     # server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    # Enable broadcasting mode
     # server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcasting mode.
 
     server.bind((settings.BindAddr, 37020))  # This is a windows thing...
 
-    server.settimeout(0.2)
-    statement = 'director:' + socket.gethostname() + ':' + settings.DirectorID + ':' + settings.BindAddr + ':' + str(settings.TCPBindPort)
-    message = bytes(statement, "utf8")
-    while not term:
-        server.sendto(message, ("<broadcast>", 37020))
+    server.settimeout(0.2)  # Define server timeout.
+    statement = 'director:' + socket.gethostname() + ':' + settings.DirectorID + ':' + settings.BindAddr + ':' + str(settings.TCPBindPort)  # Define data package.
+    message = bytes(statement, "utf8")  # Convert data package into bytes.
+    while not term:  # Broadcast until termination signal is recieved.
+        server.sendto(message, ("<broadcast>", 37020))  # Send message.
         print("message sent!")
         time.sleep(1)
-    # server.sendto(message, ("<broadcast>", 37020))
-    # print("message sent!")
 
 
 def tcpserver():
@@ -45,25 +42,22 @@ def tcpserver():
     :return: Nothing.
     """
     global term
-    announcethread = Thread(target=udpserver, args=())
-    announcethread.start()
-    # Create a TCP/IP socket
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_address = (settings.BindAddr, settings.TCPBindPort)
+    announcethread = Thread(target=udpserver, args=())  # Create transmitter thread.
+    announcethread.start()  # Launch UDP transmitter.
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
+    server_address = (settings.BindAddr, settings.TCPBindPort)  # Create connection string.
     print(sys.stderr, 'starting up on %s port %s' % server_address)
-    sock.bind(server_address)
-    # Listen for incoming connections
-    sock.listen(1)
+    sock.bind(server_address)  # Bind connection string to socket.
+    sock.listen(1)  # Listen for incoming connections.
 
     while True:
-        # Wait for a connection
         print(sys.stderr, 'waiting for a connection')
         connection, client_address = sock.accept()  # This waits until a client connects.
         try:
             print(sys.stderr, 'connection from', client_address)
 
-            # Receive the data in small chunks and retransmit it
-            while True:
+            while True:  # Receive the data in small chunks and retransmit it
                 data = connection.recv(16)
                 print(sys.stderr, 'received "%s"' % data)
                 if data:
@@ -74,6 +68,5 @@ def tcpserver():
                     break
 
         finally:
-            # Clean up the connection
-            connection.close()
-            term = False
+            connection.close()  # Clean up the connection.
+            term = False  # Close transmitter thread.
