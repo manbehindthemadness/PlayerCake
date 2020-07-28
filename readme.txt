@@ -9,6 +9,7 @@ Applications:
     playercake.stage: This is the client app that handles the real time processing on the down-stream mobile platform.
     playercake.director: This is the central control app, it is designed to manage one or more down-stream mobile platforms running stage.
     playercake.audience: This is the visual interface application designed to render the result sets provided by director.
+    playercake.warehouse: This is where resources (code and things) that are shared across the above applications is stored.
 
 Terms:
     Rehersals: Raw movement instructions that will be pre-processed into a Script.
