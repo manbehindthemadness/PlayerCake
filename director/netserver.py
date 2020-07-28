@@ -19,13 +19,13 @@ def udpserver():
     :return: Nothing.
     """
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # Create UDP transmission socket.
-    # server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    if settings.Envirnment == 'pure':
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    elif settings.Envirnment == 'mixed': # This is a windows thing...
+        server.bind((settings.BindAddr, 37020))
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    # server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcasting mode.
-
-    server.bind((settings.BindAddr, 37020))  # This is a windows thing...
 
     server.settimeout(0.2)  # Define server timeout.
     statement = 'director:' + socket.gethostname() + ':' + settings.DirectorID + ':' + settings.BindAddr + ':' + str(settings.TCPBindPort)  # Define data package.
