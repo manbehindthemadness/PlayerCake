@@ -46,6 +46,7 @@ Hardware:
             4 x Uxcell B102 B1K slide potentiometer 18mm/10k,
             100k thermistor,
             10k photistor.
+            Computer speaker/buzzer,
             UCTRONICS 0.96 Inch OLED Module 12864 128x64,
             3 x FAIRCHILD SEMICONDUCTOR 2N7000 N CHANNEL MOSFET, 60V, 200mA, TO-92,
             3x 10k resistor,
