@@ -78,6 +78,7 @@ Hardware:
             Servo Enable - GPIO 4,
             LV MAXSonar - Serial UART 14, 15
         Determine power requirements. - Complete - Waiting on final confirmation when parts arrive
+            NOTE: Investigate side-loaging a few servos onto rail 1 to even out power drain.
             5v 4a regulated-split on two rails.
             rail 1 (1,331.9/668.01ma).
                 RasPi Zero - 120ma (BPI M2 - TBD),
