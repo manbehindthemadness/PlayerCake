@@ -1,5 +1,6 @@
 Hardware:
     Goal: Produce a robust mobile platform capable of verifying software functionality in a tangible fashion.
+    Timeline: 2 months allowing for variations in part shipping.
     Materials:
         Identify common build materials. - Complete
             PetG Thermoplastic, hardened DLP resin, PTFE.
@@ -61,6 +62,21 @@ Hardware:
             Glarks 112Pcs 2.54mm Male and Female Pin Header Connector Assortment Kit,
             GeeBat 820pcs Dupont Connector Assortment Kit,
             Saide 10pcs IPEX U.FL SMD SMT Solder for PCB Mount Socket Jack Female RF Coaxial Connector,
+        Determin I2C Bus addressing scheme. - Complete
+            ADC - 0x68,
+            PWM - 0x40,
+            Accelerometer - 0x6a,
+            Magnatrometer - 0x1c,
+            Altimeter - 0x77,
+            OLED Display - 0x78
+        Determine general connections. - Complete
+            HC-SR04 - GPIO 27,22,23,24,25,Mosi (ported to resistors on protoboard for voltage reduction),
+            Laser - GPIO 16,
+            NightVision - GPIO 26,
+            Speaker - PWM 13,
+            GPS Enable - GCLK2 6,
+            Servo Enable - GPIO 4,
+            LV MAXSonar - Serial UART 14, 15
         Determine power requirements. - Complete - Waiting on final confirmation when parts arrive
             5v 4a regulated-split on two rails.
         Determine hardware payload. - Complete
@@ -179,7 +195,9 @@ Hardware:
         Overall construction. - Complete - Waiting on final confirmation when parts arrive
             Additional tests against tolerances will be performed after the last remaining parts arrive and are confirmed to meet specified ratings.
 Software:
+    Timeline: 4 Months.
 Phase_1:
+    Timeline: 1 Month.
     Goal: Create basic software functionality and confirm the rendering technique will accommodate the processing hardware available.
     Establish a connection and data exchange between Director and Stage. - In progress
         Connections should discover the tcp address of the target member using UDP broadcast. - Complete
