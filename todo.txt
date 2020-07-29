@@ -69,15 +69,16 @@ Hardware:
             Accelerometer - 0x6a,
             Magnatrometer - 0x1c,
             Altimeter - 0x77,
-            OLED Display - 0x78
+            OLED Display - 0x78,
         Determine general connections. - Complete
             HC-SR04 - GPIO 27,22,23,24,25,Mosi (ported to resistors on protoboard for voltage reduction),
-            Laser - GPIO 16,
-            NightVision - GPIO 26,
+            Laser - GPIO 16 (ported to MOSFET on protoboard),
+            NightVision - GPIO 26 (ported to MOSFET on protoboard),
             Speaker - PWM 13,
             GPS Enable - GCLK2 6,
             Servo Enable - GPIO 4,
-            LV MAXSonar - Serial UART 14, 15
+            LV MAXSonar - Serial UART 14, 15,
+            OV5647 Camera - Native ZIF socket,
         Determine power requirements. - Complete - Waiting on final confirmation when parts arrive
             NOTE: Investigate side-loaging a few servos onto rail 1 to even out power drain.
             5v 4a regulated-split on two rails.
