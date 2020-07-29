@@ -1,19 +1,79 @@
+Hardware:
+    Goal: Produce a robust mobile platform capable of verifying software functionality in a tangible fashion.
+    Platform design:
+        Establish general design tolerances. - Complete
+        Establish active Prop payload. - Complete
+        Establish passive Prop payload. - Complete
+        Establish Improvisor payload. - Complete
+        Determine electronics payload. - Complete
+        Determine power requirements. - Complete - Waiting on final confirmation when parts arrive
+        Determine overall platform weight versus torque requirements. - Complete - Waiting on final confirmation when parts arrive
+        Design core chassis complementing the above payloads. - Complete
+        Establish workable weight distribution and workable center of gravity. - Complete - Waiting on final confirmation when parts arrive
+        Design walking appendages that complement the above chassis specifications. - Complete - Waiting on final confirmation when parts arrive
+            Implement compression sensors for ground contact detection. - Complete
+            Implement position sensors for absolute measurements when drive chain is under compression. - Complete
+            Locate a high traction material for foot traction and durability. - Complete
+            Design a gimbal that retains full range of motion. - Complete
+            Accommodate for wiring harnesses with respect to durability. - Complete
+            Locate tensioners that meet weight and torque requirements. - Complete - Waiting on final confirmation when parts arrive
+
+    Platform Construction:
+        Manufacture core chassis. - Complete
+            Produce components. - Complete
+            Assemble core chassis. - Complete
+            Confirm electronics payload nesting provisions. - Complete - Waiting on final confirmation when parts arrive
+            Confirm weight and balancing provisions. - Complete - Waiting on final confirmation when parts arrive
+            Confirm wiring and mounting provisions. - Complete - Waiting on final confirmation when parts arrive
+        Manufacture walking appendage(s). - Complete
+            Produce components. - Complete
+            Assemble walking appendage(s). - Complete
+            Confirm compression sensor functionality. - Complete - Waiting on final confirmation when parts arrive
+            Confirm position sensor functionality. - Complete - Waiting on final confirmation when parts arrive
+            Verify wiring provisions for durability. - Complete - Waiting on final confirmation when parts arrive
+            Verify foot traction and viability. - Complete
+            Verify range of motion and torque provisions. - Complete - Waiting on final confirmation when parts arrive
+        Overall construction. - Complete - Waiting on final confirmation when parts arrive
+            Additional tests against tolerances will be performed after the last remaining parts arrive and are confirmed to meet specified ratings.
+Software:
 Phase_1:
+    Goal: Create basic software functionality and confirm the rendering technique will accommodate the processing hardware available.
+    Establish a connection and data exchange between Director and Stage. - In progress
+        Connections should discover the tcp address of the target member using UDP broadcast. - Complete
+        Each application should be able to accept and initiate connections. - In progress
+        Connections should be secured using key pairs and member identification UUIDs. - In progress
+        Data transfer should have disconnect and resume tolerance in the event of poor connections. - Pending
+        Create Heckle functionality allowing for direct command interrupts to members for troubleshooting. - Pending
 
-    Establish a connection and data exchange between Director and Stage.
+    Create initial script render capability within Writer. - Pending
+        Script should calculate all required kinematics for basic operations.
+        Script should calculate known trim offsets for a configurable number of Actors.
+        Script needs to have configurable resolution.
+        Script should output to matplotlib for trajectory analysis.
+        Script must be modular and allow for a flexible number of actors with unique configurations.
 
-    Establish connection drop and reconnection recovery.
+    Implement script delivery to Director and deployment to stage. - Pending
+        Director must be able to notify Stage when updated Script files are available.
+        Stage must be able to ask Director if new Script files are available.
+        Stage must be able to determine the time and method of Script updates.
+        Stage must be able to perform init and power on self tests to verify Script files usability.
 
-    Create initial script render capability within Writer.
-
-    Implement script delivery to Director and deployment to stage.
-
-    Implement basic script reading cabilities for Stage.
+    Implement basic script reading abilities for Stage. - Pending
+        Stage must perform a series of performance tests to determine processing delays and identify throughput bottlenecks.
+        Stage must be able to layer Script actions using priority, offset, reversal, rate, and interrupt.
+        Stage must be able to factor Improvisor data to determine Cue faults to prevent physical damage to the platform.
+            Irrecoverable positions.
+            Power off conditions.
+            Tolerance of the Actors.
+            Lay down and die when damage or malfunction is detected.
+Phase_2:
+    Goal: Phase 2 goals will be specified once we have confirmed that phase 1 design is viable.
 
 
 General_notes:
 
-    We are going to need to decide if calibrations are handled on the Stage or if they are moved upstream to Writed through the Director.
+    We are going to need to decide if calibrations are handled on the Stage or if they are moved upstream to Writer through the Director.
         I think we will keep positional trims in Writer and transient (pressure and such) on the Stage...
 
     The first chore involving Audience is going to need to be some sort of QR code onboarding process.
+
