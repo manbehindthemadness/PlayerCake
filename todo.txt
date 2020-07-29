@@ -79,6 +79,32 @@ Hardware:
             Servo Enable - GPIO 4,
             LV MAXSonar - Serial UART 14, 15,
             OV5647 Camera - Native ZIF socket,
+            ADC.
+                1 - LFL Press
+                2 - LFL Pos
+                3 - RFL Press
+                4 - RFL Pos
+                5 - RLR Press
+                6 - LRL Pos
+                7 - RRL Press
+                8 - RRL Pos
+            PWM.
+                0 - LFL X
+                1 - LFL Y
+                2 - LFL Z
+                3 - NC
+                4 - RFL X
+                5 - RFL Y
+                6 - RFL Z
+                7 - NC
+                8 - LRL X
+                9 - LRL Y
+                10 - LRL Z
+                11 - NC
+                12 - RRL X
+                13 - RRL Y
+                14 - RRL Z
+                15 - NC
         Determine power requirements. - Complete - Waiting on final confirmation when parts arrive
             NOTE: Investigate side-loaging a few servos onto rail 1 to even out power drain.
             5v 4a regulated-split on two rails.
