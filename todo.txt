@@ -195,10 +195,12 @@ Hardware:
         Overall construction. - Complete - Waiting on final confirmation when parts arrive
             Additional tests against tolerances will be performed after the last remaining parts arrive and are confirmed to meet specified ratings.
 Software:
-    Timeline: 4 Months.
+    Timeline: 4 Months from comfirmation of phase 1 viability.
 Phase_1:
     Timeline: 1 Month.
     Goal: Create basic software functionality and confirm the rendering technique will accommodate the processing hardware available.
+    Create project repositories and development resources. - Complete
+
     Establish a connection and data exchange between Director and Stage. - In progress
         Connections should discover the tcp address of the target member using UDP broadcast. - Complete
         Each application should be able to accept and initiate connections. - In progress
