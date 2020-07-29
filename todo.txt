@@ -1,13 +1,85 @@
 Hardware:
     Goal: Produce a robust mobile platform capable of verifying software functionality in a tangible fashion.
+    Materials:
+        Identify common build materials. - Complete
+            PetG Thermoplastic, hardened DLP resin, PTFE.
+        Identify simple machines that accommodate common build materials. - Complete
+            Screws, bearings, springs, rods, sliders
+    Electronics:
+        Identify viable motors. - Complete
+            Med torque sub micro servos.
+        Identify viable sensors. - Complete
+            Pressure peizo, position slide pot, object detection ultrasonics/laser/video/nightvision, physical GPS/compas/gyro/accel.
+        Identify control board. - Complete
+            Raspberry Pi Zero / Banana BPI M2 Zero.
+        Identify daughter boards. - Complete
+            ADC/PWM/SAT-NAV.
+        Identify power supply. - Complete
+            2xLiIon 5500mah.
+        Identify communications accessories. - Complete
+            Ceramic +38db active GPS antenna, +50db active wifi antenna.
+
     Platform design:
         Establish general design tolerances. - Complete
+            750g/300cm/300cm/100cm/80c/1400ng/360d.
         Establish active Prop payload. - Complete
+            LV-MaxSonar-EZ1, 3 x HC-SR04, 3W 850 IR HP NightVision, OV5647 1080p 60fps camera, 50mw 780nm IR Laser.
         Establish passive Prop payload. - Complete
+            4 x Uxcell 10mm Acoustic piezo, 4 x Uxcell slide potentiometer, 100k thermistor, 10k photistor.
         Establish Improvisor payload. - Complete
+            GPS / 10DOF Accelerometer, Gyroscope, Magnetometer and Barometric/Altitude Sensor.
         Determine electronics payload. - Complete
+            Raspberry Pi Zero / Banana BPI M2 Zero,
+            BerryGPS-IMUv3,
+            Raspi ADC,
+            PWM/Servo Driver IIC interface-PCA9685,
+            Cirocomm 580 32db GPS Antenna,
+            WALKING SLOW-Replacement for iPad WiFi WLAN Bluetooth Wireless Signal Connector Antenna Flex Cable Ribbon (iPad Air),
+            LV-MaxSonar-EZ1,
+            3 x HC-SR04,
+            3W 850 IR HP NightVision,
+            OV5647 1080p 60fps camera (OV5640 for BPI),
+            50mw 780nm IR Laser.
+            4 x Uxcell 10mm Acoustic piezo,
+            4 x Uxcell B102 B1K slide potentiometer 18mm/10k,
+            100k thermistor,
+            10k photistor.
+            UCTRONICS 0.96 Inch OLED Module 12864 128x64,
+            3 x FAIRCHILD SEMICONDUCTOR 2N7000 N CHANNEL MOSFET, 60V, 200mA, TO-92,
+            3x 10k resistor,
+            12 x GOTECK GS-5010MG Micro Analog servo/ 5g/ 0.8kg-cm/ 0.12sec,
+            2 x Wondom  PS-BC12114 5V Boost Circuit Power SUpplies,
+            2 x IMR 26650 5500MAH 22A/60A 3.7V Batteries,
+            FFC FPC 24 pin 0.5mm 250mm Pitch ZIF Ribbon Cable Extender and Adaptor.
+            50 ft 28 gauge wiring,
+            m.2 nvme ssd 2280 Gold Heatsink,
+            Raspi solid heatsink,
+            Raspi official 3cm cooling fan,
+            Eiechip Mini Breadboard kit 170 Points,
+            iCreating Male DC Connector Plug, 12V 5.5 X 2.1mm Barrel Power Jack Adapter Connector.
         Determine power requirements. - Complete - Waiting on final confirmation when parts arrive
+            5v 4a regulated-split on two rails.
+        Determine hardware payload. - Complete
+            50 x M1x8, 100 x M1x5 10x M2.5x7 Machine screws,
+            100 x M1 washer.
+            100 x 681ZZ 1x3x1 Shield Bearings,
+            4 x Sutemribor 2mm x 100mm Metal Round Shaft Rod Bars,
+            4 x uxcell Round Steel Rod, 1mm HSS Lathe Bar Stock Tool 100mm Long,
+            Atomic enhanced PETG Filament,
+            500g Elegoo DLP Resin,
+            uxcell PTFE Tubing 1mm ID x 2mm OD x 16ft PTFE Tube,
+            Fluorostore F015090 - 5 Metric PTFE Tubing, 3 mm ID x 4 mm OD, 5' Length, Semi-Transparent,
+            4 x XJS Metal Compression Spring Silver Tone (0.3x2.3x16.5mm),
+            4 x Neiko Comp 23/64" x 2-13/16" Springs,
+            Black Self-Adhesive Bumper Pads Generic,
+            Plasti Dip 14.5 oz. Yellow 11602-6,
+            Shomer-Tec Kevlar 200lb test Survival Cord,
+            8 x OzzMaker M2.5 Black Nylon Screw, Nut and Standoffs,
+            Silver bearing solder,
+            2-Part Epoxy,
+            Zip-Ties,
         Determine overall platform weight versus torque requirements. - Complete - Waiting on final confirmation when parts arrive
+            750g @ 5g/ 0.8kg-cm/ 0.12sec X 12.
         Design core chassis complementing the above payloads. - Complete
         Establish workable weight distribution and workable center of gravity. - Complete - Waiting on final confirmation when parts arrive
         Design walking appendages that complement the above chassis specifications. - Complete - Waiting on final confirmation when parts arrive
