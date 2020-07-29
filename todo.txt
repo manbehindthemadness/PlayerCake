@@ -236,8 +236,8 @@ Phase_2:
 General_notes:
 
     We are going to need to decide if calibrations are handled on the Stage or if they are moved upstream to Writer through the Director.
-        I think we will keep positional trims in Writer and transient (pressure and such) on the Stage...
+        I think we will keep positional trims in Writer and transient (pressure and such) on the Stage... - In progress
 
-    The first chore involving Audience is going to need to be some sort of QR code onboarding process.
+    The first chore involving Audience is going to need to be some sort of QR code onboarding process. - Pending
 
-    Complete research on side-loading the two fragment and vertix processor on the Mali400 MP2 GPU.
+    Complete research on side-loading the two fragment and vertix processor on the Mali400 MP2 GPU. - In progress
