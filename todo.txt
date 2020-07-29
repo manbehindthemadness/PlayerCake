@@ -79,6 +79,19 @@ Hardware:
             LV MAXSonar - Serial UART 14, 15
         Determine power requirements. - Complete - Waiting on final confirmation when parts arrive
             5v 4a regulated-split on two rails.
+            rail 1 (1,331.9/668.01ma).
+                RasPi Zero - 120ma (BPI M2 - TBD),
+                Gyro/GPS - 3.9ma,
+                Servo controller - 10ma,
+                ADC - 1ma,
+                HC-SR04 Ultra - 15ma,
+                LVMax Sonar - 2ma,
+                Laser - 200ma,
+                NightVision - 250-909ma,
+                GPS Antenna - 10ma,
+                OLED display - 16ma,
+            Rail 2 (1,800/200ma).
+                12 x GOTECK GS-5010MG Micro Analog servo - 150ma,
         Determine hardware payload. - Complete
             50 x M1x8, 100 x M1x5 10x M2.5x7 Machine screws,
             100 x M1 washer.
