@@ -22,6 +22,7 @@ Hardware:
 
     Platform design:
         NOTE: All units are metric unless otherwise noted.
+        NOTE: All Touques < 2Nm.
         Establish general design tolerances. - Complete
             750g/300cm/300cm/100cm/80c/1400ng/360d.
         Establish active Prop payload. - Complete
@@ -80,31 +81,31 @@ Hardware:
             LV MAXSonar - Serial UART 14, 15,
             OV5647 Camera - Native ZIF socket,
             ADC.
-                1 - LFL Pressure
-                2 - LFL Position
-                3 - RFL Pressure
-                4 - RFL Position
-                5 - RLR Pressure
-                6 - LRL Position
-                7 - RRL Pressure
-                8 - RRL Position
+                1   - LFL Pressure
+                2   - LFL Position
+                3   - RFL Pressure
+                4   - RFL Position
+                5   - RLR Pressure
+                6   - LRL Position
+                7   - RRL Pressure
+                8   - RRL Position
             PWM.
-                0 - LFL X Servo
-                1 - LFL Y Servo
-                2 - LFL Z Servo
-                3 - NC
-                4 - RFL X Servo
-                5 - RFL Y Servo
-                6 - RFL Z Servo
-                7 - NC
-                8 - LRL X Servo
-                9 - LRL Y Servo
-                10 - LRL Z Servo
-                11 - NC
-                12 - RRL X Servo
-                13 - RRL Y Servo
-                14 - RRL Z Servo
-                15 - NC
+                0   - LFL X Servo
+                1   - LFL Y Servo
+                2   - LFL Z Servo
+                3   - NC
+                4   - RFL X Servo
+                5   - RFL Y Servo
+                6   - RFL Z Servo
+                7   - NC
+                8   - LRL X Servo
+                9   - LRL Y Servo
+                10  - LRL Z Servo
+                11  - NC
+                12  - RRL X Servo
+                13  - RRL Y Servo
+                14  - RRL Z Servo
+                15  - NC
         Determine power requirements. - Complete - Waiting on final confirmation when parts arrive
             NOTE: Investigate side-loaging a few servos onto rail 1 to even out power drain.
             5v 4a regulated-split on two rails.
