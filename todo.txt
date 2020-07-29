@@ -92,6 +92,7 @@ Hardware:
                 NightVision - 250-909ma,
                 GPS Antenna - 10ma,
                 OLED display - 16ma,
+                OV5647 Camera - TBD,
             Rail 2 (1,800/200ma).
                 12 x GOTECK GS-5010MG Micro Analog servo - 150ma,
         Determine hardware payload. - Complete
@@ -153,7 +154,12 @@ Hardware:
             Dike Pliers,
             Pedicure Pliers,
             Wire Wrapping tool,
+            Wire stripper,
+            Micro torque wrench,
             Neiko 20753A Keyless Chuck Conversion Tool,
+            TruePower Mini Miter Cut-Off Chop Saw,
+            Lenox Tools 1972917 METALMAX Diamond Edge Cutoff Wheel, 2" x 3/8",
+            Shark Welding 19 Shark Cut-Off Wheel, 2-Inch by 1/32-Inch by 3/8-Inch,
             Allen wrenches,
             Paint Brush,
             Plastic bowls,
