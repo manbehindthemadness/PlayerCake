@@ -77,3 +77,4 @@ General_notes:
 
     The first chore involving Audience is going to need to be some sort of QR code onboarding process.
 
+    Complete research on side-loading the two fragment and vertix processor on the Mali400 MP2 GPU.
