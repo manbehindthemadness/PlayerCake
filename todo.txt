@@ -20,6 +20,7 @@ Hardware:
             Ceramic +38db active GPS antenna, +50db active wifi antenna.
 
     Platform design:
+        NOTE: All units are metric unless otherwise noted.
         Establish general design tolerances. - Complete
             750g/300cm/300cm/100cm/80c/1400ng/360d.
         Establish active Prop payload. - Complete
@@ -75,6 +76,7 @@ Hardware:
             4 x XJS Metal Compression Spring Silver Tone (0.3x2.3x16.5mm),
             4 x Neiko Comp 23/64" x 2-13/16" Springs,
             Black Self-Adhesive Bumper Pads Generic,
+            Black 400-750nm Filter Glass Lens 18mm,
             Plasti Dip 14.5 oz. Yellow 11602-6,
             Shomer-Tec Kevlar 200lb test Survival Cord,
             8 x OzzMaker M2.5 Black Nylon Screw, Nut and Standoffs,
@@ -84,7 +86,7 @@ Hardware:
             Mounting Tape 2 sided,
             Super Glue,
             Tri-Flo PTFE Lubricant.
-        Determine required tools. - In progress, will revise as build progresses.
+        Determine required tools and other supplies. - In progress, will revise as build progresses
             IWISS Dupont Professional Pin Compression Ratcheting Modular Insulated Terminal Crimper Pin Crimping Tool,
             ZENY 3 in 1 853d Lead-Free Soldering Station,
             Cordless Screwdriver-Electric Screwdriver,
@@ -126,6 +128,27 @@ Hardware:
             Plastic bowls,
             Sand Paper 400 grit,
             Shop Cloth,
+            X-Acto knife and blades,
+            Acetone,
+            Leather needle,
+            Metric Ruler,
+        Determine software suite. - Complete, subject to revision
+            Cad/surface modeling - Autodesk Fusion 360,
+            FDM Slicer - Simplify3D,
+            DLP SLicer - Longerware.
+            Circuit Designer - Fritzing,
+            Python IDE - Pycharm,
+                3rd party python modules - see requirements.txt,
+            Operating System - Debian Buster (Raspbian/Ambian fork),
+            Video Stream Processing - OpenCV,
+            Physics Processing - PyRealTime,
+            Management and Adminstration - Bash terminal for linux/macos, MobaXTerm for windows.
+            Image deployment - dd for linux/macos, Win32DiskImager for windows,
+        Determin support hardware. - Complete
+            Wifi Hotspot,
+            Director unit - Raspberry Pi ver4,
+            Onboarding display/Audience unit - Iphone / Droid tablet,
+            Charging unit - 5v 2a Raspberry Pi Official,
         Determine overall platform weight versus torque requirements. - Complete - Waiting on final confirmation when parts arrive
             750g @ 5g/ 0.8kg-cm/ 0.12sec X 12.
         Design core chassis complementing the above payloads. - Complete
