@@ -37,9 +37,12 @@ GPIO.output(12, 0)
 while True:
     temp = get_cpu_temperature()
     print(temp)
-    if temp > 36.0:
+    if temp > 35.0:
         print('cooling on')
         GPIO.output(12, 1)
+        for inc in range(0, 10):
+            print(get_cpu_temperature())
+            time.sleep(1)
     else:
         print('cooling off')
         GPIO.output(12, 0)
