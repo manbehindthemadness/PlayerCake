@@ -8,10 +8,10 @@ kit = ServoKit(channels=16)
 cnt = 0
 
 while cnt < 10:
-    for servo in range(4, 15):
+    for servo in range(1, 15):
         kit.servo[servo].angle = 180
     time.sleep(1)
-    for servo in range(4, 15):
+    for servo in range(1, 15):
         kit.servo[servo].angle = 0
     time.sleep(1)
     cnt += 1
