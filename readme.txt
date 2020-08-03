@@ -22,5 +22,6 @@ Terms:
     Improvisers: These are real-time data factors that alter the behavior of Scripts (gyro, accelerometer...etc).
     Props: Sensors providing information about the physical world (echolocation, laser, IR...etc)
     Cues: Any conditional interrupt that results in an action being taken (there is a wall in front of me...).
+    Critics: These conditionally discourage certain queues depending on what kind of Scene we are using.
     Performance: This is a rating attached to Scripts, Scenes, plays and Directors respectively. The value signifies effectiveness.
     Heckles: These are direct commands sent from Audience that effect the behavior of one or more Stages.

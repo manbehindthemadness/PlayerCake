@@ -13,13 +13,14 @@ while cnt < 5:
         for servo in range(1, 15):
             kit.servo[servo].angle = position
             print(servo, position)
-            time.sleep(0.01)
+            time.sleep(0.003)
     # time.sleep(1)
     range_.reverse()
     for position in range_:
         for servo in range(1, 15):
             kit.servo[servo].angle = position
-            time.sleep(0.01)
+            time.sleep(0.003)
+    range_.reverse()
     # time.sleep(1)
     # cnt += 1
     # if cnt == 5:
