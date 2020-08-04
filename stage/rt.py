@@ -6,8 +6,8 @@ from stage import settings
 from stage.improvisors.lsm9ds1 import lsm9ds1
 from ADCPi import ADCPi
 import RPi.GPIO as GPIO
-import os
-import datetime
+# import os
+# import datetime
 from warehouse.system import get_cpu_temperature
 
 # noinspection PyArgumentEqualDefault,PyArgumentEqualDefault,PyArgumentEqualDefault
@@ -38,7 +38,7 @@ while True:
             GPIO.output(settings.Cooling_Fan, 0)
 
     adc_output = list()  # Read ADC values
-    for adc_channel in range(1, settings.ADC_Num_Channels):
+    for adc_channel in range(1, settings.ADC_Num_Channels + 1):
         adc_value = adc.read_voltage(adc_channel)
         if adc_channel in settings.ADC_Ungrounded_Channels:  # Clamp noise
             adc_value = adc_value - settings.ADC_Noise

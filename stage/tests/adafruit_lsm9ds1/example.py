@@ -2,10 +2,9 @@
 Simple demo of the LSM9DS1 accelerometer, magnetometer, gyroscope.
 Will print the acceleration, magnetometer, and gyroscope values every second.
 """
-import time
 import board
 import busio
-from stage.improvisors import adafruit_lsm9ds1
+from stage.oem.lsm9ds1 import adafruit_lsm9ds1
 
 # I2C connection:
 i2c = busio.I2C(board.SCL, board.SDA)

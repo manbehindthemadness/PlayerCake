@@ -17,7 +17,7 @@ Cooling_Fan = 12
 # Calibrations
 
 ADC_Num_Channels = 8  # Number of ADC channels.
-ADC_Noise = 0.002471  # We can use this in the event that the acd chan is not balanced to ground.
+ADC_Noise = 0.0  # 0.002471  # We can use this in the event that the acd chan is not balanced to ground.
 ADC_Ungrounded_Channels = []
 
 # If the IMU is upside down (Skull logo facing up), change this value to 1
