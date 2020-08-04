@@ -26,6 +26,7 @@ GPIO.output(settings.Cooling_Fan, 0)
 
 temp = 0.0
 cnt = 0
+rc = 0
 while True:
     if cnt > 10:
         cnt = 0
@@ -44,7 +45,7 @@ while True:
         adc_output.append(adc_value)
 
     # Read gyro, accel, compass.
-    GAC = lsm9ds1()
+    GAC = lsm9ds1(1)
 
     if settings.Debug:
         A_data = str(list(GAC.acceleration))
@@ -58,5 +59,6 @@ while True:
         message += 'Ambient Temp: ' + T_data + '\n'
         message += 'Cpu Temp: ' + str(temp) + '\n'
         print(message)
-
+        print(rc)
+    rc += 1
     cnt += 1
