@@ -131,7 +131,12 @@ kalmanY = 0.0
 
 a = datetime.datetime.now()
 
-while True:
+
+def read_berry():
+    """
+    This is a debug function to dump information from the berryimu.
+    :return:
+    """
 
     # Read the accelerometer,gyroscope and magnetometer values
     ACCx = IMU.readACCx()
@@ -254,7 +259,4 @@ while True:
     if 1:  # Change to '0' to stop  showing the angles from the Kalman filter
         outputString += "# kalmanX %5.2f   kalmanY %5.2f #" % (kalmanX, kalmanY)
 
-    print(outputString)
-
-    # slow program down a bit, makes the output more readable
-    time.sleep(0.03)
+    return outputString
