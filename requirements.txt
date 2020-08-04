@@ -1,3 +1,4 @@
+board
 abelectronics==2.2
 Adafruit-Blinka==5.2.1
 adafruit-circuitpython-busdevice==4.3.2
@@ -7,6 +8,7 @@ adafruit-circuitpython-pca9685==3.3.2
 adafruit-circuitpython-register==1.8.2
 adafruit-circuitpython-servokit==1.2.2
 adafruit-circuitpython-ssd1306==2.8.3
+adafruit-circuitpython-lsm9ds1==2.1.2
 Adafruit-PlatformDetect==2.14.1
 Adafruit-PureIO==1.1.5
 appdirs==1.4.4
