@@ -3,8 +3,8 @@ This file contains the realtime sensor loop.
 """
 
 from stage import settings
+from stage.improvisors.berryimu import read_berry
 from ADCPi import ADCPi
-from stage.oem.berry_imu import IMU
 import RPi.GPIO as GPIO
 import time
 import datetime
@@ -16,8 +16,6 @@ adc.set_pga(1)  # Set gain
 adc.set_bit_rate(12)  # Adjust timing (lower is faster)
 adc.set_conversion_mode(1)  # Set continuous conversion
 
-IMU.detectIMU()  # Detect if BerryIMUv1 or BerryIMUv2 is connected.
-IMU.initIMU()  # Initialise the accelerometer, gyroscope and compass
 
 if settings.Debug:
     GPIO.setwarnings(False)
@@ -34,6 +32,8 @@ for cls in range(1, settings.Debug_Line_Clear):
 
 cnt = 0
 while True:
+    if cnt > 100:
+        cnt = 0
     if not cnt:  # Init cooling.
         temp = get_cpu_temperature()
         if temp >= settings.Cooling_Temp_High:
@@ -48,13 +48,10 @@ while True:
             adc_value = adc_value - settings.ADC_Noise
         adc_output.append(adc_value)
 
-    # Read accerometer values.
-    ACCx = IMU.readACCx()
-    ACCy = IMU.readACCy()
-    ACCz = IMU.readACCz()
-    accel_output = [
-        (ACCx * 0.244)/1000,
-        (ACCy * 0.244)/1000,
-        (ACCz * 0.244) / 1000
-    ]
+    # Read gyro, accel, compass.
+    GAC = read_berry()
 
+    if settings.Debug:
+        message = clear_screen + 'ADC INPUT: ' + str(adc_output) + '\nGAC: ' + GAC
+
+    cnt += 1
