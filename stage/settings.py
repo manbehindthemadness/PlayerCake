@@ -2,7 +2,6 @@
 This is the software configuration settings file. These values are general defaults and should be modified in the logal_settings file not here!
 """
 Debug = True  # Enables debugging
-Debug_Line_Clear = 75
 DirectorID = '6efc1846-d015-11ea-87d0-0242ac130003'  # This ID matches Stage clients to their respective Directors.
 Envirnment = 'mixed'  # Mixed means that we are using windows or apple to communicate with Stage: mixed/pure
 BindAddr = '0.0.0.0'
@@ -19,7 +18,7 @@ Cooling_Fan = 12
 
 ADC_Num_Channels = 8  # Number of ADC channels.
 ADC_Noise = 0.002471  # We can use this in the event that the acd chan is not balanced to ground.
-ADC_Ungrounded_Channels = [1, 2, 3, 4]
+ADC_Ungrounded_Channels = []
 
 # If the IMU is upside down (Skull logo facing up), change this value to 1
 IMU_UPSIDE_DOWN = 0
@@ -66,7 +65,8 @@ YP_10 = 0.0
 YP_11 = 0.0
 KFangleX = 0.0
 KFangleY = 0.0
-
+CFangleX = 0.0
+CFangleY = 0.0
 # General Settings.
 
 Cooling_Temp_High = 35  # This is the temp where we will enable cooling.

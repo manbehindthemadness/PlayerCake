@@ -4,7 +4,7 @@ This is where we store the code to access the BerryIMU GPS Module.
 
 import datetime
 import math
-import time
+# import time
 
 from stage import settings
 from stage.improvisors import IMU
@@ -121,22 +121,19 @@ def kalmanFilterX(accAngle, gyroRate, DT):
 IMU.detectIMU()  # Detect if BerryIMUv1 or BerryIMUv2 is connected.
 IMU.initIMU()  # Initialise the accelerometer, gyroscope and compass
 
-gyroXangle = 0.0
-gyroYangle = 0.0
-gyroZangle = 0.0
-CFangleX = 0.0
-CFangleY = 0.0
-kalmanX = 0.0
-kalmanY = 0.0
+
 
 a = datetime.datetime.now()
 
 
-def read_berry():
+def read_berry(last_run_time):
     """
     This is a debug function to dump information from the berryimu.
     :return:
     """
+    gyroXangle = 0.0
+    gyroYangle = 0.0
+    gyroZangle = 0.0
 
     # Read the accelerometer,gyroscope and magnetometer values
     ACCx = IMU.readACCx()
@@ -155,8 +152,7 @@ def read_berry():
     MAGz -= (magZmin + magZmax) / 2
 
     ##Calculate loop Period(LP). How long between Gyro Reads
-    b = datetime.datetime.now() - a
-    a = datetime.datetime.now()
+    b = datetime.datetime.now() - last_run_time
     LP = b.microseconds / (1000000 * 1.0)
     outputString = "Loop Time %5.2f " % (LP)
 
@@ -189,8 +185,8 @@ def read_berry():
         AccYangle += 90.0
 
     # Complementary filter used to combine the accelerometer and gyro values.
-    CFangleX = AA * (CFangleX + rate_gyr_x * LP) + (1 - AA) * AccXangle
-    CFangleY = AA * (CFangleY + rate_gyr_y * LP) + (1 - AA) * AccYangle
+    CFangleX = AA * (settings.CFangleX + rate_gyr_x * LP) + (1 - AA) * AccXangle
+    CFangleY = AA * (settings.CFangleY + rate_gyr_y * LP) + (1 - AA) * AccYangle
 
     # Kalman filter used to combine the accelerometer and gyro values.
     kalmanY = kalmanFilterY(AccYangle, rate_gyr_y, LP)

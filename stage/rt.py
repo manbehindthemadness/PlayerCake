@@ -6,7 +6,7 @@ from stage import settings
 from stage.improvisors.berryimu import read_berry
 from ADCPi import ADCPi
 import RPi.GPIO as GPIO
-import time
+import os
 import datetime
 from warehouse.system import get_cpu_temperature
 
@@ -24,15 +24,10 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(settings.Cooling_Fan, GPIO.OUT)  # Init cooling fan.
 GPIO.output(settings.Cooling_Fan, 0)
 
-
-clear_screen = ''
-for cls in range(1, settings.Debug_Line_Clear):
-    clear_screen += '\n'
-
-
+temp = 0.0
 cnt = 0
 while True:
-    if cnt > 100:
+    if cnt > 10:
         cnt = 0
     if not cnt:  # Init cooling.
         temp = get_cpu_temperature()
@@ -49,9 +44,10 @@ while True:
         adc_output.append(adc_value)
 
     # Read gyro, accel, compass.
-    GAC = read_berry()
+    GAC = read_berry(datetime.datetime.now())
 
-    if settings.Debug:
-        message = clear_screen + 'ADC INPUT: ' + str(adc_output) + '\nGAC: ' + GAC
+    if settings.Debug and not cnt:
+        message = 'ADC INPUT: ' + str(adc_output) + '\nGAC: ' + GAC + '\n' + str(temp)
+        print(message)
 
     cnt += 1
