@@ -3,7 +3,7 @@ This file contains the realtime sensor loop.
 """
 
 from stage import settings
-from stage.improvisors.berryimu import read_berry
+from stage.improvisors.lsm9ds1 import lsm9ds1
 from ADCPi import ADCPi
 import RPi.GPIO as GPIO
 import os
@@ -44,10 +44,19 @@ while True:
         adc_output.append(adc_value)
 
     # Read gyro, accel, compass.
-    GAC = read_berry(datetime.datetime.now())
+    GAC = lsm9ds1()
 
-    if settings.Debug and not cnt:
-        message = 'ADC INPUT: ' + str(adc_output) + '\nGAC: ' + GAC + '\n' + str(temp)
+    if settings.Debug:
+        A_data = str(list(GAC.acceleration))
+        G_data = str(list(GAC.gyro))
+        C_data = str(list(GAC.magnetic))
+        T_data = str(GAC.temp)
+        message = 'ADC INPUT: ' + str(adc_output) + '\n'
+        message += 'Accel: ' + A_data + '\n'
+        message += 'Gyro: ' + G_data + '\n'
+        message += 'Compass: ' + C_data + '\n'
+        message += 'Ambient Temp: ' + T_data + '\n'
+        message += 'Cpu Temp: ' + str(temp) + '\n'
         print(message)
 
     cnt += 1
