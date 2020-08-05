@@ -1,5 +1,7 @@
 """
 This is where we are going to store all of our communication related code.
+
+TODO: I think we need to implement a serializer for our message contents so we can embed and retrieve complex imformation.
 """
 
 import socket
@@ -67,7 +69,7 @@ class NetServer:
                 dprint(settings, ('connection from', client_address,))
 
                 while True:  # Receive the data in small chunks and retransmit it
-                    data = connection.recv(4096)
+                    data = connection.recv(4096)  # TODO: We need to alter this so we just send back a confirmation, not all data.
                     output += data
                     # print(sys.stderr, 'received "%s"' % data)
                     if data:
@@ -159,6 +161,7 @@ class NetClient:
             amount_received = 0
             amount_expected = len(message)
 
+            # TODO: We need to alter this so we just send back a confirmation, not all data.
             while amount_received < amount_expected:  # Loop until expected data is recieved.
                 data = sock.recv(4096)  # Break data into chunks.
                 amount_received += len(data)  # Count collected data.
