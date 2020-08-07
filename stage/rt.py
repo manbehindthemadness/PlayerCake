@@ -4,6 +4,7 @@ This file contains the realtime sensor loop.
 
 from stage import settings
 from stage.improvisors.lsm9ds1 import lsm9ds1
+from stage.improvisors.gps_lkp import ReadGPS
 from ADCPi import ADCPi
 import RPi.GPIO as GPIO
 # import os
@@ -27,10 +28,13 @@ GPIO.output(settings.Cooling_Fan, 0)
 temp = 0.0
 cnt = 0
 rc = 0
+gps = ReadGPS()
+position = gps.latlong
 while True:
-    if cnt > 10:
+    if cnt > 30:
         cnt = 0
     if not cnt:  # Init cooling.
+        position = gps.getpositiondata().latlong
         temp = get_cpu_temperature()
         if temp >= settings.Cooling_Temp_High:
             GPIO.output(settings.Cooling_Fan, 1)
@@ -52,12 +56,14 @@ while True:
         G_data = str(list(GAC.gyro))
         C_data = str(list(GAC.magnetic))
         T_data = str(GAC.temp)
-        message = 'ADC INPUT: ' + str(adc_output) + '\n'
+        message = '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n'
+        message += 'ADC INPUT: ' + str(adc_output) + '\n'
         message += 'Accel: ' + A_data + '\n'
         message += 'Gyro: ' + G_data + '\n'
         message += 'Compass: ' + C_data + '\n'
         message += 'Ambient Temp: ' + T_data + '\n'
         message += 'Cpu Temp: ' + str(temp) + '\n'
+        message += 'location: lat ' + str(position[0]) + ' long ' + str(position[1]) + '\n'
         print(message)
         print(rc)
     rc += 1
