@@ -11,6 +11,7 @@ import RPi.GPIO as GPIO
 # import datetime
 from warehouse.system import get_cpu_temperature
 
+
 # noinspection PyArgumentEqualDefault,PyArgumentEqualDefault,PyArgumentEqualDefault
 adc = ADCPi(*settings.ADC_I2C)  # Init ADC.
 adc.set_pga(1)  # Set gain
@@ -24,6 +25,10 @@ if settings.Debug:
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(settings.Cooling_Fan, GPIO.OUT)  # Init cooling fan.
 GPIO.output(settings.Cooling_Fan, 0)
+GPIO.setup(settings.Gps_Sync, GPIO.IN)  # Setup GPS sync.
+GPIO.setup(settings.Gps_Enable, GPIO.OUT)  # Setup GPS enable.
+GPIO.output(settings.Gps_Enable, 1)  # Init GPS to acquire initial fix.
+
 
 temp = 0.0
 cnt = 0
@@ -33,8 +38,9 @@ position = gps.latlong
 while True:
     if cnt > 30:
         cnt = 0
-    if not cnt:  # Init cooling.
+    if GPIO.input(settings.Gps_Sync):  # Check if GPS data is ready
         position = gps.getpositiondata().latlong
+    if not cnt:  # Init cooling.
         temp = get_cpu_temperature()
         if temp >= settings.Cooling_Temp_High:
             GPIO.output(settings.Cooling_Fan, 1)
@@ -51,7 +57,7 @@ while True:
     # Read gyro, accel, compass.
     GAC = lsm9ds1(1)
 
-    if settings.Debug:
+    if settings.Debug and cnt == 30:
         A_data = str(list(GAC.acceleration))
         G_data = str(list(GAC.gyro))
         C_data = str(list(GAC.magnetic))

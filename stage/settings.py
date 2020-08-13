@@ -25,8 +25,8 @@ Extra_UART = '/dev/serial3'  # Save for later.
 Cooling_Fan = 12  # Optional.
 Laser = 16  # Optional.
 NV_Flood = 26  # Optional.
-Gps_Sync = 6
-Gps_Enable = 13
+Gps_Sync = 13
+Gps_Enable = 6
 PWM_Enable = 5
 
 # HS-SR04 sonar (Trigger, Echo).
