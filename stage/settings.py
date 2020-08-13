@@ -82,6 +82,10 @@ X_Solver = ''
 Y_SOlver = ''
 Z_Solver = ''
 
+# Filters:
+
+GPS_Fade = 20  # This is the number of samples that we will use to smooth the gps results.
+
 # Calibrations
 
 ADC_Num_Channels = 8  # Number of ADC channels.
