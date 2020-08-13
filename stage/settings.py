@@ -5,14 +5,82 @@ Debug = True  # Enables debugging
 DirectorID = '6efc1846-d015-11ea-87d0-0242ac130003'  # This ID matches Stage clients to their respective Directors.
 Envirnment = 'mixed'  # Mixed means that we are using windows or apple to communicate with Stage: mixed/pure
 BindAddr = '0.0.0.0'
+SSID = ''  # These are placeholder values for when we get QR code recognition working.
+Secret = ''
 
 # I2C Addresses.
 
-ADC_I2C = (0x68, 0x69, 18)
+ADC_I2C = (0x68, 0x69, 18)  # Analog inputs.
+PWM = (0x40, 0x70)  # Hardware PWM (Servos)
+Accel = 0x6a  # Accelerometer.
+Mag = 0x1c  # Compass.
+Press = 0x77  # Altimeter/Pressure.
+UART = (0x48, 0x90)  # I2C Serial expander (LVMaxSonar, spare).
+GPS_UART = '/dev/serial0'  # GPS.
+Sonar_UART = '/dev/serial2'  # Digital sonar.
+Extra_UART = '/dev/serial3'  # Save for later.
 
 # Pin assignments.
 
-Cooling_Fan = 12
+Cooling_Fan = 12  # Optional.
+Laser = 16  # Optional.
+NV_Flood = 26  # Optional.
+Gps_Sync = 6
+Gps_Enable = 13
+PWM_Enable = 5
+
+# HS-SR04 sonar (Trigger, Echo).
+L_Echo = (23, 24)  # Left.
+R_Echo = (27, 22)  # Right.
+B_Echo = (20, 25)  # Back.
+
+# ADC Pins:
+LF_Press = 1  # Left front pressure.
+RF_Press = 2  # Right front pressure.
+RL_Press = 3  # Rear Left Pressure.
+RR_Press = 4  # Right rear pressure.
+LF_Z_Pos = 5  # Left front Z position.
+RF_Z_Pos = 6  # Right Front Z position.
+RL_Z_Pos = 7  # Left rear Z position.
+RR_Z_Pos = 8  # Right rear Z position.
+
+# Servos:
+LF_X = 0  # Left front X servo.
+LF_X_Invert = False  # Reverse X servo.
+LF_Y = 1  # Left front Y servo.
+LF_Y_Invert = False  # Reverse Y servo.
+LF_Z = 2  # Left front Z servo.
+LF_Z_Invert = False  # Reverse Z Servo.
+LF_Extra = 3  # Extra channel.
+
+RF_X = 4  # Right front X servo.
+RF_X_Invert = False  # Reverse X servo.
+RF_Y = 5  # Right front Y servo.
+RF_Y_Invert = False  # Reverse Y servo.
+RF_Z = 6  # Right front Z servo.
+RF_Z_Invert = False  # Reverse Z Servo.
+RF_Extra = 3  # Extra channel.
+
+LR_X = 8  # Left rear X servo.
+LR_X_Invert = False  # Reverse X servo.
+LR_Y = 9  # Left rear Y servo.
+LR_Y_Invert = False  # Reverse Y servo.
+LR_Z = 10  # Left rear Z servo.
+LR_Z_Invert = False  # Reverse Z Servo.
+LR_Extra = 3  # Extra channel.
+
+RR_X = 12  # Right rear X servo.
+RR_X_Invert = False  # Reverse X servo.
+RR_Y = 13  # Right rear Y servo.
+RR_Y_Invert = False  # Reverse Y servo.
+RR_Z = 14  # Right rear Z servo.
+RR_Z_Invert = False  # Reverse Z Servo.
+RR_Extra = 3  # Extra channel.
+
+# This math will be evaled in the event  we have two servos that need to move in unison (knee and hip for Z lift for example).
+X_Solver = ''
+Y_SOlver = ''
+Z_Solver = ''
 
 # Calibrations
 
