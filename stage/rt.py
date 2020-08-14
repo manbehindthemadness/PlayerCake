@@ -55,6 +55,7 @@ class Start:
         self.gac = lsm9ds1  # Init IMU.
         self.gps = ReadGPS  # Init GPS.
         self.alt = alt  # Init altimiter.
+        self.temp = get_cpu_temperature  # Pull CPU temps.
         self.adc = ADCPi(*settings.ADC_I2C)  # Init ADC.
         self.adc.set_pga(1)  # Set gain.
         self.adc.set_bit_rate(12)  # Adjust timing (lower is faster).
@@ -63,6 +64,7 @@ class Start:
         self.threads = [  # Create threads.
             Thread(target=self.read_adc, args=()),
             Thread(target=self.read_imu, args=()),
+            Thread(target=self.read_system, args=()),
         ]
         if settings.Debug:
             self.threads.append(Thread(target=self.debug, args=()))
@@ -104,4 +106,13 @@ class Start:
             imud['TEMP'] = self.gac().temp
             imud['ALT'] = self.alt().pressure
             self.rt_data['IMU'] = imud
+
+    def read_system(self):
+        """
+        This is where we read values in relation to the running system itself.
+        """
+        self.rt_data['SYS'] = dict()
+        while not self.term:
+            self.rt_data['SYS']['CPU_TEMP'] = self.temp()
+            time.sleep(5)
 
