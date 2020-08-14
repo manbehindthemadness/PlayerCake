@@ -1,6 +1,8 @@
 """
 Simple demo of the LSM9DS1 accelerometer, magnetometer, gyroscope.
 Will print the acceleration, magnetometer, and gyroscope values every second.
+
+TODO: Ensure this uses the proper circuitpython code.
 """
 import board
 import busio

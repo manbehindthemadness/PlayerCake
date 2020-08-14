@@ -1,14 +1,17 @@
 """
 This file contains the realtime sensor loop.
+
+TODO: Revise GPS to use circuitpython.
 """
 
 from stage import settings
 from stage.improvisors.lsm9ds1 import lsm9ds1
 from stage.improvisors.gps_lkp import ReadGPS
+from stage.improvisors .bmp280 import alt
 from ADCPi import ADCPi
 import RPi.GPIO as GPIO
-# import os
-# import datetime
+from threading import Thread
+import time
 from warehouse.system import get_cpu_temperature
 
 
@@ -17,6 +20,9 @@ adc = ADCPi(*settings.ADC_I2C)  # Init ADC.
 adc.set_pga(1)  # Set gain
 adc.set_bit_rate(12)  # Adjust timing (lower is faster)
 adc.set_conversion_mode(1)  # Set continuous conversion
+
+rt_data = dict()
+term = False
 
 
 if settings.Debug:
@@ -35,42 +41,67 @@ cnt = 0
 rc = 0
 gps = ReadGPS()
 position = gps.latlong
-while True:
-    if cnt > 30:
-        cnt = 0
-    if GPIO.input(settings.Gps_Sync):  # Check if GPS data is ready
-        position = gps.getpositiondata().latlong
-    if not cnt:  # Init cooling.
-        temp = get_cpu_temperature()
-        if temp >= settings.Cooling_Temp_High:
-            GPIO.output(settings.Cooling_Fan, 1)
-        elif temp <= settings.Cooling_Temp_Low:
-            GPIO.output(settings.Cooling_Fan, 0)
 
-    adc_output = list()  # Read ADC values
-    for adc_channel in range(1, settings.ADC_Num_Channels + 1):
-        adc_value = adc.read_voltage(adc_channel)
-        if adc_channel in settings.ADC_Ungrounded_Channels:  # Clamp noise
-            adc_value = adc_value - settings.ADC_Noise
-        adc_output.append(adc_value)
 
-    # Read gyro, accel, compass.
-    GAC = lsm9ds1(1)
+class Start:
+    """
+    Real time program loop.
+    """
+    def __init__(self):
+        global rt_data
+        global term
+        self.rt_data = rt_data  # Pass realtime data.
+        self.term = term  # Pass termination.
+        self.gac = lsm9ds1  # Init IMU.
+        self.gps = ReadGPS  # Init GPS.
+        self.alt = alt  # Init altimiter.
+        self.adc = ADCPi(*settings.ADC_I2C)  # Init ADC.
+        self.adc.set_pga(1)  # Set gain.
+        self.adc.set_bit_rate(12)  # Adjust timing (lower is faster).
+        self.adc.set_conversion_mode(1)  # Set continuous conversion.
 
-    if settings.Debug and cnt == 30:
-        A_data = str(list(GAC.acceleration))
-        G_data = str(list(GAC.gyro))
-        C_data = str(list(GAC.magnetic))
-        T_data = str(GAC.temp)
-        message = '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n'
-        message += 'ADC INPUT: ' + str(adc_output) + '\n'
-        message += 'Accel: ' + A_data + '\n'
-        message += 'Gyro: ' + G_data + '\n'
-        message += 'Compass: ' + C_data + '\n'
-        message += 'Ambient Temp: ' + T_data + '\n'
-        message += 'Cpu Temp: ' + str(temp) + '\n'
-        message += 'location: lat ' + str(position[0]) + ' long ' + str(position[1]) + '\n'
-        print(message)
-        print(rc)
-    rc += 1
-    cnt += 1
+        self.threads = [  # Create threads.
+            Thread(target=self.read_adc, args=()),
+            Thread(target=self.read_imu, args=()),
+        ]
+        if settings.Debug:
+            self.threads.append(Thread(target=self.debug, args=()))
+
+        for thread in self.threads:  # Launch threads.
+            thread.start()
+
+    def debug(self):
+        """
+        This dumps the rt_data information to console.
+        """
+        while not self.term:
+            for reading in self.rt_data:
+                print(self.rt_data[reading], '\n')
+            time.sleep(0.02)
+
+    def read_adc(self):
+        """
+        Here is where we read the ADC inputs in real-time.
+        """
+        self.rt_data['ADC'] = dict()
+        while not self.term:
+            for num in range(1, settings.ADC_Num_Channels):
+                comp = 0
+                if num in settings.ADC_Ungrounded_Channels:
+                    comp = settings.ADC_Noise
+                self.rt_data['ADC']['ADCPort' + str(num)] = adc.read_voltage(num - comp)
+
+    def read_imu(self):
+        """
+        Here is where we read the accel/mag/gyro/alt/temp.
+        """
+        imud = dict()
+
+        while not self.term:
+            imud['ACCEL'] = self.gac().acceleration
+            imud['GYRO'] = self.gac().gyro
+            imud['MAG'] = self.gac().magnetic
+            imud['TEMP'] = self.gac().temp
+            imud['ALT'] = self.alt().pressure
+            self.rt_data['IMU'] = imud
+

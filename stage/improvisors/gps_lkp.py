@@ -2,7 +2,28 @@
 Reads GPS data from serial
 """
 
-from gps import gps, watch_options
+import time
+import board
+
+import serial
+from stage import settings
+import adafruit_gps
+import RPi.GPIO as GPIO
+
+RX = board.RX
+TX = board.TX
+
+# uart = busio.UART(TX, RX, baudrate=9600, timeout=30)  # This would be used on arduino
+uart = serial.Serial(settings.GPS_UART, timeout=10)
+gps = adafruit_gps.GPS(uart)
+
+gps.send_command(b'PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0')
+
+gps.send_command(b'PMTK220,1000')
+
+last_print = time.monotonic()
+latitudes = []
+longitudes = []
 
 
 class ReadGPS:
@@ -11,7 +32,7 @@ class ReadGPS:
     """
     def __init__(self):
 
-        self.gpsd = gps(mode=watch_options.WATCH_ENABLE | watch_options.WATCH_NEWSTYLE)
+        self.gps = gps
         self.nx = None
         self.lat = None
         self.long = None
@@ -23,13 +44,10 @@ class ReadGPS:
         # https://gpsd.gitlab.io/gpsd/gpsd_json.html
 
         """
-        self.nx = self.gpsd.next()
-
-        if self.nx['class'] == 'TPV':
-            self.lat = getattr(self.nx, 'lat', "Unknown")
-            self.long = getattr(self.nx, 'lon', "Unknown")
-            self.latlong = [self.lat, self.long]
-        # else:
-            # print('error', self.nx)
-
+        if GPIO.input(settings.Gps_Sync):  # Check if GPS data is ready
+            self.gps.update()
+            self.lat = gps.latitude
+            self.long = gps.longitude
+            if self.lat:
+                self.latlong = [self.lat, self.long]
         return self
