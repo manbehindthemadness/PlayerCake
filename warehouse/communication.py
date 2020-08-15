@@ -213,7 +213,7 @@ class NetScan:
                     for sscnt, val in enumerate(value):
                         value[sscnt] = val.strip()
                     if len(value) == 1:
-                        entry[last] = value[0]
+                        entry[last] = entry[last] + ' ' + value[0]
                     else:
                         entry[value[0]] = value[1]
                         last = value[0]
