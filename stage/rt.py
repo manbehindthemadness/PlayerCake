@@ -100,9 +100,9 @@ class Start:
         imud = dict()
 
         while not self.term:
-            imud['ACCEL'] = self.gac().acceleration
-            imud['GYRO'] = self.gac().gyro
-            imud['MAG'] = self.gac().magnetic
+            imud['ACCEL'] = self.gac(3).acceleration
+            imud['GYRO'] = self.gac(2).gyro
+            imud['MAG'] = self.gac(3).magnetic
             imud['TEMP'] = self.gac().temp
             imud['ALT'] = self.alt().pressure
             self.rt_data['IMU'] = imud

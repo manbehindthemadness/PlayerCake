@@ -2,11 +2,16 @@
 This is where we are going to store all of our communication related code.
 
 TODO: I think we need to implement a serializer for our message contents so we can embed and retrieve complex imformation.
+
+net scan: iwlist wlan0 scanning | egrep 'Cell |Encryption|Quality|Last beacon|ESSID'
+
 """
 
 import socket
 import time
 import sys
+import re
+import os
 from threading import Thread
 from director import settings  # TODO: We need to figure a way to pass this into the classes instead of directly importing.
 from warehouse.loggers import dprint
@@ -180,3 +185,35 @@ class NetClient:
         :return: Nothing.
         """
         self.tcpclient(_settings, bytes(self.open_file("stage/tests/transmit.log"), "utf8"))
+
+
+class NetScan:
+    """
+    Uses iwscan to monitor wifi activity.
+    """
+    def __init__(self):
+        self.raw_data = os.popen("/sbin/iwlist wlan0 scanning").read()
+        self.data = dict()
+        self.sort()
+
+    def sort(self):
+        """
+        Takes the contents of raw_data and sorts it into a dictionary.
+        """
+        p = re.compile(r'\bCell\b.\d+...\bAddress\b').split(self.raw_data)
+        last = 'last'
+        for cnt, item in enumerate(p):
+            item = 'Address' + item
+            if cnt > 0:
+                entry = self.data['Cell' + str(cnt)] = dict()
+                for scnt, row in enumerate(item.splitlines()):
+                    value = re.compile(r'[:]|[=]').split(row, 1)
+                    if len(row) == 1:
+                        value.insert(0, 'Address')
+                    for sscnt, val in enumerate(value):
+                        value[sscnt] = val.strip()
+                    if len(value) == 1:
+                        entry[last] = value[0]
+                    else:
+                        entry[value[0]] = value[1]
+                        last = value[0]
