@@ -15,7 +15,7 @@ import time
 import pprint
 from warehouse.utils import check_dict
 from warehouse.system import get_cpu_temperature, get_system_stats
-from warehouse.communication import NetScan
+from warehouse.communication import NetScan, NetClient, NetServer
 
 
 # noinspection PyArgumentEqualDefault,PyArgumentEqualDefault,PyArgumentEqualDefault
@@ -58,6 +58,8 @@ class Start:
         self.adc.set_bit_rate(12)  # Adjust timing (lower is faster).
         self.adc.set_conversion_mode(1)  # Set continuous conversion.
         self.netscan = NetScan
+        self.netclient = NetClient
+        self.netserver = NetServer
 
         self.threads = [  # Create threads.
             Thread(target=self.read_adc, args=()),

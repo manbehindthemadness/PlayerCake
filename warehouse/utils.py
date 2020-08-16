@@ -49,3 +49,15 @@ def check_dict(_dict, key):
     if key not in _dict.keys():
         _dict[key] = dict()
     return _dict[key]
+
+
+def open_file(filename):
+    """
+    Opens a text file.
+    :param filename: File to open.
+    :type filename: Str
+    :return: Contents of file.
+    :rtype: str
+    """
+    file = open(filename)
+    return file.read()

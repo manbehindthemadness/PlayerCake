@@ -5,7 +5,7 @@ import time
 import board
 # import busio
 import serial
-from warehouse.utils import fade
+from warehouse.utils import Fade
 from stage import settings
 import adafruit_gps
 
@@ -13,8 +13,8 @@ RX = board.RX
 TX = board.TX
 
 # uart = busio.UART(TX, RX, baudrate=9600, timeout=30)
-uart = serial.Serial(settings.GPS_UART, baudrate=9600, timeout=10)
-gps = adafruit_gps.GPS(uart, debug=False)
+uart = serial.Serial(settings.GPS_UART, timeout=10)
+gps = adafruit_gps.GPS(uart)
 
 gps.send_command(b'PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0')
 
@@ -28,9 +28,9 @@ while True:
 
     current = time.monotonic()
     if current - last_print >= 1.0:
-        latitude = fade(settings.GPS_Fade, latitudes, gps.latitude)  # Filter lat.
+        latitude = Fade(settings.GPS_Fade, latitudes, gps.latitude)  # Filter lat.
         latitudes = latitude[1]
-        longitude = fade(settings.GPS_Fade, longitudes, gps.longitude)  # Filter long.
+        longitude = Fade(settings.GPS_Fade, longitudes, gps.longitude)  # Filter long.
         longitudes = longitude[1]
         last_print = current
         if not gps.has_fix:
