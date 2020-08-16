@@ -39,13 +39,6 @@ GPIO.setup(settings.Gps_Enable, GPIO.OUT)  # Setup GPS enable.
 GPIO.output(settings.Gps_Enable, 1)  # Init GPS to acquire initial fix.
 
 
-temp = 0.0
-cnt = 0
-rc = 0
-gps = ReadGPS()
-position = gps.latlong
-
-
 class Start:
     """
     Real time program loop.
@@ -71,6 +64,7 @@ class Start:
             Thread(target=self.read_imu, args=()),
             Thread(target=self.read_system, args=()),
             Thread(target=self.read_networks, args=()),
+            Thread(target=self.read_gps, args=()),
         ]
         if settings.Debug:
             self.threads.append(Thread(target=self.debug, args=()))
@@ -138,3 +132,15 @@ class Start:
         while not self.term:
             sys['NETWORKS'] = self.netscan().data
             time.sleep(settings.NetScan_Cycle)
+
+    def read_gps(self):
+        """
+        Here is where we gather GPS location data.
+        """
+        gps = check_dict(self.rt_data, 'GPS')
+        while not self.term:
+            if GPIO.input(settings.Gps_Sync):
+                gps_dat = self.gps().getpositiondata()
+                gps['LAT'] = gps_dat.lat
+                gps['LONG'] = gps_dat.long
+        time.sleep(0.1)
