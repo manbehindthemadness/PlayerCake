@@ -2,6 +2,7 @@
 This is the software configuration settings file. These values are general defaults and should be modified in the logal_settings file not here!
 """
 Debug = True  # Enables debugging
+Debug_Pretty = False  # Pprint the debug info instead of print.
 DirectorID = '6efc1846-d015-11ea-87d0-0242ac130003'  # This ID matches Stage clients to their respective Directors.
 Envirnment = 'mixed'  # Mixed means that we are using windows or apple to communicate with Stage: mixed/pure
 BindAddr = '0.0.0.0'
@@ -85,6 +86,12 @@ Z_Solver = ''
 # Filters:
 
 GPS_Fade = 20  # This is the number of samples that we will use to smooth the gps results.
+
+# Timings:
+
+Debug_Cycle = 0.02  # Number in seconds to update the debug logs.
+NetScan_Cycle = 10  # Number in seconds between updating the list of wireless networks.
+System_Cycle = 5  # Time in seconds for updating system information.
 
 # Calibrations
 

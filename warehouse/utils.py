@@ -10,7 +10,7 @@ def average(lst):
     return sum(lst) / len(lst)
 
 
-class fade:
+class Fade:
     """
     This smoothes a series of values by avaraging them ofer a set number of iterations.
     """
@@ -35,3 +35,17 @@ class fade:
             return_value = average(values)
 
         return [return_value, values]
+
+
+def check_dict(_dict, key):
+    """
+    Checks to see if a key is in a dictionary and adds it if missing.
+    :param _dict: Target dictionary.
+    :type _dict: dict
+    :param key: Value to locate.
+    :type key: str
+    :rtype: dict
+    """
+    if key not in _dict.keys():
+        _dict[key] = dict()
+    return _dict[key]

@@ -12,7 +12,10 @@ from ADCPi import ADCPi
 import RPi.GPIO as GPIO
 from threading import Thread
 import time
-from warehouse.system import get_cpu_temperature
+import pprint
+from warehouse.utils import check_dict
+from warehouse.system import get_cpu_temperature, get_system_stats
+from warehouse.communication import NetScan
 
 
 # noinspection PyArgumentEqualDefault,PyArgumentEqualDefault,PyArgumentEqualDefault
@@ -56,15 +59,18 @@ class Start:
         self.gps = ReadGPS  # Init GPS.
         self.alt = alt  # Init altimiter.
         self.temp = get_cpu_temperature  # Pull CPU temps.
+        self.stats = get_system_stats  # Read system info.
         self.adc = ADCPi(*settings.ADC_I2C)  # Init ADC.
         self.adc.set_pga(1)  # Set gain.
         self.adc.set_bit_rate(12)  # Adjust timing (lower is faster).
         self.adc.set_conversion_mode(1)  # Set continuous conversion.
+        self.netscan = NetScan
 
         self.threads = [  # Create threads.
             Thread(target=self.read_adc, args=()),
             Thread(target=self.read_imu, args=()),
             Thread(target=self.read_system, args=()),
+            Thread(target=self.read_networks, args=()),
         ]
         if settings.Debug:
             self.threads.append(Thread(target=self.debug, args=()))
@@ -77,9 +83,15 @@ class Start:
         This dumps the rt_data information to console.
         """
         while not self.term:
-            for reading in self.rt_data:
-                print(self.rt_data[reading], '\n')
-            time.sleep(0.02)
+            try:
+                if not settings.Debug_Pretty:
+                    for reading in self.rt_data:
+                        print(reading, self.rt_data[reading], '\n')
+                else:
+                    pprint.PrettyPrinter(indent=4).pprint(self.rt_data)
+            except RuntimeError:
+                pass
+            time.sleep(settings.Debug_Cycle)
 
     def read_adc(self):
         """
@@ -111,8 +123,18 @@ class Start:
         """
         This is where we read values in relation to the running system itself.
         """
-        self.rt_data['SYS'] = dict()
+        sys = check_dict(self.rt_data, 'SYS')
         while not self.term:
-            self.rt_data['SYS']['CPU_TEMP'] = self.temp()
-            time.sleep(5)
+            sys['CPU_TEMP'] = self.temp()
+            sys['STATS'] = self.stats()
+            time.sleep(settings.System_Cycle)
 
+    def read_networks(self):
+        """
+        This is where we perform out wireless network scans. This is placed here because it takes longer to run depending
+        on the amount of information that neads to be read.
+        """
+        sys = check_dict(self.rt_data, 'SYS')
+        while not self.term:
+            sys['NETWORKS'] = self.netscan().data
+            time.sleep(settings.NetScan_Cycle)
