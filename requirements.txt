@@ -24,11 +24,14 @@ idna
 importlib-metadata
 keyring
 keyrings.alt
+numpy
 olefile
 Pillow
 pycrypto
 pyftdi
 PyGObject
+pykalman
+matplotlib
 pyserial
 python-apt
 pyusb

@@ -1,258 +1,258 @@
 """
-This is where we store the code to access the BerryIMU GPS Module.
+Here we have our class for reading and filtering the BerryIMU module.
 """
 
-import datetime
 import math
-# import time
+import datetime
 
 from stage import settings
 from stage.improvisors import IMU
 
-# import os
 
-IMU_UPSIDE_DOWN = settings.IMU_UPSIDE_DOWN
-RAD_TO_DEG = settings.RAD_TO_DEG
-M_PI = settings.M_PI
-G_GAIN = settings.G_GAIN
-AA = settings.AA
-magXmin = settings.magXmin
-magYmin = settings.magYmin
-magZmin = settings.magZmin
-magXmax = settings.magXmax
-magYmax = settings.magYmax
-magZmax = settings.magZmax
-Q_angle = settings.Q_angle
-Q_gyro = settings.Q_gyro
-R_angle = settings.R_angle
-y_bias = settings.y_bias
-x_bias = settings.x_bias
-XP_00 = settings.XP_00
-XP_01 = settings.XP_01
-XP_10 = settings.XP_10
-XP_11 = settings.XP_11
-YP_00 = settings.YP_00
-YP_01 = settings.YP_01
-YP_10 = settings.YP_10
-YP_11 = settings.YP_11
-KFangleX = settings.KFangleX
-KFangleY = settings.KFangleY
-
-
-def kalmanFilterY(accAngle, gyroRate, DT):
+class ReadIMU(object):
     """
-    OEM Function.
-    :param accAngle:
-    :param gyroRate:
-    :param DT:
-    :return:
+    Fetches and filters IMU data.
     """
-    # y = 0.0
-    # S = 0.0
+    def __init__(self):
+        IMU.detectIMU()  # Detect if BerryIMUv1 or BerryIMUv2 is connected.
+        IMU.initIMU()  # Initialise the accelerometer, gyroscope and compass
+        self.cycle_start_time = datetime.datetime.now()
+        self.cycle_time = 0.0
+        self.LP = None
+        self.ACCy = None
+        self.ACCx = None
+        self.ACCz = None
+        self.GYRx = None
+        self.GYRy = None
+        self.GYRz = None
+        self.MAGx = None
+        self.MAGy = None
+        self.MAGz = None
+        self.AccXangle = None
+        self.AccYangle = None
+        self.rate_gyr_x = None
+        self.rate_gyr_y = None
+        self.rate_gyr_z = None
+        self.pitch = None
+        self.roll = None
+        self.heading = None
+        self.magXcomp = None
+        self.magYcomp = None
+        self.tiltCompensatedHeading = None
+        # Pull stuff from settings file (we do this so we can easily adjust calibration settings).
+        self.magXmin = settings.magXmin
+        self.magYmin = settings.magYmin
+        self.magZmin = settings.magZmin
+        self.magXmax = settings.magXmax
+        self.magYmax = settings.magYmax
+        self.magZmax = settings.magZmax
+        self.G_GAIN = settings.G_GAIN
+        self.gyroXangle = settings.gyroXangle
+        self.gyroYangle = settings.gyroYangle
+        self.gyroZangle = settings.gyroZangle
+        self.IMU_UPSIDE_DOWN = settings.IMU_UPSIDE_DOWN
+        self.RAD_TO_DEG = settings.RAD_TO_DEG
+        self.M_PI = settings.M_PI
+        self.AA = settings.AA
+        self.KFangleX = settings.KFangleX
+        self.KFangleY = settings.KFangleY
+        self.CFangleX = settings.CFangleX
+        self.CFangleY = settings.CFangleY
+        self.kalmanX = settings.kalmanX
+        self.kalmanY = settings.kalmanY
+        self.Q_angle = settings.Q_angle
+        self.Q_gyro = settings.Q_gyro
+        self.R_angle = settings.R_angle
+        self.y_bias = settings.y_bias
+        self.x_bias = settings.x_bias
+        self.XP_00 = settings.XP_00
+        self.XP_01 = settings.XP_01
+        self.XP_10 = settings.XP_10
+        self.XP_11 = settings.XP_11
+        self.YP_00 = settings.YP_00
+        self.YP_01 = settings.YP_01
+        self.YP_10 = settings.YP_10
+        self.YP_11 = settings.YP_11
 
-    global KFangleY
-    global Q_angle
-    global Q_gyro
-    global y_bias
-    global YP_00
-    global YP_01
-    global YP_10
-    global YP_11
+        self.rt_values = [
+            'AccXangle',
+            'AccYangle',
+            'gyroXangle',
+            'gyroYangle',
+            'gyroZangle',
+            'CFangleX',
+            'CFangleY',
+            'heading',
+            'tiltCompensatedHeading',
+            'kalmanX',
+            'kalmanY'
+        ]
 
-    KFangleY = KFangleY + DT * (gyroRate - y_bias)
+    def getvalues(self):
+        """
+        Fetches filtered information from IMU
+        """
 
-    YP_00 = YP_00 + (- DT * (YP_10 + YP_01) + Q_angle * DT)
-    YP_01 = YP_01 + (- DT * YP_11)
-    YP_10 = YP_10 + (- DT * YP_11)
-    YP_11 = YP_11 + (+ Q_gyro * DT)
+        # Read the accelerometer,gyroscope and magnetometer values
+        self.ACCx = IMU.readACCx()
+        self.ACCy = IMU.readACCy()
+        self.ACCz = IMU.readACCz()
+        self.GYRx = IMU.readGYRx()
+        self.GYRy = IMU.readGYRy()
+        self.GYRz = IMU.readGYRz()
+        self.MAGx = IMU.readMAGx()
+        self.MAGy = IMU.readMAGy()
+        self.MAGz = IMU.readMAGz()
 
-    y = accAngle - KFangleY
-    S = YP_00 + R_angle
-    K_0 = YP_00 / S
-    K_1 = YP_10 / S
+        # Apply compass calibration
+        self.MAGx -= (self.magXmin + self.magXmax) / 2
+        self.MAGy -= (self.magYmin + self.magYmax) / 2
+        self.MAGz -= (self.magZmin + self.magZmax) / 2
 
-    KFangleY = KFangleY + (K_0 * y)
-    y_bias = y_bias + (K_1 * y)
+        # Calculate loop Period(LP). How long between Gyro Reads
 
-    YP_00 = YP_00 - (K_0 * YP_00)
-    YP_01 = YP_01 - (K_0 * YP_01)
-    YP_10 = YP_10 - (K_1 * YP_00)
-    YP_11 = YP_11 - (K_1 * YP_01)
+        self.cycle_time = datetime.datetime.now() - self.cycle_start_time
+        self.cycle_start_time = datetime.datetime.now()
+        self.LP = self.cycle_time.microseconds / (1000000 * 1.0)
 
-    return KFangleY
+        # Convert Gyro raw to degrees per second
+        self.rate_gyr_x = self.GYRx * self.G_GAIN
+        self.rate_gyr_y = self.GYRy * self.G_GAIN
+        self.rate_gyr_z = self.GYRz * self.G_GAIN
 
+        # Calculate the angles from the gyro.
+        self.gyroXangle += self.rate_gyr_x * self.LP
+        self.gyroYangle += self.rate_gyr_y * self.LP
+        self.gyroZangle += self.rate_gyr_z * self.LP
 
-def kalmanFilterX(accAngle, gyroRate, DT):
-    x = 0.0
-    S = 0.0
+        # Convert Accelerometer values to degrees
 
-    global KFangleX
-    global Q_angle
-    global Q_gyro
-    global x_bias
-    global XP_00
-    global XP_01
-    global XP_10
-    global XP_11
+        if not self.IMU_UPSIDE_DOWN:
+            # If the IMU is up the correct way (Skull logo facing down), use these calculations
+            self.AccXangle = (math.atan2(self.ACCy, self.ACCz) * self.RAD_TO_DEG)
+            self.AccYangle = (math.atan2(self.ACCz, self.ACCx) + self.M_PI) * self.RAD_TO_DEG
+        else:
+            # Us these four lines when the IMU is upside down. Skull logo is facing up
+            self.AccXangle = (math.atan2(-self.ACCy, -self.ACCz) * self.RAD_TO_DEG)
+            self.AccYangle = (math.atan2(-self.ACCz, -self.ACCx) + self.M_PI) * self.RAD_TO_DEG
 
-    KFangleX = KFangleX + DT * (gyroRate - x_bias)
+        # Change the rotation value of the accelerometer to -/+ 180 and
+        # move the Y axis '0' point to up.  This makes it easier to read.
+        if self.AccYangle > 90:
+            self.AccYangle -= 270.0
+        else:
+            self.AccYangle += 90.0
 
-    XP_00 = XP_00 + (- DT * (XP_10 + XP_01) + Q_angle * DT)
-    XP_01 = XP_01 + (- DT * XP_11)
-    XP_10 = XP_10 + (- DT * XP_11)
-    XP_11 = XP_11 + (+ Q_gyro * DT)
+        # Complementary filter used to combine the accelerometer and gyro values.
+        self.CFangleX = self.AA * (self.CFangleX + self.rate_gyr_x * self.LP) + (1 - self.AA) * self.AccXangle
+        self.CFangleY = self.AA * (self.CFangleY + self.rate_gyr_y * self.LP) + (1 - self.AA) * self.AccYangle
 
-    x = accAngle - KFangleX
-    S = XP_00 + R_angle
-    K_0 = XP_00 / S
-    K_1 = XP_10 / S
+        # Kalman filter used to combine the accelerometer and gyro values.
+        self.kalmanY = self.kalmanfiltery()
+        self.kalmanX = self.kalmanfilterx()
 
-    KFangleX = KFangleX + (K_0 * x)
-    x_bias = x_bias + (K_1 * x)
+        if self.IMU_UPSIDE_DOWN:
+            self.MAGy = -self.MAGy  # If IMU is upside down, this is needed to get correct heading.
+        # Calculate heading
+        self.heading = 180 * math.atan2(self.MAGy, self.MAGx) / self.M_PI
 
-    XP_00 = XP_00 - (K_0 * XP_00)
-    XP_01 = XP_01 - (K_0 * XP_01)
-    XP_10 = XP_10 - (K_1 * XP_00)
-    XP_11 = XP_11 - (K_1 * XP_01)
+        # Only have our heading between 0 and 360
+        if self.heading < 0:
+            self.heading += 360
 
-    return KFangleX
+        # Tilt compensated heading#########################
 
+        # Normalize accelerometer raw values.
+        if not self.IMU_UPSIDE_DOWN:
+            # Use these two lines when the IMU is up the right way. Skull logo is facing down
+            accXnorm = self.ACCx / math.sqrt(self.ACCx * self.ACCx + self.ACCy * self.ACCy + self.ACCz * self.ACCz)
+            accYnorm = self.ACCy / math.sqrt(self.ACCx * self.ACCx + self.ACCy * self.ACCy + self.ACCz * self.ACCz)
+        else:
+            # Us these four lines when the IMU is upside down. Skull logo is facing up
+            accXnorm = -self.ACCx / math.sqrt(self.ACCx * self.ACCx + self.ACCy * self.ACCy + self.ACCz * self.ACCz)
+            accYnorm = self.ACCy / math.sqrt(self.ACCx * self.ACCx + self.ACCy * self.ACCy + self.ACCz * self.ACCz)
 
-IMU.detectIMU()  # Detect if BerryIMUv1 or BerryIMUv2 is connected.
-IMU.initIMU()  # Initialise the accelerometer, gyroscope and compass
+        # Calculate pitch and roll
 
+        self.pitch = math.asin(accXnorm)
+        self.roll = -math.asin(accYnorm / math.cos(self.pitch))
 
+        # Calculate the new tilt compensated values
+        self.magXcomp = self.MAGx * math.cos(self.pitch) + self.MAGz * math.sin(self.pitch)
 
-a = datetime.datetime.now()
+        # The compass and accelerometer are orientated differently on the LSM9DS0 and LSM9DS1 and the Z axis on the compass
+        # is also reversed. This needs to be taken into consideration when performing the calculations
+        if IMU.LSM9DS0:
+            self.magYcomp = self.MAGx * math.sin(self.roll) * math.sin(self.pitch) + self.MAGy * math.cos(self.roll) - self.MAGz * math.sin(
+                self.roll) * math.cos(
+                self.pitch)  # LSM9DS0
+        else:
+            self.magYcomp = self.MAGx * math.sin(self.roll) * math.sin(self.pitch) + self.MAGy * math.cos(self.roll) + self.MAGz * math.sin(
+                self.roll) * math.cos(
+                self.pitch)  # LSM9DS1
 
+        # Calculate tilt compensated heading
+        self.tiltCompensatedHeading = 180 * math.atan2(self.magYcomp, self.magXcomp) / self.M_PI
 
-def read_berry(last_run_time):
-    """
-    This is a debug function to dump information from the berryimu.
-    :return:
-    """
-    gyroXangle = 0.0
-    gyroYangle = 0.0
-    gyroZangle = 0.0
+        if self.tiltCompensatedHeading < 0:
+            self.tiltCompensatedHeading += 360
 
-    # Read the accelerometer,gyroscope and magnetometer values
-    ACCx = IMU.readACCx()
-    ACCy = IMU.readACCy()
-    ACCz = IMU.readACCz()
-    GYRx = IMU.readGYRx()
-    GYRy = IMU.readGYRy()
-    GYRz = IMU.readGYRz()
-    MAGx = IMU.readMAGx()
-    MAGy = IMU.readMAGy()
-    MAGz = IMU.readMAGz()
+        # END ##################################
 
-    # Apply compass calibration
-    MAGx -= (magXmin + magXmax) / 2
-    MAGy -= (magYmin + magYmax) / 2
-    MAGz -= (magZmin + magZmax) / 2
+        return self
 
-    ##Calculate loop Period(LP). How long between Gyro Reads
-    b = datetime.datetime.now() - last_run_time
-    LP = b.microseconds / (1000000 * 1.0)
-    outputString = "Loop Time %5.2f " % (LP)
+    # noinspection DuplicatedCode
+    def kalmanfiltery(self):
+        """
+        Berry GPS Filter for Y
+        """
 
-    # Convert Gyro raw to degrees per second
-    rate_gyr_x = GYRx * G_GAIN
-    rate_gyr_y = GYRy * G_GAIN
-    rate_gyr_z = GYRz * G_GAIN
+        self.KFangleY = self.KFangleY + self.LP * (self.rate_gyr_y - self.y_bias)
 
-    # Calculate the angles from the gyro.
-    gyroXangle += rate_gyr_x * LP
-    gyroYangle += rate_gyr_y * LP
-    gyroZangle += rate_gyr_z * LP
+        self.YP_00 = self.YP_00 + (- self.LP * (self.YP_10 + self.YP_01) + self.Q_angle * self.LP)
+        self.YP_01 = self.YP_01 + (- self.LP * self.YP_11)
+        self.YP_10 = self.YP_10 + (- self.LP * self.YP_11)
+        self.YP_11 = self.YP_11 + (+ self.Q_gyro * self.LP)
 
-    # Convert Accelerometer values to degrees
+        y = self.AccYangle - self.KFangleY
+        S = self.YP_00 + self.R_angle
+        K_0 = self.YP_00 / S
+        K_1 = self.YP_10 / S
 
-    if not IMU_UPSIDE_DOWN:
-        # If the IMU is up the correct way (Skull logo facing down), use these calculations
-        AccXangle = (math.atan2(ACCy, ACCz) * RAD_TO_DEG)
-        AccYangle = (math.atan2(ACCz, ACCx) + M_PI) * RAD_TO_DEG
-    else:
-        # Us these four lines when the IMU is upside down. Skull logo is facing up
-        AccXangle = (math.atan2(-ACCy, -ACCz) * RAD_TO_DEG)
-        AccYangle = (math.atan2(-ACCz, -ACCx) + M_PI) * RAD_TO_DEG
+        self.KFangleY = self.KFangleY + (K_0 * y)
+        self.y_bias = self.y_bias + (K_1 * y)
 
-    # Change the rotation value of the accelerometer to -/+ 180 and
-    # move the Y axis '0' point to up.  This makes it easier to read.
-    if AccYangle > 90:
-        AccYangle -= 270.0
-    else:
-        AccYangle += 90.0
+        self.YP_00 = self.YP_00 - (K_0 * self.YP_00)
+        self.YP_01 = self.YP_01 - (K_0 * self.YP_01)
+        self.YP_10 = self.YP_10 - (K_1 * self.YP_00)
+        self.YP_11 = self.YP_11 - (K_1 * self.YP_01)
 
-    # Complementary filter used to combine the accelerometer and gyro values.
-    CFangleX = AA * (settings.CFangleX + rate_gyr_x * LP) + (1 - AA) * AccXangle
-    CFangleY = AA * (settings.CFangleY + rate_gyr_y * LP) + (1 - AA) * AccYangle
+        return self.KFangleY
 
-    # Kalman filter used to combine the accelerometer and gyro values.
-    kalmanY = kalmanFilterY(AccYangle, rate_gyr_y, LP)
-    kalmanX = kalmanFilterX(AccXangle, rate_gyr_x, LP)
+    # noinspection DuplicatedCode
+    def kalmanfilterx(self):
+        """
+        Berry GPS Filter for X
+        """
 
-    if IMU_UPSIDE_DOWN:
-        MAGy = -MAGy  # If IMU is upside down, this is needed to get correct heading.
-    # Calculate heading
-    heading = 180 * math.atan2(MAGy, MAGx) / M_PI
+        self.KFangleX = self.KFangleX + self.LP * (self.AccXangle - self.x_bias)
 
-    # Only have our heading between 0 and 360
-    if heading < 0:
-        heading += 360
+        self.XP_00 = self.XP_00 + (- self.LP * (self.XP_10 + self.XP_01) + self.Q_angle * self.LP)
+        self.XP_01 = self.XP_01 + (- self.LP * self.XP_11)
+        self.XP_10 = self.XP_10 + (- self.LP * self.XP_11)
+        self.XP_11 = self.XP_11 + (+ self.Q_gyro * self.LP)
 
-    ####################################################################
-    ###################Tilt compensated heading#########################
-    ####################################################################
-    # Normalize accelerometer raw values.
-    if not IMU_UPSIDE_DOWN:
-        # Use these two lines when the IMU is up the right way. Skull logo is facing down
-        accXnorm = ACCx / math.sqrt(ACCx * ACCx + ACCy * ACCy + ACCz * ACCz)
-        accYnorm = ACCy / math.sqrt(ACCx * ACCx + ACCy * ACCy + ACCz * ACCz)
-    else:
-        # Us these four lines when the IMU is upside down. Skull logo is facing up
-        accXnorm = -ACCx / math.sqrt(ACCx * ACCx + ACCy * ACCy + ACCz * ACCz)
-        accYnorm = ACCy / math.sqrt(ACCx * ACCx + ACCy * ACCy + ACCz * ACCz)
+        x = self.AccXangle - self.KFangleX
+        S = self.XP_00 + self.R_angle
+        K_0 = self.XP_00 / S
+        K_1 = self.XP_10 / S
 
-    # Calculate pitch and roll
+        self.KFangleX = self.KFangleX + (K_0 * x)
+        self.x_bias = self.x_bias + (K_1 * x)
 
-    pitch = math.asin(accXnorm)
-    roll = -math.asin(accYnorm / math.cos(pitch))
+        self.XP_00 = self.XP_00 - (K_0 * self.XP_00)
+        self.XP_01 = self.XP_01 - (K_0 * self.XP_01)
+        self.XP_10 = self.XP_10 - (K_1 * self.XP_00)
+        self.XP_11 = self.XP_11 - (K_1 * self.XP_01)
 
-    # Calculate the new tilt compensated values
-    magXcomp = MAGx * math.cos(pitch) + MAGz * math.sin(pitch)
-
-    # The compass and accelerometer are orientated differently on the LSM9DS0 and LSM9DS1 and the Z axis on the compass
-    # is also reversed. This needs to be taken into consideration when performing the calculations
-    if (IMU.LSM9DS0):
-        magYcomp = MAGx * math.sin(roll) * math.sin(pitch) + MAGy * math.cos(roll) - MAGz * math.sin(roll) * math.cos(
-            pitch)  # LSM9DS0
-    else:
-        magYcomp = MAGx * math.sin(roll) * math.sin(pitch) + MAGy * math.cos(roll) + MAGz * math.sin(roll) * math.cos(
-            pitch)  # LSM9DS1
-
-    # Calculate tilt compensated heading
-    tiltCompensatedHeading = 180 * math.atan2(magYcomp, magXcomp) / M_PI
-
-    if tiltCompensatedHeading < 0:
-        tiltCompensatedHeading += 360
-
-    ############################ END ##################################
-
-    if 1:  # Change to '0' to stop showing the angles from the accelerometer
-        outputString += "# ACCX Angle %5.2f ACCY Angle %5.2f #  " % (AccXangle, AccYangle)
-
-    if 1:  # Change to '0' to stop  showing the angles from the gyro
-        outputString += "\t# GRYX Angle %5.2f  GYRY Angle %5.2f  GYRZ Angle %5.2f # " % (
-            gyroXangle, gyroYangle, gyroZangle)
-
-    if 1:  # Change to '0' to stop  showing the angles from the complementary filter
-        outputString += "\t# CFangleX Angle %5.2f   CFangleY Angle %5.2f #" % (CFangleX, CFangleY)
-
-    if 1:  # Change to '0' to stop  showing the heading
-        outputString += "\t# HEADING %5.2f  tiltCompensatedHeading %5.2f #" % (heading, tiltCompensatedHeading)
-
-    if 1:  # Change to '0' to stop  showing the angles from the Kalman filter
-        outputString += "# kalmanX %5.2f   kalmanY %5.2f #" % (kalmanX, kalmanY)
-
-    return outputString
+        return self.KFangleX

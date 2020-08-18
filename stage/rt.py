@@ -5,7 +5,7 @@ TODO: Revise GPS to use circuitpython.
 """
 
 from stage import settings
-from stage.improvisors.lsm9ds1 import lsm9ds1
+from stage.improvisors.berryimu import ReadIMU
 from stage.improvisors.gps_lkp import ReadGPS
 from stage.improvisors .bmp280 import alt
 from ADCPi import ADCPi
@@ -13,7 +13,7 @@ import RPi.GPIO as GPIO
 from threading import Thread
 import time
 import pprint
-from warehouse.utils import check_dict
+from warehouse.utils import check_dict, Fade
 from warehouse.system import get_cpu_temperature, get_system_stats
 from warehouse.communication import NetScan, NetClient, NetServer
 
@@ -48,7 +48,7 @@ class Start:
         global term
         self.rt_data = rt_data  # Pass realtime data.
         self.term = term  # Pass termination.
-        self.gac = lsm9ds1  # Init IMU.
+        self.gac = ReadIMU  # Init IMU.
         self.gps = ReadGPS  # Init GPS.
         self.alt = alt  # Init altimiter.
         self.temp = get_cpu_temperature  # Pull CPU temps.
@@ -82,7 +82,8 @@ class Start:
             try:
                 if not settings.Debug_Pretty:
                     for reading in self.rt_data:
-                        print(reading, self.rt_data[reading], '\n')
+                        if reading in settings.Debug_Filter:
+                            print(reading, self.rt_data[reading], '\n')
                 else:
                     pprint.PrettyPrinter(indent=4).pprint(self.rt_data)
             except RuntimeError:
@@ -105,15 +106,13 @@ class Start:
         """
         Here is where we read the accel/mag/gyro/alt/temp.
         """
-        imud = dict()
-
+        imud = check_dict(self.rt_data, 'IMU')
+        gac = self.gac()
         while not self.term:
-            imud['ACCEL'] = self.gac(3).acceleration
-            imud['GYRO'] = self.gac(2).gyro
-            imud['MAG'] = self.gac(3).magnetic
-            imud['TEMP'] = self.gac().temp
-            imud['ALT'] = self.alt().pressure
-            self.rt_data['IMU'] = imud
+            for rt_value in gac.rt_values:
+                eval_str = "imud['" + rt_value + "'] = gac.getvalues()." + rt_value
+                # print(eval_str)
+                exec(eval_str)
 
     def read_system(self):
         """
@@ -140,9 +139,15 @@ class Start:
         Here is where we gather GPS location data.
         """
         gps = check_dict(self.rt_data, 'GPS')
+        lat_vals = list()
+        long_vals = list()
         while not self.term:
             if GPIO.input(settings.Gps_Sync):
                 gps_dat = self.gps().getpositiondata()
-                gps['LAT'] = gps_dat.lat
-                gps['LONG'] = gps_dat.long
+                lats = Fade(settings.GPS_Fade, lat_vals, gps_dat.lat)
+                gps['LAT'] = lats[0]
+                lat_vals = lats[1]
+                longs = Fade(settings.GPS_Fade, long_vals, gps_dat.long)
+                gps['LONG'] = longs[0]
+                long_vals = longs[1]
         time.sleep(0.1)

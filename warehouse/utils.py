@@ -25,10 +25,10 @@ class Fade:
         :Return: Updated array and values.
         :rtype: list
         """
-        data_len = len(values)
-        if data_len >= depth:
+        data_len = len(values)  # Check the length of incoming values.
+        if data_len >= depth:  # Trim value if required.
             del values[0]
-        if value:
+        if value:  # Add latest value.
             values.append(value)
         return_value = 0.0
         if values:

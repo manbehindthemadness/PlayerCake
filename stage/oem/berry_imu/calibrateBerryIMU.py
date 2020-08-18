@@ -18,11 +18,11 @@
 #   http://ozzmaker.com/
 
 
-import sys,signal,os
+import sys, signal
 import time
 import math
 
-import IMU
+from stage.oem.berry_imu import IMU
 import datetime
 
 

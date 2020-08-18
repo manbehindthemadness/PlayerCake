@@ -12,8 +12,12 @@ from stage.oem.lsm9ds1 import adafruit_lsm9ds1
 i2c = busio.I2C(board.SCL, board.SDA)
 sensor = adafruit_lsm9ds1.LSM9DS1_I2C(i2c)
 
+sensor.accel_range = adafruit_lsm9ds1.ACCELRANGE_4G
+sensor.mag_gain = adafruit_lsm9ds1.MAGGAIN_8GAUSS
+sensor.gyro_scale = adafruit_lsm9ds1.GYROSCALE_500DPS
 
-class lsm9ds1:
+
+class Lsm9ds1:
     """
     This fires up the accel/gyro/magnetometer/temp device.
     :return: Self

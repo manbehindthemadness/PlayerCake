@@ -2,7 +2,12 @@
 This is the software configuration settings file. These values are general defaults and should be modified in the logal_settings file not here!
 """
 Debug = True  # Enables debugging
-Debug_Pretty = False  # Pprint the debug info instead of print.
+Debug_Pretty = False  # Pprint the debug info instead of print. - Disables Debug_filter.
+Debug_Filter = [  # This lists the includes from the real time data model that will be returned to console.
+    'GPS',
+    'IMU'
+]
+
 Role = 'stage'  # This is the role announcement that is used by the network client UDP lookup broadcast.
 Target = 'director'  # This is the up-stream role used to direct rebort connections.
 DirectorID = '6efc1846-d015-11ea-87d0-0242ac130003'  # This ID matches Stage clients to their respective Directors.
@@ -87,7 +92,11 @@ Z_Solver = ''
 
 # Filters:
 
+# The fades here are used to smooth out noise.
 GPS_Fade = 20  # This is the number of samples that we will use to smooth the gps results.
+Accel_Fade = 20  # Fade for accelerometer.
+Gyro_Fade = 20  # Fade for gyro.
+Mag_Fade = 20  # Fade for magnitometer.
 
 # Timings:
 
@@ -108,28 +117,6 @@ M_PI = 3.14159265358979323846
 G_GAIN = 0.070  # [deg/s/LSB]  If you change the dps for gyro, you need to update this value accordingly
 AA = 0.40      # Complementary filter constant
 
-# ################ Compass Calibration values ############
-# Use calibrateBerryIMU.py to get calibration values
-# Calibrating the compass isnt mandatory, however a calibrated
-# compass will result in a more accurate heading value.
-
-magXmin = 0
-magYmin = 0
-magZmin = 0
-magXmax = 0
-magYmax = 0
-magZmax = 0
-
-'''
-Here is an example:
-magXmin =  -1748
-magYmin =  -1025
-magZmin =  -1876
-magXmax =  959
-magYmax =  1651
-magZmax =  708
-Dont use the above values, these are just an example.
-'''
 # Kalman filter variables
 Q_angle = 0.02
 Q_gyro = 0.0015
@@ -146,8 +133,27 @@ YP_10 = 0.0
 YP_11 = 0.0
 KFangleX = 0.0
 KFangleY = 0.0
+
+gyroXangle = 0.0
+gyroYangle = 0.0
+gyroZangle = 0.0
 CFangleX = 0.0
 CFangleY = 0.0
+kalmanX = 0.0
+kalmanY = 0.0
+
+# ################ Compass Calibration values ############
+# Use calibrateBerryIMU.py to get calibration values
+# Calibrating the compass isnt mandatory, however a calibrated
+# compass will result in a more accurate heading value.
+
+magXmin = -871
+magYmin = -1112
+magZmin = -1786
+magXmax = 1666
+magYmax = 1132
+magZmax = 594
+
 # General Settings.
 
 Cooling_Temp_High = 35  # This is the temp where we will enable cooling.
