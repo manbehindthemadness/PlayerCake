@@ -5,9 +5,9 @@ TODO: Revise GPS to use circuitpython.
 """
 
 from stage import settings
-from stage.improvisors.berryimu import ReadIMU
+from stage.improvisors.berryimu import ReadIMU, ReadAlt
 from stage.improvisors.gps_lkp import ReadGPS
-from stage.improvisors .bmp280 import alt
+# from stage.improvisors.bmp280 import alt
 from ADCPi import ADCPi
 import RPi.GPIO as GPIO
 from threading import Thread
@@ -42,6 +42,68 @@ GPIO.output(settings.Gps_Enable, 1)  # Init GPS to acquire initial fix.
 class Start:
     """
     Real time program loop.
+
+    Data model specifications:
+
+    {
+        "ADC": {"ADCPort1": "value", "ADCPort2": "value"},  # etc...
+        "IMU": {
+            "AccXangle": "value",
+            "AccYangle": "value",
+            "gyroXangle": "value",
+            "gyroYangle": "value",
+            "gyroZangle": "value",
+            "CFangleX": "value",
+            "CFangleY": "value",
+            "kalmanX": "value",
+            "kalmanY": "value",
+            "heading": "value",
+            "tiltCompensatedHeading": "value"
+        },
+        "GPS": {
+            "LAT": "value",
+            "LONG": "value",
+            "ALT": "value",
+            "PRESS": "value",
+            "TEMP": "value"
+        },
+        "SYS": {
+            "CPU_TEMP": "value",
+            "STATS": {
+                "BOOT_TIME": "value",
+                "CPU_LOAD": "value",
+                "DISK_IO": "value",
+                "SENSORS": {
+                    "BATTERY": "value",
+                    "FANS": "value",
+                    "TEMPS": ["value1", "value2"], - etc...
+                },
+                "SWAP_MEMORY": "value",
+                "VIRTUAL_MEMORY": "value"
+            },
+        },
+        "NETWORKS": {
+            "Cell1": {
+                "address": "value",
+                "Authentication Suites": "value",
+                "Bit Rates": "value",
+                "Channel": "value",
+                "ESSID": "value",
+                "Encryption key": "value",
+                "Extra": "value",
+                "Frequency": "value",
+                "Group Cipher": "value",
+                "IE": "value",
+                "Mode": "value",
+                "Pairwise Ciphers": "value",
+                "Quality": "value"
+            },
+            "Cell2"{.....), - etc...
+        },
+        "SCRIPTS": {
+            WIP - TBD...
+        }
+    }
     """
     def __init__(self):
         global rt_data
@@ -50,7 +112,7 @@ class Start:
         self.term = term  # Pass termination.
         self.gac = ReadIMU  # Init IMU.
         self.gps = ReadGPS  # Init GPS.
-        self.alt = alt  # Init altimiter.
+        self.alt = ReadAlt  # Init altimiter.
         self.temp = get_cpu_temperature  # Pull CPU temps.
         self.stats = get_system_stats  # Read system info.
         self.adc = ADCPi(*settings.ADC_I2C)  # Init ADC.
@@ -111,7 +173,6 @@ class Start:
         while not self.term:
             for rt_value in gac.rt_values:
                 eval_str = "imud['" + rt_value + "'] = gac.getvalues()." + rt_value
-                # print(eval_str)
                 exec(eval_str)
 
     def read_system(self):
@@ -139,6 +200,7 @@ class Start:
         Here is where we gather GPS location data.
         """
         gps = check_dict(self.rt_data, 'GPS')
+        alt = self.alt()
         lat_vals = list()
         long_vals = list()
         while not self.term:
@@ -150,4 +212,8 @@ class Start:
                 longs = Fade(settings.GPS_Fade, long_vals, gps_dat.long)
                 gps['LONG'] = longs[0]
                 long_vals = longs[1]
+                alt_data = alt.get_temperature_and_pressure_and_altitude()
+                gps['ALT'] = alt_data.altitude / 100
+                gps['PRESS'] = alt_data.pressure / 100
+                gps['TEMP'] = alt_data.temperature / 100
         time.sleep(0.1)

@@ -2,7 +2,7 @@
 This is the software configuration settings file. These values are general defaults and should be modified in the logal_settings file not here!
 """
 Debug = True  # Enables debugging
-Debug_Pretty = False  # Pprint the debug info instead of print. - Disables Debug_filter.
+Debug_Pretty = True  # Pprint the debug info instead of print. - Disables Debug_filter.
 Debug_Filter = [  # This lists the includes from the real time data model that will be returned to console.
     'GPS',
     'IMU'
@@ -141,6 +141,8 @@ CFangleX = 0.0
 CFangleY = 0.0
 kalmanX = 0.0
 kalmanY = 0.0
+
+IMU_rt_values = []  # Extra variables to be fetched from the IMU may be listed here.
 
 # ################ Compass Calibration values ############
 # Use calibrateBerryIMU.py to get calibration values
