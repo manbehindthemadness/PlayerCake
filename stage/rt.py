@@ -16,7 +16,7 @@ import pprint
 from warehouse.display import SSD1306
 from warehouse.utils import check_dict, Fade
 from warehouse.system import get_cpu_temperature, get_system_stats
-from warehouse.communication import NetScan, NetClient, NetServer
+from warehouse.communication import NetScan, NetCom
 from warehouse.loggers import dprint
 
 
@@ -126,8 +126,8 @@ class Start:
         self.adc.set_bit_rate(12)  # Adjust timing (lower is faster).
         self.adc.set_conversion_mode(1)  # Set continuous conversion.
         self.netscan = NetScan
-        self.netclient = NetClient
-        self.netserver = NetServer
+        self.netclient = NetCom(settings).tcpclient
+        self.netserver = NetCom(settings).tcpserver
 
         self.threads = [  # Create threads.
             Thread(target=self.read_adc, args=()),

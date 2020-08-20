@@ -1,6 +1,6 @@
 board
 abelectronics
-Adafruit-Blinka>=5.2.4
+Adafruit-Blinka
 adafruit-circuitpython-busdevice
 adafruit-circuitpython-framebuf
 adafruit-circuitpython-motor
@@ -13,7 +13,8 @@ Adafruit-PlatformDetect
 Adafruit-PureIO
 appdirs
 asn1crypto
-certifi==2018.8.24
+certifi
+cbor2
 chardet
 cryptography
 distlib
