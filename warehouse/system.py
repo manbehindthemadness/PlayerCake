@@ -22,7 +22,7 @@ def get_system_stats():
     output['CPU_LOAD'] = psutil.cpu_percent()
     output['CPU_TIMES'] = psutil.cpu_times()
     output['BOOT_TIME'] = psutil.boot_time()
-    output['DISK_IO'] = psutil.disk_io_counters()
+    output['DISK_IO'] = psutil.disk_usage('/')
     output['SWAP_MEMORY'] = psutil.swap_memory()
     output['VIRTUAL_MEMORY'] = psutil.virtual_memory()
     sensors = dict()

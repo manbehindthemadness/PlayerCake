@@ -24,7 +24,8 @@ class SSD1306:
         self.height = self.disp.height
         self.image = Image.new("1", (self.width, self.height))
         self.image_draw = ImageDraw.Draw(self.image)
-        self.image_draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+        # self.image_draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)  # clear
+        self.clear()
         # Set x padding.
         self.x = 0
         self.fill = 255
@@ -32,6 +33,19 @@ class SSD1306:
         self.top = self.padding
         self.bottom = self.height - self.padding
         self.font = ImageFont.load_default()
+        self.defaults = {
+            'x_pos': 'self.x',
+            'y_pos': 'self.top',
+            'message': 'missing text...',
+            'font': 'self.font',
+            'fill': 'self.fill,'
+        }
+
+    def clear(self):
+        """
+        Clears the OLED screen.
+        """
+        self.image_draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
 
     def text_draw(self, items):
         """
@@ -51,38 +65,27 @@ class SSD1306:
         :param items: This is a dictionary of the various things we want to draw
         :type items: dict
         """
-        # Set defaults:
-        defaults = {
-            'x_pos': 'self.x',
-            'y_pos': 'self.top * (cnt * 8)',
-            'message': 'missing text...',
-            'font': 'self.font',
-            'fill': 'self.fill,'
-        }
 
+        self.clear()
         lines = OrderedDict(sorted(items.items()))
         for cnt, line in enumerate(lines):
             params = lines[line]
+            if len(list(self.defaults.keys())) != len(list(params.keys())):
+                for default in self.defaults:
+                    if default not in params.keys():
+                        params[default] = self.defaults[default]
+                params['y_pos'] = str(eval(params['y_pos']) + (cnt * 8))
             for param in params:
                 if not params[param]:
-                    params[param] = defaults[param]
-            args = (
-                tuple((eval(params['x_pos']), eval(params['y_pos']))),
-                params['message'],
-                eval(params['font']),
-                eval(params['fill'])
-            )
-            print(
-                args
-            )
+                    params[param] = self.defaults[param]
             self.image_draw.text(
                 tuple((eval(params['x_pos']), eval(params['y_pos']))),
                 params['message'],
                 font=eval(params['font']),
                 fill=eval(params['fill'])
             )
-            self.disp.image(self.image)
-            self.disp.show()
+        self.disp.image(self.image)
+        self.disp.show()
 
 
 # Test logic

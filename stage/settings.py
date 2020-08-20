@@ -2,7 +2,9 @@
 This is the software configuration settings file. These values are general defaults and should be modified in the logal_settings file not here!
 """
 Debug = True  # Enables debugging
-Debug_Pretty = True  # Pprint the debug info instead of print. - Disables Debug_filter.
+Debug_Pretty = False  # Pprint the debug info instead of print. - Disables Debug_filter.
+Debug_To_Screen = True  # Report debugging data to the on-board screen.
+Screen_template = 'improv'  # Eventually this will allow us to change what the screen is showing.
 Debug_Filter = [  # This lists the includes from the real time data model that will be returned to console.
     'GPS',
     'IMU'

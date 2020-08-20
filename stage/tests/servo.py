@@ -6,18 +6,18 @@ from adafruit_servokit import ServoKit
 # 8 for FeatherWing, 16 for Shield/HAT/Bonnet.
 kit = ServoKit(channels=16)
 cnt = 0
-range_ = list(range(30, 120))  # type: list
+range_ = list(range(30, 50))  # type: list
 
 while cnt < 5:
     for position in range_:
-        for servo in range(1, 15):
+        for servo in range(0, 15):
             kit.servo[servo].angle = position
             print(servo, position)
             time.sleep(0.003)
     # time.sleep(1)
     range_.reverse()
     for position in range_:
-        for servo in range(1, 15):
+        for servo in range(0, 15):
             kit.servo[servo].angle = position
             time.sleep(0.003)
     range_.reverse()

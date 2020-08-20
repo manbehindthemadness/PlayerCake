@@ -1,7 +1,7 @@
 """
 This file contains the realtime sensor loop.
 
-TODO: Revise GPS to use circuitpython.
+TODO: Enhance debudder to use on-board reporting screen.
 """
 
 from stage import settings
@@ -13,9 +13,11 @@ import RPi.GPIO as GPIO
 from threading import Thread
 import time
 import pprint
+from warehouse.display import SSD1306
 from warehouse.utils import check_dict, Fade
 from warehouse.system import get_cpu_temperature, get_system_stats
 from warehouse.communication import NetScan, NetClient, NetServer
+from warehouse.loggers import dprint
 
 
 # noinspection PyArgumentEqualDefault,PyArgumentEqualDefault,PyArgumentEqualDefault
@@ -112,6 +114,7 @@ class Start:
         global rt_data
         global term
         self.rt_data = rt_data  # Pass realtime data.
+        self.display = SSD1306
         self.term = term  # Pass termination.
         self.gac = ReadIMU  # Init IMU.
         self.gps = ReadGPS  # Init GPS.
@@ -139,21 +142,47 @@ class Start:
         for thread in self.threads:  # Launch threads.
             thread.start()
 
+    def close(self):
+        """
+        Closes threads.
+        """
+        self.term = True
+
     def debug(self):
         """
         This dumps the rt_data information to console.
         """
+        display = self.display()
+        time.sleep(5)  # Wait for rt_data to populate.
         while not self.term:
-            try:
-                if not settings.Debug_Pretty:
-                    for reading in self.rt_data:
-                        if reading in settings.Debug_Filter:
-                            print(reading, self.rt_data[reading], '\n')
-                else:
-                    pprint.PrettyPrinter(indent=4).pprint(self.rt_data)
-            except RuntimeError:
-                pass
+            if not settings.Debug_To_Screen:
+                try:
+                    if not settings.Debug_Pretty:
+                        for reading in self.rt_data:
+                            if reading in settings.Debug_Filter:
+                                print(reading, self.rt_data[reading], '\n')
+                    else:
+                        pprint.PrettyPrinter(indent=4).pprint(self.rt_data)
+                except RuntimeError:
+                    pass
+            elif settings.Screen_template == 'improv':
+                sys = self.rt_data['SYS']
+                stats = self.rt_data['SYS']['STATS']
+                imu = self.rt_data['IMU']
+                gps = self.rt_data['GPS']
+                template = {
+                    '1': {'message': 'CPU%:' + str(stats['CPU_LOAD']) + ' ' + 'CPU_T:' + str(sys['CPU_TEMP']) + 'C'},
+                    '2': {'message': 'Mem%:' + str(stats['VIRTUAL_MEMORY'].percent) + ' disk%:' + str(stats['DISK_IO'].percent)},
+                    '3': {'message': 'Gyro: X ' + str(round(imu['kalmanX'], 1)) + ' Y ' + str(round(imu['kalmanY'], 1))},
+                    '4': {'message': 'Heading: ' + str(round(imu['tiltCompensatedHeading'], 5))},
+                    '5': {'message': 'Lat: ' + str(round(gps['LAT'], 5))},
+                    '6': {'message': 'Long: ' + str(round(gps['LONG'], 5))},
+                    '7': {'message': 'Altitude: ' + str(round(gps['ALT'], 5))},
+                    '8': {'message': 'Pressure: ' + str(round(gps['PRESS'], 1))},
+                }
+                display.text_draw(template)
             time.sleep(settings.Debug_Cycle)
+        self.display().clear()
 
     def read_adc(self):
         """
@@ -171,6 +200,7 @@ class Start:
         """
         Here is where we read the accel/mag/gyro/alt/temp.
         """
+        # noinspection PyUnusedLocal
         imud = check_dict(self.rt_data, 'IMU')
         gac = self.gac()
         while not self.term:
@@ -208,15 +238,18 @@ class Start:
         long_vals = list()
         while not self.term:
             if GPIO.input(settings.Gps_Sync):
-                gps_dat = self.gps().getpositiondata()
-                lats = Fade(settings.GPS_Fade, lat_vals, gps_dat.lat)
-                gps['LAT'] = lats[0]
-                lat_vals = lats[1]
-                longs = Fade(settings.GPS_Fade, long_vals, gps_dat.long)
-                gps['LONG'] = longs[0]
-                long_vals = longs[1]
-                alt_data = alt.get_temperature_and_pressure_and_altitude()
-                gps['ALT'] = alt_data.altitude / 100
-                gps['PRESS'] = alt_data.pressure / 100
-                gps['TEMP'] = alt_data.temperature / 100
+                try:
+                    gps_dat = self.gps().getpositiondata()
+                    lats = Fade(settings.GPS_Fade, lat_vals, gps_dat.lat)
+                    gps['LAT'] = lats[0]
+                    lat_vals = lats[1]
+                    longs = Fade(settings.GPS_Fade, long_vals, gps_dat.long)
+                    gps['LONG'] = longs[0]
+                    long_vals = longs[1]
+                    alt_data = alt.get_temperature_and_pressure_and_altitude()
+                    gps['ALT'] = alt_data.altitude / 100
+                    gps['PRESS'] = alt_data.pressure / 100
+                    gps['TEMP'] = alt_data.temperature / 100
+                except ValueError:
+                    dprint(settings, ('GPS telemetry error, invalid data',))
         time.sleep(0.1)
