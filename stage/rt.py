@@ -133,6 +133,7 @@ class Start:
         self.netterm = self.netcom.close
         self.received_data = None
         self.sender = None
+        self.server_address = None
 
         self.threads = [  # Create threads.
             Thread(target=self.read_adc, args=()),

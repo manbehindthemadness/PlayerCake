@@ -163,7 +163,7 @@ class NetCom:
                 search = False
         return self.data  # Return upstream server TCP connection information.
 
-    def tcpclient(self, message):
+    def tcpclient(self, message, address=None):
         """
         Launches a TCP client.
 
@@ -171,9 +171,13 @@ class NetCom:
 
         :param message: Data to transmit
         :type message:
+        :param address: Optional server address and port: 1.2.3.4:5.
+        ::type address: str
         :return: Nothing.
         """
         server_info = None
+        if address:  # Use server address where able.
+            server_info = address.split(':')
         while not server_info:  # Look for upstream server.
             server_info = self.udpclient()
             dprint(self.settings, ('searching for Director...',))
