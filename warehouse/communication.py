@@ -14,7 +14,7 @@ import re
 import os
 import psutil
 from cbor2 import loads, dumps
-import base64
+# import base64
 from threading import Thread
 from warehouse.loggers import dprint
 from warehouse.utils import open_file
@@ -141,7 +141,6 @@ class NetCom:
         client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcasting mode.
 
         search = True
-        server_info = None
         while search:  # Listen for upstream server to identify itself.
             data, addr = client.recvfrom(1024)
             # self.data = data.decode("utf8").split(':')
@@ -251,4 +250,3 @@ class GetIP:
         for eth in self.data:
             if str(eth[0]) == 'AddressFamily.AF_INET':
                 self.ipv4 = str(eth[1])
-
