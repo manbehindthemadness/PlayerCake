@@ -142,6 +142,11 @@ class Start:
         for thread in self.threads:  # Launch threads.
             thread.start()
 
+    def listen(self):
+        """
+        This starts the tcp server, listens for incoming connections and transports the data into the real time model.
+        """
+
     def close(self):
         """
         Closes threads.

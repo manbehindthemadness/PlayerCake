@@ -50,6 +50,16 @@ class NetCom:
         dprint(self.settings, ('starting up on %s port %s' % self.server_address,))
         self.sock.bind(self.server_address)  # Bind connection string to socket.
         self.sock.listen(1)  # Listen for incoming connections.
+        self.udpsock = None
+
+    def close(self):
+        """
+        Stops threads and closes out the sockets.
+        """
+        self.term = True
+        # self.sock.shutdown()
+        self.sock.close()
+        self.udpsock.close()
 
     def encode(self, message):
         """
@@ -79,12 +89,12 @@ class NetCom:
         Launches a UDP announce server.
         :return: Nothing.
         """
-        server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # Create UDP transmission socket.
+        self.udpsock = server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # Create UDP transmission socket.
         if self.settings.Environment == 'pure':
             server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         elif self.settings.Environment == 'mixed':  # This is a windows thing...
-            server.bind((self.bindaddr, 37020))
             server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            server.bind((self.bindaddr, 37020))
 
         server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcasting mode.
 
@@ -105,24 +115,25 @@ class NetCom:
         """
 
         self.output = bytes()
-        while not self.term:
-            dprint(self.settings, (sys.stderr, 'waiting for a connection',))
-            connection, client_address = self.sock.accept()  # This waits until a client connects.
-            dprint(self.settings, ('connection from', client_address,))
-            while True:  # Receive the data in small chunks and retransmit it
-                self.data = connection.recv(4096)  # TODO: We need to alter this so we just send back a confirmation, not all data.
-                self.output += self.data
-                # print(sys.stderr, 'received "%s"' % data)
-                if self.data:
-                    # print(sys.stderr, 'sending data back to the client')
-                    connection.sendall(self.data)
-                else:
-                    self.output = self.decode(self.output).message
-                    dprint(self.settings, (self.output,))
-                    dprint(self.settings, ('no more data from', client_address,))
-                    connection.close()  # Clean up the connection.
-                    break
+        # while not self.term:
+        dprint(self.settings, (sys.stderr, 'waiting for a connection',))
+        connection, client_address = self.sock.accept()  # This waits until a client connects.
+        dprint(self.settings, ('connection from', client_address,))
+        while not self.term:  # Receive the data in small chunks and retransmit it
+            self.data = connection.recv(4096)  # TODO: We need to alter this so we just send back a confirmation, not all data.
+            self.output += self.data
+            # print(sys.stderr, 'received "%s"' % data)
+            if self.data:
+                # print(sys.stderr, 'sending data back to the client')
+                connection.sendall(self.data)
+            else:
+                self.output = self.decode(self.output).message
+                dprint(self.settings, (self.output,))
+                dprint(self.settings, ('no more data from', client_address,))
+                connection.close()  # Clean up the connection.
+                break
         print('closing server')
+        return self
 
     def udpclient(self):
         """
@@ -175,7 +186,7 @@ class NetCom:
         try:
             # print(sys.stderr, 'sending "%s"' % message)
             sock.sendall(message)  # Send message.
-
+            print('message sent waiting for reply.')
             # Look for the response
             amount_received = 0
             amount_expected = len(message)
@@ -196,7 +207,12 @@ class NetCom:
 
         :return: Nothing.
         """
-        self.tcpclient(bytes(open_file("stage/tests/transmit.log"), "utf8"))
+        message = {
+            'SENDER': self.settings.StageID,
+            # 'DATA': bytes(open_file("stage/tests/transmit.log"), "utf8")
+            'DATA': bytes('Some data here', "utf8")
+        }
+        self.tcpclient(message)
 
 
 class NetScan:
