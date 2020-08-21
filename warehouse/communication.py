@@ -53,7 +53,9 @@ class NetCom:
 
     def encode(self, message):
         """
-        Encodes a message using base64 and cbor
+        Encodes a message using base64 and cbor.
+
+        TODO: Add encryption here.
         """
         self.message = dumps(
                 message
@@ -63,6 +65,8 @@ class NetCom:
     def decode(self, message):
         """
         Decodes a message using basse64 and cbor.
+
+        TODO Add decryption here.
         """
         self.message = loads(
                 message
