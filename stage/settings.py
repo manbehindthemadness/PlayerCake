@@ -13,9 +13,9 @@ Debug_Filter = [  # This lists the includes from the real time data model that w
 Role = 'stage'  # This is the role announcement that is used by the network client UDP lookup broadcast.
 Target = 'director'  # This is the up-stream role used to direct rebort connections.
 DirectorID = '6efc1846-d015-11ea-87d0-0242ac130003'  # This ID matches Stage clients to their respective Directors.
-Environment = 'mixed'  # Mixed means that we are using windows or apple to communicate with Stage: mixed/pure
+Environment = 'pure'  # Mixed means that we are using windows or apple to communicate with Stage: mixed/pure
 BindAdaptor = 'wlan0'  # This is the network adaptor used to handle incoming and outgoing network traffic.
-TCPBindPort = 12000  # TCP listener port.
+TCPBindPort = 12001  # TCP listener port.
 SSID = ''  # These are placeholder values for when we get QR code recognition working.
 Secret = ''
 

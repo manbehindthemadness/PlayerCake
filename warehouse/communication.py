@@ -55,24 +55,20 @@ class NetCom:
         """
         Encodes a message using base64 and cbor
         """
-        self.message = message
-        if not isinstance(self.message, self.types):
-            self.message = self.message.encode()
-        self.message = loads(
-            base64.b64encode(
-                self.message
-            )
+        self.message = dumps(
+                message
         )
+        return self
 
     def decode(self, message):
         """
         Decodes a message using basse64 and cbor.
         """
-        self.message = dumps(
-            base64.b64decode(
+        self.message = loads(
                 message
-            )
+
         )
+        return self
 
     def udpserver(self):
         """
@@ -91,7 +87,8 @@ class NetCom:
         server.settimeout(0.2)  # Define server timeout.
         statement = self.settings.Role + ':' + socket.gethostname() + ':' + self.settings.DirectorID + ':' + self.bindaddr + ':' + str(self.settings.TCPBindPort)  # Define data package.
         # TODO: Encode the above information.
-        message = bytes(statement, "utf8")  # Convert data package into bytes.
+        # message = bytes(statement, "utf8")  # Convert data package into bytes.
+        message = self.encode(statement).message
         while not self.term:  # Broadcast until termination signal is recieved.
             server.sendto(message, ("<broadcast>", 37020))  # Send message.
             # print("message sent!")
@@ -116,6 +113,7 @@ class NetCom:
                     # print(sys.stderr, 'sending data back to the client')
                     connection.sendall(self.data)
                 else:
+                    self.output = self.decode(self.output).message
                     dprint(self.settings, (self.output,))
                     dprint(self.settings, ('no more data from', client_address,))
                     connection.close()  # Clean up the connection.
@@ -142,7 +140,8 @@ class NetCom:
         server_info = None
         while search:  # Listen for upstream server to identify itself.
             data, addr = client.recvfrom(1024)
-            self.data = data.decode("utf8").split(':')
+            # self.data = data.decode("utf8").split(':')
+            self.data = self.decode(data).message.split(':')
             print(self.data)
             if self.data[0] == self.settings.Target and self.data[2] == self.settings.DirectorID:  # TODO: revise for cross-application compatibility.
                 dprint(self.settings, ("received message: %s" % data,))
@@ -169,6 +168,7 @@ class NetCom:
         server_address = (server_info[3], int(server_info[4]))  # Collect server connection string.
         dprint(self.settings, ('connecting to %s port %s' % server_address,))
         sock.connect(server_address)  # Connect the socket to the port where the server is listening.
+        message = self.encode(message).message
         try:
             # print(sys.stderr, 'sending "%s"' % message)
             sock.sendall(message)  # Send message.
