@@ -17,7 +17,7 @@ from cbor2 import loads, dumps
 # import base64
 from threading import Thread
 from warehouse.loggers import dprint
-from warehouse.utils import open_file
+# from warehouse.utils import open_file
 
 
 class NetCom:
