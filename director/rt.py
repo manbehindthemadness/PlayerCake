@@ -55,6 +55,7 @@ class Start:
                     old = debug_model[reading]
                     new = self.rt_data[reading]
                     if new and new != old:
+                        # noinspection PyUnusedLocal
                         old = new
                     else:
                         skip_report = True
@@ -88,13 +89,13 @@ class Start:
             self.received_data = server.output
 
             # noinspection PyBroadException,PyPep8
-            # try:
-            self.sender = self.received_data['SENDER']
-            if self.sender in self.settings.Paired_Stages:  # Identify incoming connection.
-                listener[self.sender] = self.received_data['DATA']  # Send received data to real time model.
-            else:
-                dprint(self.settings, ('Unknown client connection:', self.sender))  # Send to debug log
-            # except KeyError as err:
-            #     print(err)
-            #     dprint(self.settings, ('Malformed client connection:', self.sender))  # Send to debug log
-            #     pass
+            try:
+                self.sender = self.received_data['SENDER']
+                if self.sender in self.settings.Paired_Stages:  # Identify incoming connection.
+                    listener[self.sender] = self.received_data['DATA']  # Send received data to real time model.
+                else:
+                    dprint(self.settings, ('Unknown client connection:', self.sender))  # Send to debug log
+            except KeyError as err:
+                print(err)
+                dprint(self.settings, ('Malformed client connection:', self.sender))  # Send to debug log
+                pass

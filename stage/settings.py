@@ -4,6 +4,7 @@ This is the software configuration settings file. These values are general defau
 Debug = True  # Enables debugging
 Debug_Pretty = False  # Pprint the debug info instead of print. - Disables Debug_filter.
 Debug_To_Screen = True  # Report debugging data to the on-board screen.
+Debug_Update_Only = True # Only update the debug model with new data and ignotr empty ones - Useful for catching fast operations.
 Screen_template = 'improv'  # Eventually this will allow us to change what the screen is showing.
 Debug_Filter = [  # This lists the includes from the real time data model that will be returned to console.
     'GPS',

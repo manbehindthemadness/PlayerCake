@@ -113,6 +113,7 @@ class Start:
     def __init__(self):
         global rt_data
         global term
+        self.settings = settings
         self.rt_data = rt_data  # Pass realtime data.
         self.display = SSD1306
         self.term = term  # Pass termination.
@@ -126,8 +127,12 @@ class Start:
         self.adc.set_bit_rate(12)  # Adjust timing (lower is faster).
         self.adc.set_conversion_mode(1)  # Set continuous conversion.
         self.netscan = NetScan
-        self.netclient = NetCom(settings).tcpclient
-        self.netserver = NetCom(settings).tcpserver
+        self.netcom = NetCom(self.settings)
+        self.netclient = self.netcom.tcpclient  # Get client,
+        self.netserver = self.netcom.tcpserver  # Get server.
+        self.netterm = self.netcom.close
+        self.received_data = None
+        self.sender = None
 
         self.threads = [  # Create threads.
             Thread(target=self.read_adc, args=()),
@@ -146,11 +151,30 @@ class Start:
         """
         This starts the tcp server, listens for incoming connections and transports the data into the real time model.
         """
+        listener = self.rt_data['LISTENER'] = dict()
+
+        while not self.term:
+            print('waiting for incoming data')
+            server = self.netserver()
+            self.received_data = server.output
+
+            # noinspection PyBroadException,PyPep8
+            try:
+                self.sender = self.received_data['SENDER']
+                if self.sender == self.settings.DirectorID:  # Identify incoming connection.
+                    listener[self.sender] = self.received_data['DATA']  # Send received data to real time model.
+                else:
+                    dprint(self.settings, ('Unknown client connection:', self.sender))  # Send to debug log
+            except KeyError as err:
+                print(err)
+                dprint(self.settings, ('Malformed client connection:', self.sender))  # Send to debug log
+                pass
 
     def close(self):
         """
         Closes threads.
         """
+        self.netterm()
         self.term = True
 
     def debug(self):
@@ -159,15 +183,32 @@ class Start:
         """
         display = self.display()
         time.sleep(5)  # Wait for rt_data to populate.
+        debug_model = dict()
+        for reading in self.rt_data:  # Build debug model.
+            if reading in settings.Debug_Filter:
+                debug_model[reading] = self.rt_data[reading]
         while not self.term:
+            skip_report = False
             if not settings.Debug_To_Screen:
                 try:
-                    if not settings.Debug_Pretty:
-                        for reading in self.rt_data:
-                            if reading in settings.Debug_Filter:
-                                print(reading, self.rt_data[reading], '\n')
-                    else:
-                        pprint.PrettyPrinter(indent=4).pprint(self.rt_data)
+                    if settings.Debug_Update_Only:  # Log update only.
+                        for reading in debug_model:
+                            old = debug_model[reading]
+                            new = self.rt_data[reading]
+                            if new and new != old:
+                                # noinspection PyUnusedLocal
+                                old = new
+                            else:
+                                skip_report = True
+                    else:  # Log direct.
+                        debug_model = self.rt_data
+                    if not skip_report:
+                        if settings.Debug_Pretty:
+                            pprint.PrettyPrinter(indent=4).pprint(debug_model)
+                        else:
+                            for reading in debug_model:
+                                if reading in settings.Debug_Filter:
+                                    print(reading, debug_model[reading], '\n')
                 except RuntimeError:
                     pass
             elif settings.Screen_template == 'improv':

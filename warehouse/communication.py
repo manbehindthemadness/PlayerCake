@@ -59,7 +59,8 @@ class NetCom:
         self.term = True
         # self.sock.shutdown()
         self.sock.close()
-        self.udpsock.close()
+        if self.udpsock:
+            self.udpsock.close()
 
     def encode(self, message):
         """
@@ -169,7 +170,7 @@ class NetCom:
         TODO: Find a way to cache the upstream server info.
 
         :param message: Data to transmit
-        :type message: bytes
+        :type message:
         :return: Nothing.
         """
         server_info = None
