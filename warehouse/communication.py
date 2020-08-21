@@ -40,7 +40,13 @@ class NetCom:
         announcethread.start()  # Launch UDP transmitter.
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
-        self.server_address = (self.bindaddr, self.settings.TCPBindPort)  # Create connection string.
+
+        if self.settings.Environment == 'mixed':
+            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.server_address = (self.bindaddr, self.settings.TCPBindPort)  # Create connection string.
+        else:
+            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            self.server_address = ('0.0.0.0', self.settings.TCPBindPort)  # Create connection string.
         dprint(self.settings, ('starting up on %s port %s' % self.server_address,))
         self.sock.bind(self.server_address)  # Bind connection string to socket.
         self.sock.listen(1)  # Listen for incoming connections.
