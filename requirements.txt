@@ -28,6 +28,7 @@ keyrings.alt
 numpy
 olefile
 Pillow
+psutil
 pycrypto
 pyftdi
 PyGObject

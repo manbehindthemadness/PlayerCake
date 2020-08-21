@@ -12,14 +12,12 @@ import time
 import sys
 import re
 import os
+import psutil
 from cbor2 import loads, dumps
 import base64
 from threading import Thread
 from warehouse.loggers import dprint
 from warehouse.utils import open_file
-
-
-term = False
 
 
 class NetCom:
@@ -30,9 +28,22 @@ class NetCom:
         https://stackoverflow.com/questions/43475468/windows-python-udp-broadcast-blocked-no-firewall
     """
     def __init__(self, settings):
+        self.term = False
         self.message = None
         self.settings = settings
         self.types = (bytes, bytearray)
+        self.data = bytes()
+        self.output = None
+        self.bindaddr = GetIP(self.settings).ipv4
+
+        announcethread = Thread(target=self.udpserver, args=())  # Create transmitter thread.
+        announcethread.start()  # Launch UDP transmitter.
+
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
+        self.server_address = (self.bindaddr, self.settings.TCPBindPort)  # Create connection string.
+        dprint(self.settings, ('starting up on %s port %s' % self.server_address,))
+        self.sock.bind(self.server_address)  # Bind connection string to socket.
+        self.sock.listen(1)  # Listen for incoming connections.
 
     def encode(self, message):
         """
@@ -66,16 +77,16 @@ class NetCom:
         if self.settings.Environment == 'pure':
             server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         elif self.settings.Environment == 'mixed':  # This is a windows thing...
-            server.bind((self.settings.BindAddr, 37020))
+            server.bind((self.bindaddr, 37020))
             server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcasting mode.
 
         server.settimeout(0.2)  # Define server timeout.
-        statement = self.settings.Target + ':' + socket.gethostname() + ':' + self.settings.DirectorID + ':' + self.settings.BindAddr + ':' + str(self.settings.TCPBindPort)  # Define data package.
+        statement = self.settings.Role + ':' + socket.gethostname() + ':' + self.settings.DirectorID + ':' + self.bindaddr + ':' + str(self.settings.TCPBindPort)  # Define data package.
         # TODO: Encode the above information.
         message = bytes(statement, "utf8")  # Convert data package into bytes.
-        while not term:  # Broadcast until termination signal is recieved.
+        while not self.term:  # Broadcast until termination signal is recieved.
             server.sendto(message, ("<broadcast>", 37020))  # Send message.
             # print("message sent!")
             time.sleep(1)
@@ -85,37 +96,25 @@ class NetCom:
         Launches a TCP communication server.
         :return: Nothing.
         """
-        global term
-        announcethread = Thread(target=self.udpserver, args=())  # Create transmitter thread.
-        announcethread.start()  # Launch UDP transmitter.
 
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
-        server_address = (self.settings.BindAddr, self.settings.TCPBindPort)  # Create connection string.
-        dprint(self.settings, ('starting up on %s port %s' % server_address,))
-        sock.bind(server_address)  # Bind connection string to socket.
-        sock.listen(1)  # Listen for incoming connections.
-
-        while True:
-            output = b''
+        self.output = bytes()
+        while not self.term:
             dprint(self.settings, (sys.stderr, 'waiting for a connection',))
-            connection, client_address = sock.accept()  # This waits until a client connects.
-            try:
-                dprint(self.settings, ('connection from', client_address,))
-
-                while True:  # Receive the data in small chunks and retransmit it
-                    data = connection.recv(4096)  # TODO: We need to alter this so we just send back a confirmation, not all data.
-                    output += data
-                    # print(sys.stderr, 'received "%s"' % data)
-                    if data:
-                        # print(sys.stderr, 'sending data back to the client')
-                        connection.sendall(data)
-                    else:
-                        dprint(self.settings, (output,))
-                        dprint(self.settings, ('no more data from', client_address,))
-                        break
-            finally:
-                connection.close()  # Clean up the connection.
-                term = False  # Close transmitter thread.
+            connection, client_address = self.sock.accept()  # This waits until a client connects.
+            dprint(self.settings, ('connection from', client_address,))
+            while True:  # Receive the data in small chunks and retransmit it
+                self.data = connection.recv(4096)  # TODO: We need to alter this so we just send back a confirmation, not all data.
+                self.output += self.data
+                # print(sys.stderr, 'received "%s"' % data)
+                if self.data:
+                    # print(sys.stderr, 'sending data back to the client')
+                    connection.sendall(self.data)
+                else:
+                    dprint(self.settings, (self.output,))
+                    dprint(self.settings, ('no more data from', client_address,))
+                    connection.close()  # Clean up the connection.
+                    break
+        print('closing server')
 
     def udpclient(self):
         """
@@ -137,11 +136,12 @@ class NetCom:
         server_info = None
         while search:  # Listen for upstream server to identify itself.
             data, addr = client.recvfrom(1024)
-            if self.settings.DirectorID in str(data):  # TODO: revise for cross-application compatibility.
+            self.data = data.decode("utf8").split(':')
+            print(self.data)
+            if self.data[0] == self.settings.Target and self.data[2] == self.settings.DirectorID:  # TODO: revise for cross-application compatibility.
                 dprint(self.settings, ("received message: %s" % data,))
-                server_info = data.decode("utf8").split(':')
                 search = False
-        return server_info  # Return upstream server TCP connection information.
+        return self.data  # Return upstream server TCP connection information.
 
     def tcpclient(self, message):
         """
@@ -181,12 +181,10 @@ class NetCom:
             dprint(self.settings, ('closing socket',))
             sock.close()  # Close socket.
 
-    def test(self, _settings):
+    def test(self):
         """
         Tests the tcpclient.
 
-        :param _settings: Instance of configuration file.
-        :type _settings: Module
         :return: Nothing.
         """
         self.tcpclient(bytes(open_file("stage/tests/transmit.log"), "utf8"))
@@ -222,3 +220,25 @@ class NetScan:
                     else:
                         entry[value[0]] = value[1]
                         last = value[0]
+
+
+class GetIP:
+    """
+    Fetches the ipaddress of a local adaptor.
+    """
+    def __init__(self, settings=None, adaptor=None):
+        """
+        :param settings: Pass settings file.
+        :param adaptor: Optional string value of adaptor.
+        """
+        if settings:
+            self.adaptor = settings.BindAdaptor
+        if adaptor:
+            self.adaptor = adaptor
+        self.data = psutil.net_if_addrs()[self.adaptor]
+        self.v4 = self.data[0]
+        self.ipv4 = None
+        for eth in self.data:
+            if str(eth[0]) == 'AddressFamily.AF_INET':
+                self.ipv4 = str(eth[1])
+
