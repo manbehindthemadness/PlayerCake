@@ -8,7 +8,7 @@ from stage import settings
 from stage.improvisors.berryimu import ReadIMU, ReadAlt
 from stage.improvisors.gps_lkp import ReadGPS
 # from stage.improvisors.bmp280 import alt
-from ADCPi import ADCPi
+from ADCPi import ADCPi, TimeoutError as ADCTimeout
 import RPi.GPIO as GPIO
 from threading import Thread
 import time
@@ -201,16 +201,20 @@ class Start:
         """This tells the director we are online and ready"""
         connected = False
         ready = {'STATUS': 'ready'}
-        while not self.term and not connected:
-            self.rt_data['LISTENER'][self.settings.StageID] = ready
-            try:
-                self.send({'SENDER': self.settings.StageID, 'DATA': ready})  # Transmit ready state to director.
-                time.sleep(1)
-                if self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] == 'confirmed':
-                    print('Handshake with director confirmed')
-                    connected = True
-            except (TimeoutError, socket.timeout):
-                pass
+        while not self.term:
+            if not connected:
+                self.rt_data['LISTENER'][self.settings.StageID] = ready
+                try:
+                    self.send({'SENDER': self.settings.StageID, 'DATA': ready})  # Transmit ready state to director.
+                    time.sleep(1)
+                    if self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] == 'confirmed':
+                        print('Handshake with director confirmed')
+                        connected = True
+                        # TODO: We should nest another while loop here to autometically send keepalive and determine connection stability.
+                except (TimeoutError, socket.timeout):
+                    pass
+            elif self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] == 'ready':  # This will allow us to re-confirm after connection dropouts.
+                connected = False
 
     def close(self):
         """
@@ -278,11 +282,15 @@ class Start:
         """
         self.rt_data['ADC'] = dict()
         while not self.term:
-            for num in range(1, settings.ADC_Num_Channels):
-                comp = 0
-                if num in settings.ADC_Ungrounded_Channels:
-                    comp = settings.ADC_Noise
-                self.rt_data['ADC']['ADCPort' + str(num)] = adc.read_voltage(num - comp)
+            try:
+                for num in range(1, settings.ADC_Num_Channels):
+                    comp = 0
+                    if num in settings.ADC_Ungrounded_Channels:
+                        comp = settings.ADC_Noise
+                    self.rt_data['ADC']['ADCPort' + str(num)] = adc.read_voltage(num - comp)
+            except ADCTimeout:
+                dprint(settings, ('ADC timeout',))
+                pass
 
     def read_imu(self):
         """
