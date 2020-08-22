@@ -144,6 +144,7 @@ class Start:
             Thread(target=self.read_system, args=()),
             Thread(target=self.read_networks, args=()),
             Thread(target=self.read_gps, args=()),
+            Thread(target=self.listen, args=()),
         ]
         if settings.Debug:
             self.threads.append(Thread(target=self.debug, args=()))
@@ -155,24 +156,31 @@ class Start:
         """
         This starts the tcp server, listens for incoming connections and transports the data into the real time model.
         """
-        listener = self.rt_data['LISTENER'] = dict()
+        """
+                This starts the tcp server, listens for incoming connections and transports the data into the real time model.
+                """
+        listener = self.rt_data['LISTENER'] = check_dict(self.rt_data, 'LISTENER')
+        addresses = self.rt_data['ADDRESSES'] = check_dict(self.rt_data, 'ADDRESSES')
 
         while not self.term:
-            print('waiting for incoming data')
+            # print('waiting for incoming data')
             server = self.netserver()
             self.received_data = server.output
-
+            address = server.client_address
             # noinspection PyBroadException,PyPep8
             try:
                 self.sender = self.received_data['SENDER']
                 if self.sender == self.settings.DirectorID:  # Identify incoming connection.
                     listener[self.sender] = self.received_data['DATA']  # Send received data to real time model.
+                    addresses[self.sender] = address  # Store client address for future connections.
                 else:
                     dprint(self.settings, ('Unknown client connection:', self.sender))  # Send to debug log
-            except KeyError as err:
+            except (KeyError, TypeError) as err:
                 print(err)
                 dprint(self.settings, ('Malformed client connection:', self.sender))  # Send to debug log
                 pass
+            print(self.rt_data['ADDRESSES'])
+        self.netcom.close()  # Release network sockets
 
     def close(self):
         """

@@ -58,6 +58,8 @@ class Start:
     def debug(self):
         """
         Dumps the real time data to console.
+
+        TODO: THis thing only works the first time!
         """
         time.sleep(5)
         debug_model = dict()
@@ -117,12 +119,23 @@ class Start:
                     addresses[self.sender] = address  # Store client address for future connections.
                 else:
                     dprint(self.settings, ('Unknown client connection:', self.sender))  # Send to debug log
-            except KeyError as err:
+            except (KeyError, TypeError) as err:
                 print(err)
                 dprint(self.settings, ('Malformed client connection:', self.sender))  # Send to debug log
                 pass
             print(self.rt_data['ADDRESSES'])
         self.netcom.close()  # Release network sockets
+
+    def send(self, destination_id, message):
+        """
+        This transmits a data package to the specified client id.
+        """
+        addresses = self.rt_data['ADDRESSES']
+        if destination_id in addresses.keys():
+            address = self.rt_data['ADDRESSES'][destination_id][0]
+            self.netclient(message, address + ':' + str(self.settings.TCPBindPort))
+        else:
+            dprint(self.settings, ('Error, client not found: ' + destination_id,))
 
     def heartbeat(self):
         """

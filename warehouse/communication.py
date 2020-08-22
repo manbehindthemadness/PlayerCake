@@ -5,6 +5,16 @@ TODO: I think we need to implement a serializer for our message contents so we c
 
 net scan: iwlist wlan0 scanning | egrep 'Cell |Encryption|Quality|Last beacon|ESSID'
 
+https://stackoverflow.com/questions/44029765/python-socket-connection-between-windows-and-linux
+https://pythonprogramming.net/python-binding-listening-sockets/
+
+tcpdump -i eth0 port 30720 -XX
+
+firewall-cmd --direct --add-rule ipv4 filter INPUT 10 -d 255.255.255.255 -j ACCEPT
+firewall-cmd --permanent --direct --add-rule ipv4 filter INPUT 10 -d 255.255.255.255 -j ACCEPT
+firewall-cmd --add-port=37020/udp
+firewall-cmd --permanent --add-port=37020/udp
+
 """
 
 import socket
@@ -13,7 +23,7 @@ import time
 import re
 import os
 import psutil
-from cbor2 import loads, dumps
+from cbor2 import loads, dumps, CBORDecodeEOF
 # import base64
 from threading import Thread
 from warehouse.loggers import dprint
@@ -43,10 +53,11 @@ class NetCom:
 
         if self.settings.Environment == 'mixed':
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.server_address = (self.bindaddr, self.settings.TCPBindPort)  # Create connection string.
+
         else:
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-            self.server_address = ('0.0.0.0', self.settings.TCPBindPort)  # Create connection string.
+            # self.server_address = ('0.0.0.0', self.settings.TCPBindPort)  # Create connection string.
+        self.server_address = (self.bindaddr, self.settings.TCPBindPort)  # Create connection string.
         dprint(self.settings, ('starting up on %s port %s' % self.server_address,))
         self.sock.bind(self.server_address)  # Bind connection string to socket.
         self.sock.listen(1)  # Listen for incoming connections.
@@ -98,7 +109,7 @@ class NetCom:
             server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         elif self.settings.Environment == 'mixed':  # This is a windows thing...
             server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            server.bind((self.bindaddr, 37020))
+            server.bind((self.bindaddr, self.settings.UDPBroadcastPort))
 
         server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcasting mode.
 
@@ -108,8 +119,8 @@ class NetCom:
         # message = bytes(statement, "utf8")  # Convert data package into bytes.
         message = self.encode(statement).message
         while not self.term:  # Broadcast until termination signal is recieved.
-            server.sendto(message, ("<broadcast>", 37020))  # Send message.
-            # print("message sent!")
+            server.sendto(message, ("<broadcast>", self.settings.UDPBroadcastPort))  # Send message.
+            # print("message sent!", message, self.settings.UDPBroadcastPort)
             time.sleep(1)
 
     def tcpserver(self):
@@ -132,7 +143,10 @@ class NetCom:
                 # print(sys.stderr, 'sending data back to the client')
                 self.connection.sendall(self.data)
             else:
-                self.output = self.decode(self.output).message
+                try:
+                    self.output = self.decode(self.output).message
+                except CBORDecodeEOF:
+                    dprint(self.settings, ('Invalid connection data, CBOR EOF, aborting',))
                 # dprint(self.settings, (self.output,))
                 # dprint(self.settings, ('no more data from', self.client_address,))
                 self.connection.close()  # Clean up the connection.
@@ -150,14 +164,15 @@ class NetCom:
         client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # Create UDP client socket.
         if self.settings.Environment == 'pure':
             client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)  # Specify socket options.
-            client.bind(("", 37020))  # Bind the socket to all adaptors and the target port.
+            client.bind(("", self.settings.UDPBindPort))  # Bind the socket to all adaptors and the target port.
         elif self.settings.Environment == 'mixed':
             client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Windows compatable version.
-            client.bind(("", 37020))  # Bind the socket to all adaptors and the target port.
+            client.bind(("", self.settings.UDPBindPort))  # Bind the socket to all adaptors and the target port.
         client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcasting mode.
 
         search = True
         while search:  # Listen for upstream server to identify itself.
+            # print('udp search:', self.settings.UDPBindPort)
             data, addr = client.recvfrom(1024)
             # self.data = data.decode("utf8").split(':')
             self.data = self.decode(data).message.split(':')
@@ -179,17 +194,21 @@ class NetCom:
         ::type address: str
         :return: Nothing.
         """
+        dprint(self.settings, ('connection init',))
         server_info = None
         if address:  # Use server address where able.
             server_info = address.split(':')
         while not server_info:  # Look for upstream server.
-            server_info = self.udpclient()
             dprint(self.settings, ('searching for Director...',))
+            server_info = self.udpclient()
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
 
         # print(server_info[3], int(server_info[4]))
-        server_address = (server_info[3], int(server_info[4]))  # Collect server connection string.
-        # dprint(self.settings, ('connecting to %s port %s' % server_address,))
+        if address:
+            server_address = server_info[0], int(server_info[1])
+        else:
+            server_address = (server_info[3], int(server_info[4]))  # Collect server connection string.
+        dprint(self.settings, ('connecting to %s port %s' % server_address,))
         sock.connect(server_address)  # Connect the socket to the port where the server is listening.
         sock.settimeout(self.settings.NetworkTimeout)
         message = self.encode(message).message
@@ -219,7 +238,7 @@ class NetCom:
         message = {
             'SENDER': self.settings.StageID,
             # 'DATA': bytes(open_file("stage/tests/transmit.log"), "utf8")
-            'DATA': bytes('Some data here', "utf8")
+            'DATA': bytes('Some data here 2', "utf8")
         }
         self.tcpclient(message)
 
