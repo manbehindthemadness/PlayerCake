@@ -208,7 +208,7 @@ class Start:
                     self.send({'SENDER': self.settings.StageID, 'DATA': ready})  # Transmit ready state to director.
                     time.sleep(1)
                     if self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] == 'confirmed':
-                        print('Handshake with director confirmed')
+                        print('Handshake with director confirmed, starting heartbeat')
                         connected = True
                         # TODO: We should nest another while loop here to autometically send keepalive and determine connection stability.
                 except (TimeoutError, socket.timeout):

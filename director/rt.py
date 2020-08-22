@@ -156,6 +156,8 @@ class Start:
                     print('sending ready state to', stage)
                     self.send(stage, {'SENDER': self.settings.DirectorID, 'DATA': {'STATUS': 'confirmed'}})  # Transmit ready state to stage.
                     client['STATUS'] = 'confirmed'
+                    dprint(self.settings, ('Handshake with client ' + stage + ' confirmed, starting heartbeat',))
+                    # TODO: start heartbeat thread here.
 
     def heartbeat(self):
         """
