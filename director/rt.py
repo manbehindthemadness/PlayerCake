@@ -2,6 +2,7 @@
 This holds our programs main loops.
 """
 from warehouse.communication import NetCom
+from warehouse.utils import check_dict
 from director import settings
 from threading import Thread
 from warehouse.loggers import dprint
@@ -14,7 +15,21 @@ term = False
 
 class Start:
     """
-    Here we launch our program threads.
+    Real time program loop.
+
+    Data model specifications:
+
+    {
+        "LISTENER": {
+            "<STAGE_ID1>": "<Recieved network data>" , TODO: We need to find a way to organize this.
+            "<STAGE_ID2>": "<Recieved network data>" ... etc.
+        },
+        "ADDRESSES": {
+            "<STAGE_ID1>": "<Ipaddress>",
+            <STAGE_ID2>": "<Ipaddress>"... etc.
+        },
+    }
+
     """
 
     def __init__(self):
@@ -44,19 +59,23 @@ class Start:
         """
         Dumps the real time data to console.
         """
+        time.sleep(5)
         debug_model = dict()
         for reading in self.rt_data:  # Build debug model.
             if reading in settings.Debug_Filter:
-                debug_model[reading] = self.rt_data[reading]
+                debug_model[reading] = dict()
         while not self.term:
             skip_report = False
             if settings.Debug_Update_Only:  # Log update only.
-                for reading in debug_model:
+                for reading in self.settings.Debug_Filter:
                     old = debug_model[reading]
                     new = self.rt_data[reading]
-                    if new and new != old:
+                    # print('OLD', old)
+                    # print('NEW', new)
+                    if new != old:
+                        print('updating debug model')
                         # noinspection PyUnusedLocal
-                        old = new
+                        debug_model[reading] = self.rt_data[reading]  # No idea why I can't instance these...
                     else:
                         skip_report = True
             else:  # Log direct.
@@ -74,28 +93,38 @@ class Start:
         """
         Closes threads.
         """
-        self.netcom.close()  # Release network sockets
+        global term
+        term = True
         self.term = True
 
     def listen(self):
         """
         This starts the tcp server, listens for incoming connections and transports the data into the real time model.
         """
-        listener = self.rt_data['LISTENER'] = dict()
+        listener = self.rt_data['LISTENER'] = check_dict(self.rt_data, 'LISTENER')
+        addresses = self.rt_data['ADDRESSES'] = check_dict(self.rt_data, 'ADDRESSES')
 
         while not self.term:
-            print('waiting for incoming data')
+            # print('waiting for incoming data')
             server = self.netserver()
             self.received_data = server.output
-
+            address = server.client_address
             # noinspection PyBroadException,PyPep8
             try:
                 self.sender = self.received_data['SENDER']
                 if self.sender in self.settings.Paired_Stages:  # Identify incoming connection.
                     listener[self.sender] = self.received_data['DATA']  # Send received data to real time model.
+                    addresses[self.sender] = address  # Store client address for future connections.
                 else:
                     dprint(self.settings, ('Unknown client connection:', self.sender))  # Send to debug log
             except KeyError as err:
                 print(err)
                 dprint(self.settings, ('Malformed client connection:', self.sender))  # Send to debug log
                 pass
+            print(self.rt_data['ADDRESSES'])
+        self.netcom.close()  # Release network sockets
+
+    def heartbeat(self):
+        """
+        This is our keepalive thread... Should this be moved to stage?
+        """

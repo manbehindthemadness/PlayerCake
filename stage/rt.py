@@ -48,6 +48,9 @@ class Start:
     Data model specifications:
 
     {
+        "LISTENER": {
+            "<DIRECTOR_ID>": "<Recieved network data>" , TODO: We need to find a way to organize this.
+        },
         "ADC": {"ADCPort1": "value", "ADCPort2": "value"},  # etc...
         "IMU": {
             "AccXangle": "value",

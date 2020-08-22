@@ -18,6 +18,7 @@ StageID = 'a9b3cfb3-c72d-4efd-993d-6c8dccbb8609'  # This alows us to be identifi
 Environment = 'pure'  # Mixed means that we are using windows or apple to communicate with Stage: mixed/pure
 BindAdaptor = 'wlan0'  # This is the network adaptor used to handle incoming and outgoing network traffic.
 TCPBindPort = 12001  # TCP listener port.
+NetworkTimeout = 5  # This is the connection timeout for the network sockets.
 SSID = ''  # These are placeholder values for when we get QR code recognition working.
 Secret = ''
 

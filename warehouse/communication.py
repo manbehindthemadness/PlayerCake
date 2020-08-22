@@ -9,7 +9,7 @@ net scan: iwlist wlan0 scanning | egrep 'Cell |Encryption|Quality|Last beacon|ES
 
 import socket
 import time
-import sys
+# import sys
 import re
 import os
 import psutil
@@ -51,6 +51,8 @@ class NetCom:
         self.sock.bind(self.server_address)  # Bind connection string to socket.
         self.sock.listen(1)  # Listen for incoming connections.
         self.udpsock = None
+        self.client_address = None
+        self.connection = None
 
     def close(self):
         """
@@ -58,7 +60,8 @@ class NetCom:
         """
         self.term = True
         # self.sock.shutdown()
-        self.sock.close()
+        if self.sock:
+            self.sock.close()
         if self.udpsock:
             self.udpsock.close()
 
@@ -117,23 +120,24 @@ class NetCom:
 
         self.output = bytes()
         # while not self.term:
-        dprint(self.settings, (sys.stderr, 'waiting for a connection',))
-        connection, client_address = self.sock.accept()  # This waits until a client connects.
-        dprint(self.settings, ('connection from', client_address,))
+        # dprint(self.settings, (sys.stderr, 'waiting for a connection',))
+        self.connection, self.client_address = self.sock.accept()  # This waits until a client connects.
+
+        # dprint(self.settings, ('connection from', self.client_address,))
         while not self.term:  # Receive the data in small chunks and retransmit it
-            self.data = connection.recv(4096)  # TODO: We need to alter this so we just send back a confirmation, not all data.
+            self.data = self.connection.recv(4096)  # TODO: We need to alter this so we just send back a confirmation, not all data.
             self.output += self.data
             # print(sys.stderr, 'received "%s"' % data)
             if self.data:
                 # print(sys.stderr, 'sending data back to the client')
-                connection.sendall(self.data)
+                self.connection.sendall(self.data)
             else:
                 self.output = self.decode(self.output).message
-                dprint(self.settings, (self.output,))
-                dprint(self.settings, ('no more data from', client_address,))
-                connection.close()  # Clean up the connection.
+                # dprint(self.settings, (self.output,))
+                # dprint(self.settings, ('no more data from', self.client_address,))
+                self.connection.close()  # Clean up the connection.
                 break
-        print('closing server')
+        # print('closing server')
         return self
 
     def udpclient(self):
@@ -157,9 +161,9 @@ class NetCom:
             data, addr = client.recvfrom(1024)
             # self.data = data.decode("utf8").split(':')
             self.data = self.decode(data).message.split(':')
-            print(self.data)
+            # print(self.data)
             if self.data[0] == self.settings.Target and self.data[2] == self.settings.DirectorID:  # TODO: revise for cross-application compatibility.
-                dprint(self.settings, ("received message: %s" % data,))
+                # dprint(self.settings, ("received message: %s" % data,))
                 search = False
         return self.data  # Return upstream server TCP connection information.
 
@@ -185,13 +189,14 @@ class NetCom:
 
         # print(server_info[3], int(server_info[4]))
         server_address = (server_info[3], int(server_info[4]))  # Collect server connection string.
-        dprint(self.settings, ('connecting to %s port %s' % server_address,))
+        # dprint(self.settings, ('connecting to %s port %s' % server_address,))
         sock.connect(server_address)  # Connect the socket to the port where the server is listening.
+        sock.settimeout(self.settings.NetworkTimeout)
         message = self.encode(message).message
         try:
             # print(sys.stderr, 'sending "%s"' % message)
             sock.sendall(message)  # Send message.
-            print('message sent waiting for reply.')
+            # print('message sent waiting for reply.')
             # Look for the response
             amount_received = 0
             amount_expected = len(message)
@@ -201,9 +206,8 @@ class NetCom:
                 data = sock.recv(4096)  # Break data into chunks.
                 amount_received += len(data)  # Count collected data.
                 # print(sys.stderr, 'received "%s"' % data)
-
         finally:
-            dprint(self.settings, ('closing socket',))
+            # dprint(self.settings, ('closing socket',))
             sock.close()  # Close socket.
 
     def test(self):
