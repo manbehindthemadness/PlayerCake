@@ -215,6 +215,7 @@ class Start:
                     pass
             elif self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] == 'ready':  # This will allow us to re-confirm after connection dropouts.
                 connected = False
+            time.sleep(1)
 
     def close(self):
         """
