@@ -1,8 +1,6 @@
 """
 This is where we are going to store all of our communication related code.
 
-TODO: I think we need to implement a serializer for our message contents so we can embed and retrieve complex imformation.
-
 net scan: iwlist wlan0 scanning | egrep 'Cell |Encryption|Quality|Last beacon|ESSID'
 
 https://stackoverflow.com/questions/44029765/python-socket-connection-between-windows-and-linux
@@ -19,15 +17,12 @@ firewall-cmd --permanent --add-port=37020/udp
 
 import socket
 import time
-# import sys
 import re
 import os
 import psutil
 from cbor2 import loads, dumps, CBORDecodeEOF
-# import base64
 from threading import Thread
 from warehouse.loggers import dprint
-# from warehouse.utils import open_file
 
 
 class NetCom:
@@ -56,7 +51,6 @@ class NetCom:
 
         else:
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-            # self.server_address = ('0.0.0.0', self.settings.TCPBindPort)  # Create connection string.
         self.server_address = (self.bindaddr, self.settings.TCPBindPort)  # Create connection string.
         dprint(self.settings, ('starting up on %s port %s' % self.server_address,))
         self.sock.bind(self.server_address)  # Bind connection string to socket.
@@ -116,11 +110,9 @@ class NetCom:
         server.settimeout(0.2)  # Define server timeout.
         statement = self.settings.Role + ':' + socket.gethostname() + ':' + self.settings.DirectorID + ':' + self.bindaddr + ':' + str(self.settings.TCPBindPort)  # Define data package.
         # TODO: Encode the above information.
-        # message = bytes(statement, "utf8")  # Convert data package into bytes.
         message = self.encode(statement).message
         while not self.term:  # Broadcast until termination signal is recieved.
             server.sendto(message, ("<broadcast>", self.settings.UDPBroadcastPort))  # Send message.
-            # print("message sent!", message, self.settings.UDPBroadcastPort)
             time.sleep(1)
 
     def tcpserver(self):
@@ -130,26 +122,19 @@ class NetCom:
         """
 
         self.output = bytes()
-        # while not self.term:
-        # dprint(self.settings, (sys.stderr, 'waiting for a connection',))
         try:
             self.connection, self.client_address = self.sock.accept()  # This waits until a client connects.
 
-            # dprint(self.settings, ('connection from', self.client_address,))
             while not self.term:  # Receive the data in small chunks and retransmit it
                 self.data = self.connection.recv(4096)  # TODO: We need to alter this so we just send back a confirmation, not all data.
                 self.output += self.data
-                # print(sys.stderr, 'received "%s"' % data)
                 if self.data:
-                    # print(sys.stderr, 'sending data back to the client')
                     self.connection.sendall(self.data)
                 else:
                     try:
                         self.output = self.decode(self.output).message
                     except CBORDecodeEOF:
                         dprint(self.settings, ('Invalid connection data, CBOR EOF, aborting',))
-                    # dprint(self.settings, (self.output,))
-                    # dprint(self.settings, ('no more data from', self.client_address,))
                     self.connection.close()  # Clean up the connection.
                     break
         except OSError:
@@ -174,13 +159,9 @@ class NetCom:
 
         search = True
         while search:  # Listen for upstream server to identify itself.
-            # print('udp search:', self.settings.UDPBindPort)
             data, addr = client.recvfrom(1024)
-            # self.data = data.decode("utf8").split(':')
             self.data = self.decode(data).message.split(':')
-            # print(self.data)
             if self.data[0] == self.settings.Target and self.data[2] == self.settings.DirectorID:  # TODO: revise for cross-application compatibility.
-                # dprint(self.settings, ("received message: %s" % data,))
                 search = False
         return self.data  # Return upstream server TCP connection information.
 
@@ -205,7 +186,6 @@ class NetCom:
             server_info = self.udpclient()
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
         sock.settimeout(self.settings.NetworkTimeout)
-        # print(server_info[3], int(server_info[4]))
         if address:
             server_address = server_info[0], int(server_info[1])
         else:
@@ -214,9 +194,7 @@ class NetCom:
         sock.connect(server_address)  # Connect the socket to the port where the server is listening.
         message = self.encode(message).message
         try:
-            # print(sys.stderr, 'sending "%s"' % message)
             sock.sendall(message)  # Send message.
-            # print('message sent waiting for reply.')
             # Look for the response
             amount_received = 0
             amount_expected = len(message)
@@ -225,9 +203,7 @@ class NetCom:
             while amount_received < amount_expected:  # Loop until expected data is recieved.
                 data = sock.recv(4096)  # Break data into chunks.
                 amount_received += len(data)  # Count collected data.
-                # print(sys.stderr, 'received "%s"' % data)
         finally:
-            # dprint(self.settings, ('closing socket',))
             sock.close()  # Close socket.
         return self
 
