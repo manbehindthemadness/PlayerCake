@@ -132,26 +132,28 @@ class NetCom:
         self.output = bytes()
         # while not self.term:
         # dprint(self.settings, (sys.stderr, 'waiting for a connection',))
-        self.connection, self.client_address = self.sock.accept()  # This waits until a client connects.
+        try:
+            self.connection, self.client_address = self.sock.accept()  # This waits until a client connects.
 
-        # dprint(self.settings, ('connection from', self.client_address,))
-        while not self.term:  # Receive the data in small chunks and retransmit it
-            self.data = self.connection.recv(4096)  # TODO: We need to alter this so we just send back a confirmation, not all data.
-            self.output += self.data
-            # print(sys.stderr, 'received "%s"' % data)
-            if self.data:
-                # print(sys.stderr, 'sending data back to the client')
-                self.connection.sendall(self.data)
-            else:
-                try:
-                    self.output = self.decode(self.output).message
-                except CBORDecodeEOF:
-                    dprint(self.settings, ('Invalid connection data, CBOR EOF, aborting',))
-                # dprint(self.settings, (self.output,))
-                # dprint(self.settings, ('no more data from', self.client_address,))
-                self.connection.close()  # Clean up the connection.
-                break
-        # print('closing server')
+            # dprint(self.settings, ('connection from', self.client_address,))
+            while not self.term:  # Receive the data in small chunks and retransmit it
+                self.data = self.connection.recv(4096)  # TODO: We need to alter this so we just send back a confirmation, not all data.
+                self.output += self.data
+                # print(sys.stderr, 'received "%s"' % data)
+                if self.data:
+                    # print(sys.stderr, 'sending data back to the client')
+                    self.connection.sendall(self.data)
+                else:
+                    try:
+                        self.output = self.decode(self.output).message
+                    except CBORDecodeEOF:
+                        dprint(self.settings, ('Invalid connection data, CBOR EOF, aborting',))
+                    # dprint(self.settings, (self.output,))
+                    # dprint(self.settings, ('no more data from', self.client_address,))
+                    self.connection.close()  # Clean up the connection.
+                    break
+        except OSError:
+            pass
         return self
 
     def udpclient(self):
@@ -192,7 +194,7 @@ class NetCom:
         :type message:
         :param address: Optional server address and port: 1.2.3.4:5.
         ::type address: str
-        :return: Nothing.
+        :return: Self.
         """
         dprint(self.settings, ('connection init',))
         server_info = None
@@ -202,7 +204,7 @@ class NetCom:
             dprint(self.settings, ('searching for Director...',))
             server_info = self.udpclient()
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
-
+        sock.settimeout(self.settings.NetworkTimeout)
         # print(server_info[3], int(server_info[4]))
         if address:
             server_address = server_info[0], int(server_info[1])
@@ -210,7 +212,6 @@ class NetCom:
             server_address = (server_info[3], int(server_info[4]))  # Collect server connection string.
         dprint(self.settings, ('connecting to %s port %s' % server_address,))
         sock.connect(server_address)  # Connect the socket to the port where the server is listening.
-        sock.settimeout(self.settings.NetworkTimeout)
         message = self.encode(message).message
         try:
             # print(sys.stderr, 'sending "%s"' % message)
@@ -228,6 +229,7 @@ class NetCom:
         finally:
             # dprint(self.settings, ('closing socket',))
             sock.close()  # Close socket.
+        return self
 
     def test(self):
         """

@@ -15,3 +15,11 @@ def dprint(settings, err):
     """
     if settings.Debug:
         print(*err)
+
+
+def tprint(settings, err):
+    """
+    Just like above, but for threads
+    """
+    if settings.Debug_Threads:
+        dprint(settings, err)

@@ -13,6 +13,7 @@ import RPi.GPIO as GPIO
 from threading import Thread
 import time
 import pprint
+import socket
 from warehouse.display import SSD1306
 from warehouse.utils import check_dict, Fade
 from warehouse.system import get_cpu_temperature, get_system_stats
@@ -145,6 +146,7 @@ class Start:
             Thread(target=self.read_networks, args=()),
             Thread(target=self.read_gps, args=()),
             Thread(target=self.listen, args=()),
+            Thread(target=self.send_ready_state, args=())
         ]
         if settings.Debug:
             self.threads.append(Thread(target=self.debug, args=()))
@@ -181,6 +183,34 @@ class Start:
                 pass
             print(self.rt_data['ADDRESSES'])
         self.netcom.close()  # Release network sockets
+
+    def send(self, message):
+        """
+        This transmits a data package to the specified client id.
+        """
+        destination_id = self.settings.DirectorID
+        addresses = self.rt_data['ADDRESSES']
+        if destination_id in addresses.keys():
+            address = self.rt_data['ADDRESSES'][destination_id][0]
+            self.netclient(message, address + ':' + str(self.settings.TCPBindPort))
+        else:
+            self.netclient(message)
+        return self.netclient
+
+    def send_ready_state(self):
+        """This tells the director we are online and ready"""
+        connected = False
+        ready = {'STATUS': 'ready'}
+        while not self.term and not connected:
+            self.rt_data['LISTENER'][self.settings.StageID] = ready
+            try:
+                self.send({'SENDER': self.settings.StageID, 'DATA': ready})  # Transmit ready state to director.
+                time.sleep(1)
+                if self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] == 'confirmed':
+                    print('Handshake with director confirmed')
+                    connected = True
+            except (TimeoutError, socket.timeout):
+                pass
 
     def close(self):
         """

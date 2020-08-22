@@ -5,7 +5,7 @@ from warehouse.communication import NetCom
 from warehouse.utils import check_dict
 from director import settings
 from threading import Thread
-from warehouse.loggers import dprint
+from warehouse.loggers import dprint, tprint
 import pprint
 import time
 
@@ -48,6 +48,7 @@ class Start:
         self.sender = None
         self.threads = [
             Thread(target=self.listen, args=()),
+            Thread(target=self.confirm_ready_state, args=())
         ]
         if settings.Debug:
             self.threads.append(Thread(target=self.debug, args=()))
@@ -67,6 +68,7 @@ class Start:
             if reading in settings.Debug_Filter:
                 debug_model[reading] = dict()
         while not self.term:
+            tprint(self.settings, 'debug')
             skip_report = False
             if settings.Debug_Update_Only:  # Log update only.
                 for reading in self.settings.Debug_Filter:
@@ -91,6 +93,10 @@ class Start:
                             print(reading, debug_model[reading], '\n')
             time.sleep(settings.Debug_Cycle)
 
+    def dump(self):
+        """This just dumps the real time model to console"""
+        pprint.PrettyPrinter(indent=4).pprint(self.rt_data)
+
     def close(self):
         """
         Closes threads.
@@ -98,6 +104,7 @@ class Start:
         global term
         term = True
         self.term = True
+        self.netcom.close()
 
     def listen(self):
         """
@@ -107,6 +114,7 @@ class Start:
         addresses = self.rt_data['ADDRESSES'] = check_dict(self.rt_data, 'ADDRESSES')
 
         while not self.term:
+            tprint(self.settings, 'listen')
             # print('waiting for incoming data')
             server = self.netserver()
             self.received_data = server.output
@@ -136,6 +144,18 @@ class Start:
             self.netclient(message, address + ':' + str(self.settings.TCPBindPort))
         else:
             dprint(self.settings, ('Error, client not found: ' + destination_id,))
+
+    def confirm_ready_state(self):
+        """This tells stages that we are ready for action"""
+        while not self.term:
+            tprint(self.settings, 'ready')
+            stages = self.rt_data['LISTENER']
+            for stage in stages:
+                client = stages[stage]
+                if client['STATUS'] == 'ready':
+                    print('sending ready state to', stage)
+                    self.send(stage, {'SENDER': self.settings.DirectorID, 'DATA': {'STATUS': 'confirmed'}})  # Transmit ready state to stage.
+                    client['STATUS'] = 'confirmed'
 
     def heartbeat(self):
         """
