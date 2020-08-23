@@ -175,6 +175,7 @@ class Start:
         """
         client = True
         listener = self.rt_data['LISTENER']
+        time.sleep(2)  # Wait for new heartbeat to arrive.
         while not self.term and client:
             if stage_id in listener.keys():
                 stage = listener[stage_id]

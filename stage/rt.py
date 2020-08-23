@@ -225,10 +225,9 @@ class Start:
                         failures = 0
                         while self.connected and not self.term:
                             try:
-                                print('sending heartbeat')
+                                # print('sending heartbeat')
                                 self.send({'SENDER': self.settings.StageID, 'DATA': {'HEARTBEAT': str(datetime.datetime.utcnow())}})  # Transmit ready state to director.
                                 failures = 0
-                                time.sleep(1)
                             except (TimeoutError, socket.timeout):
                                 failures += 1
                                 pass
@@ -237,6 +236,7 @@ class Start:
                                 self.connected = False
                                 self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] = 'disconnected'
                                 del self.rt_data['ADDRESSES'][self.settings.DirectorID]
+                            time.sleep(1)
                 except (TimeoutError, socket.timeout) as err:
                     dprint(self.settings, ('Connection failure', err))
                     pass

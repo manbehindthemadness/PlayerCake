@@ -186,7 +186,7 @@ class NetCom:
         while not server_info:  # Look for upstream server.
             dprint(self.settings, ('searching for connection...',))
             server_info = self.udpclient()
-        dprint(self.settings, ('connection found:', server_info))
+        # dprint(self.settings, ('connection found:', server_info))
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
         # sock.bind(self.server_address)
         sock.settimeout(self.settings.NetworkTimeout)
