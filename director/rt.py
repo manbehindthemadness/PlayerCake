@@ -74,8 +74,6 @@ class Start:
                 for reading in self.settings.Debug_Filter:
                     old = debug_model[reading]
                     new = self.rt_data[reading]
-                    # print('OLD', old)
-                    # print('NEW', new)
                     if new != old:
                         print('updating debug model')
                         # noinspection PyUnusedLocal
@@ -115,7 +113,6 @@ class Start:
 
         while not self.term:
             tprint(self.settings, 'listen')
-            # print('waiting for incoming data')
             server = self.netserver()
             self.received_data = server.output
             address = server.client_address
@@ -126,13 +123,13 @@ class Start:
                     listener[self.sender] = self.received_data['DATA']  # Send received data to real time model.
                     addresses[self.sender] = address  # Store client address for future connections.
                 else:
-                    dprint(self.settings, ('Unknown client connection:', self.sender))  # Send to debug log
+                    dprint(self.settings, ('Unknown client connection:', self.sender))  # Send to debug log.
             except (KeyError, TypeError) as err:
                 print(err)
-                dprint(self.settings, ('Malformed client connection:', self.sender))  # Send to debug log
+                dprint(self.settings, ('Malformed client connection:', self.sender))  # Send to debug log.
                 pass
             print(self.rt_data['ADDRESSES'])
-        self.netcom.close()  # Release network sockets
+        self.netcom.close()  # Release network sockets.
 
     def send(self, destination_id, message):
         """
