@@ -8,6 +8,7 @@ from threading import Thread
 from warehouse.loggers import dprint, tprint
 import pprint
 import time
+import datetime
 
 rt_data = dict()
 term = False
@@ -162,9 +163,31 @@ class Start:
                     client['STATUS'] = 'confirmed'
                     dprint(self.settings, ('Handshake with client ' + stage + ' confirmed, starting heartbeat',))
                     # TODO: start heartbeat thread here.
+                    thread = Thread(target=self.heartbeat, args=(stage,))
+                    thread.start()
 
-    def heartbeat(self):
+    def heartbeat(self, stage_id):
         """
         This is our keepalive thread... Should this be moved to stage?
+
+        :param stage_id: This is the client identifier we are going to monitor.
+        :type stage_id: str
         """
-        # while not self.term:
+        client = True
+        listener = self.rt_data['LISTENER']
+        while not self.term and client:
+            if stage_id in listener.keys():
+                stage = listener[stage_id]
+                if 'HEARTBEAT' in stage.keys():
+                    beat_time = (  # Compare heartbeat times.
+                            datetime.datetime.utcnow() - datetime.datetime.strptime(
+                                stage['HEARTBEAT'], '%Y-%m-%d %H:%M:%S.%f'
+                            )
+                    ).total_seconds()
+                    if int(beat_time) >= settings.NetworkTimeout:  # Client is dead :(
+                        client = False
+                        listener[stage_id]['STATUS'] = 'disconected'
+                        dprint(self.settings, ('Client:', stage_id, 'has disconnected'))
+                    # print('beat age', beat_time)
+            time.sleep(1)
+

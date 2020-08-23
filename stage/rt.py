@@ -12,6 +12,7 @@ from ADCPi import ADCPi, TimeoutError as ADCTimeout
 import RPi.GPIO as GPIO
 from threading import Thread
 import time
+
 import datetime
 import pprint
 import socket
@@ -217,7 +218,7 @@ class Start:
                 try:
                     self.send({'SENDER': self.settings.StageID, 'DATA': ready})  # Transmit ready state to director.
                     time.sleep(1)
-                    if self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] == 'confirmed':
+                    if self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] == 'confirmed':  # TODO: This guy likes to give up problems when the server malfunctions...
                         print('Handshake with director confirmed, starting heartbeat')
                         self.connected = True
                         # TODO: We should nest another while loop here to autometically send keepalive and determine connection stability.
@@ -225,7 +226,7 @@ class Start:
                         while self.connected and not self.term:
                             try:
                                 print('sending heartbeat')
-                                self.send({'SENDER': self.settings.StageID, 'DATA': {'HEARTBEAT': str(datetime.datetime.now())}})  # Transmit ready state to director.
+                                self.send({'SENDER': self.settings.StageID, 'DATA': {'HEARTBEAT': str(datetime.datetime.utcnow())}})  # Transmit ready state to director.
                                 failures = 0
                                 time.sleep(1)
                             except (TimeoutError, socket.timeout):
