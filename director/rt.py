@@ -155,16 +155,24 @@ class Start:
         while not self.term:
             tprint(self.settings, 'ready')
             stages = self.rt_data['LISTENER']
-            for stage in stages:
-                client = stages[stage]
-                if client['STATUS'] == 'ready':
-                    print('sending ready state to', stage)
-                    self.send(stage, {'SENDER': self.settings.DirectorID, 'DATA': {'STATUS': 'confirmed'}})  # Transmit ready state to stage.
-                    client['STATUS'] = 'confirmed'
-                    dprint(self.settings, ('Handshake with client ' + stage + ' confirmed, starting heartbeat',))
-                    # TODO: start heartbeat thread here.
-                    thread = Thread(target=self.heartbeat, args=(stage,))
-                    thread.start()
+            # if 'STATUS' in stages.keys():
+            # print(stages)
+            client = None
+            try:
+                for stage in stages:
+                    client = stages[stage]
+                    if 'STATUS' not in client.keys(): client['STATUS'] = 'ready'  # Handle state check for sudden disconnects.
+                    if client['STATUS'] == 'ready':
+                        print('sending ready state to', stage)
+                        self.send(stage, {'SENDER': self.settings.DirectorID, 'DATA': {'STATUS': 'confirmed'}})  # Transmit ready state to stage.
+                        client['STATUS'] = 'confirmed'
+                        dprint(self.settings, ('Handshake with client ' + stage + ' confirmed, starting heartbeat',))
+                        # TODO: start heartbeat thread here.
+                        thread = Thread(target=self.heartbeat, args=(stage,))
+                        thread.start()
+            except KeyError as err:
+                dprint(self.settings, ('Ready state for client:', client, 'not found, retrying',))
+            time.sleep(1)
 
     def heartbeat(self, stage_id):
         """

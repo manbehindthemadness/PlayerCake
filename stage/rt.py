@@ -199,13 +199,17 @@ class Start:
         """
         destination_id = self.settings.DirectorID
         addresses = self.rt_data['ADDRESSES']
-        if destination_id in addresses.keys():
-            # print('Address detected, using:', self.rt_data['ADDRESSES'][destination_id][0])
-            address = self.rt_data['ADDRESSES'][destination_id][0]
-            self.netclient(message, address + ':' + str(self.settings.TCPBindPort))
-        else:
-            address = self.netclient(message).address
-            self.addresses[destination_id] = address
+        try:
+            if destination_id in addresses.keys():
+                # print('Address detected, using:', self.rt_data['ADDRESSES'][destination_id][0])
+                address = self.rt_data['ADDRESSES'][destination_id][0]
+                self.netclient(message, address + ':' + str(self.settings.TCPBindPort))
+            else:
+                address = self.netclient(message).address
+                self.addresses[destination_id] = address
+        except ConnectionResetError as err:
+            dprint(self.settings, ('Connection dropout, retrying', err))
+            self.send(message)
         return self.netclient
 
     def send_ready_state(self):
