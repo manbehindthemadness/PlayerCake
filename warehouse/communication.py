@@ -6,7 +6,7 @@ net scan: iwlist wlan0 scanning | egrep 'Cell |Encryption|Quality|Last beacon|ES
 https://stackoverflow.com/questions/44029765/python-socket-connection-between-windows-and-linux
 https://pythonprogramming.net/python-binding-listening-sockets/
 
-tcpdump -i eth0 port 30720 -XX
+tcpdump -i wlan0 port 30720 -XX
 
 firewall-cmd --direct --add-rule ipv4 filter INPUT 10 -d 255.255.255.255 -j ACCEPT
 firewall-cmd --permanent --direct --add-rule ipv4 filter INPUT 10 -d 255.255.255.255 -j ACCEPT
@@ -34,6 +34,7 @@ class NetCom:
     """
     def __init__(self, settings):
         self.term = False
+        self.address = None
         self.message = None
         self.settings = settings
         self.types = (bytes, bytearray)
@@ -113,6 +114,7 @@ class NetCom:
         message = self.encode(statement).message
         while not self.term:  # Broadcast until termination signal is recieved.
             server.sendto(message, ("<broadcast>", self.settings.UDPBroadcastPort))  # Send message.
+            # print('sending udp message:', message)
             time.sleep(1)
 
     def tcpserver(self):
@@ -177,20 +179,22 @@ class NetCom:
         ::type address: str
         :return: Self.
         """
-        dprint(self.settings, ('connection init',))
+        # dprint(self.settings, ('connection init',))
         server_info = None
         if address:  # Use server address where able.
             server_info = address.split(':')
         while not server_info:  # Look for upstream server.
-            dprint(self.settings, ('searching for Director...',))
+            dprint(self.settings, ('searching for connection...',))
             server_info = self.udpclient()
+        dprint(self.settings, ('connection found:', server_info))
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
+        # sock.bind(self.server_address)
         sock.settimeout(self.settings.NetworkTimeout)
         if address:
             server_address = server_info[0], int(server_info[1])
         else:
             server_address = (server_info[3], int(server_info[4]))  # Collect server connection string.
-        dprint(self.settings, ('connecting to %s port %s' % server_address,))
+        # dprint(self.settings, ('connecting to %s port %s' % server_address,))
         sock.connect(server_address)  # Connect the socket to the port where the server is listening.
         message = self.encode(message).message
         try:
@@ -203,6 +207,7 @@ class NetCom:
             while amount_received < amount_expected:  # Loop until expected data is recieved.
                 data = sock.recv(4096)  # Break data into chunks.
                 amount_received += len(data)  # Count collected data.
+            self.address = tuple(server_address)
         finally:
             sock.close()  # Close socket.
         return self

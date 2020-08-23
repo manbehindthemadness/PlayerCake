@@ -113,14 +113,15 @@ class Start:
         addresses = self.rt_data['ADDRESSES'] = check_dict(self.rt_data, 'ADDRESSES')
 
         while not self.term:
+            # print('listening')
             tprint(self.settings, 'listen')
             server = self.netserver()
             self.received_data = server.output
             address = server.client_address
             # noinspection PyBroadException,PyPep8
             try:
-
                 self.sender = self.received_data['SENDER']
+                # print('receiving data:', self.received_data)
                 if self.sender in self.settings.Paired_Stages:  # Identify incoming connection.
                     # listener[self.sender] = self.received_data['DATA']  # Send received data to real time model.
                     if self.sender not in listener.keys():
@@ -134,7 +135,7 @@ class Start:
             except (KeyError, TypeError) as err:
                 dprint(self.settings, ('Malformed client connection:', self.sender, err))  # Send to debug log.
                 pass
-            print(self.rt_data['ADDRESSES'])
+            # print(self.rt_data['ADDRESSES'])
         self.netcom.close()  # Release network sockets.
 
     def send(self, destination_id, message):

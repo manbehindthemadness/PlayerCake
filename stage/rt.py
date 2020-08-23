@@ -12,6 +12,7 @@ from ADCPi import ADCPi, TimeoutError as ADCTimeout
 import RPi.GPIO as GPIO
 from threading import Thread
 import time
+import datetime
 import pprint
 import socket
 from warehouse.display import SSD1306
@@ -139,6 +140,8 @@ class Start:
         self.received_data = None
         self.sender = None
         self.server_address = None
+        self.connected = False
+        self.addresses = self.rt_data['ADDRESSES'] = check_dict(self.rt_data, 'ADDRESSES')
 
         self.threads = [  # Create threads.
             Thread(target=self.read_adc, args=()),
@@ -160,7 +163,7 @@ class Start:
         This starts the tcp server, listens for incoming connections and transports the data into the real time model.
         """
         listener = self.rt_data['LISTENER'] = check_dict(self.rt_data, 'LISTENER')
-        addresses = self.rt_data['ADDRESSES'] = check_dict(self.rt_data, 'ADDRESSES')
+        addresses = self.addresses
 
         while not self.term:
             tprint(self.settings, 'listen')
@@ -171,20 +174,22 @@ class Start:
             try:
 
                 self.sender = self.received_data['SENDER']
+                # print('receiving data:', self.received_data)
                 if self.sender in self.settings.DirectorID:  # Identify incoming connection.
                     # listener[self.sender] = self.received_data['DATA']  # Send received data to real time model.
                     if self.sender not in listener.keys():
                         listener[self.sender] = dict()
                     listener[self.sender] = update_dict(listener[self.sender], self.received_data['DATA'])
 
-                    addresses[self.sender] = address  # Store client address for future connections.
+                    if self.sender not in addresses.keys():
+                        addresses[self.sender] = address  # Store client address for future connections.
                 else:
                     dprint(self.settings, ('Unknown client connection:', self.sender))  # Send to debug log.
 
             except (KeyError, TypeError) as err:
                 dprint(self.settings, ('Malformed client connection:', self.sender, err))  # Send to debug log.
                 pass
-            print(self.rt_data['ADDRESSES'])
+            # print(self.rt_data['ADDRESSES'])
         self.netcom.close()  # Release network sockets.
 
     def send(self, message):
@@ -194,31 +199,48 @@ class Start:
         destination_id = self.settings.DirectorID
         addresses = self.rt_data['ADDRESSES']
         if destination_id in addresses.keys():
+            # print('Address detected, using:', self.rt_data['ADDRESSES'][destination_id][0])
             address = self.rt_data['ADDRESSES'][destination_id][0]
             self.netclient(message, address + ':' + str(self.settings.TCPBindPort))
         else:
-            self.netclient(message)
+            address = self.netclient(message).address
+            self.addresses[destination_id] = address
         return self.netclient
 
     def send_ready_state(self):
         """This tells the director we are online and ready"""
-        connected = False
+        self.connected = False
         ready = {'STATUS': 'ready'}
         while not self.term:
-            if not connected:
+            if not self.connected:
                 self.rt_data['LISTENER'][self.settings.StageID] = ready
                 try:
                     self.send({'SENDER': self.settings.StageID, 'DATA': ready})  # Transmit ready state to director.
                     time.sleep(1)
                     if self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] == 'confirmed':
-                        # self.rt_data['LISTENER'][self.settings.StageID]['STATUS'] = 'confirmed'
                         print('Handshake with director confirmed, starting heartbeat')
-                        connected = True
+                        self.connected = True
                         # TODO: We should nest another while loop here to autometically send keepalive and determine connection stability.
-                except (TimeoutError, socket.timeout):
+                        failures = 0
+                        while self.connected and not self.term:
+                            try:
+                                print('sending heartbeat')
+                                self.send({'SENDER': self.settings.StageID, 'DATA': {'HEARTBEAT': str(datetime.datetime.now())}})  # Transmit ready state to director.
+                                failures = 0
+                                time.sleep(1)
+                            except (TimeoutError, socket.timeout):
+                                failures += 1
+                                pass
+                            if failures >= settings.NetworkTimeout:
+                                print('connection failure, attempting to reacquire director.')
+                                self.connected = False
+                                self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] = 'disconnected'
+                                del self.rt_data['ADDRESSES'][self.settings.DirectorID]
+                except (TimeoutError, socket.timeout) as err:
+                    dprint(self.settings, ('Connection failure', err))
                     pass
             elif self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] == 'ready':  # This will allow us to re-confirm after connection dropouts.
-                connected = False
+                self.connected = False
             time.sleep(1)
 
     def dump(self):
