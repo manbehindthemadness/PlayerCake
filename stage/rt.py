@@ -166,7 +166,7 @@ class Start:
         listener = self.rt_data['LISTENER'] = check_dict(self.rt_data, 'LISTENER')
         addresses = self.addresses
 
-        while not self.term:
+        while not self.term:  # Start loop.
             tprint(self.settings, 'listen')
             server = self.netserver()
             self.received_data = server.output
@@ -216,7 +216,7 @@ class Start:
         """This tells the director we are online and ready"""
         self.connected = False
         ready = {'STATUS': 'ready'}
-        while not self.term:
+        while not self.term:  # Start loop.
             if not self.connected:
                 self.rt_data['LISTENER'][self.settings.StageID] = ready
                 try:
@@ -227,13 +227,13 @@ class Start:
                         self.connected = True
                         # TODO: We should nest another while loop here to autometically send keepalive and determine connection stability.
                         failures = 0
-                        while self.connected and not self.term:
+                        while self.connected and not self.term:  # Start loop.
                             try:
                                 # print('sending heartbeat')
                                 self.send({'SENDER': self.settings.StageID, 'DATA': {'HEARTBEAT': str(datetime.datetime.utcnow())}})  # Transmit ready state to director.
                                 failures = 0
-                            except (TimeoutError, socket.timeout):
-                                failures += 1
+                            except (TimeoutError, socket.timeout):  # Retry on timeout.
+                                failures += 1  # Up failure count.
                                 pass
                             if failures >= settings.NetworkTimeout:
                                 print('connection failure, attempting to reacquire director.')
@@ -241,7 +241,7 @@ class Start:
                                 self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] = 'disconnected'
                                 del self.rt_data['ADDRESSES'][self.settings.DirectorID]
                             time.sleep(1)
-                except (TimeoutError, socket.timeout) as err:
+                except (TimeoutError, socket.timeout) as err:  # Retry on timeout.
                     dprint(self.settings, ('Connection failure', err))
                     pass
             elif self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] == 'ready':  # This will allow us to re-confirm after connection dropouts.
@@ -269,7 +269,7 @@ class Start:
         for reading in self.rt_data:  # Build debug model.
             if reading in settings.Debug_Filter:
                 debug_model[reading] = self.rt_data[reading]
-        while not self.term:
+        while not self.term:  # Start loop.
             skip_report = False
             if not settings.Debug_To_Screen:
                 try:
