@@ -15,10 +15,10 @@ import time
 import pprint
 import socket
 from warehouse.display import SSD1306
-from warehouse.utils import check_dict, Fade
+from warehouse.utils import check_dict, Fade, update_dict
 from warehouse.system import get_cpu_temperature, get_system_stats
 from warehouse.communication import NetScan, NetCom
-from warehouse.loggers import dprint
+from warehouse.loggers import dprint, tprint
 
 
 # noinspection PyArgumentEqualDefault,PyArgumentEqualDefault,PyArgumentEqualDefault
@@ -42,6 +42,7 @@ GPIO.setup(settings.Gps_Enable, GPIO.OUT)  # Setup GPS enable.
 GPIO.output(settings.Gps_Enable, 1)  # Init GPS to acquire initial fix.
 
 
+# noinspection DuplicatedCode
 class Start:
     """
     Real time program loop.
@@ -158,27 +159,30 @@ class Start:
         """
         This starts the tcp server, listens for incoming connections and transports the data into the real time model.
         """
-        """
-                This starts the tcp server, listens for incoming connections and transports the data into the real time model.
-                """
         listener = self.rt_data['LISTENER'] = check_dict(self.rt_data, 'LISTENER')
         addresses = self.rt_data['ADDRESSES'] = check_dict(self.rt_data, 'ADDRESSES')
 
         while not self.term:
+            tprint(self.settings, 'listen')
             server = self.netserver()
             self.received_data = server.output
             address = server.client_address
             # noinspection PyBroadException,PyPep8
             try:
+
                 self.sender = self.received_data['SENDER']
-                if self.sender == self.settings.DirectorID:  # Identify incoming connection.
-                    listener[self.sender] = self.received_data['DATA']  # Send received data to real time model.
+                if self.sender in self.settings.DirectorID:  # Identify incoming connection.
+                    # listener[self.sender] = self.received_data['DATA']  # Send received data to real time model.
+                    if self.sender not in listener.keys():
+                        listener[self.sender] = dict()
+                    listener[self.sender] = update_dict(listener[self.sender], self.received_data['DATA'])
+
                     addresses[self.sender] = address  # Store client address for future connections.
                 else:
                     dprint(self.settings, ('Unknown client connection:', self.sender))  # Send to debug log.
+
             except (KeyError, TypeError) as err:
-                print(err)
-                dprint(self.settings, ('Malformed client connection:', self.sender))  # Send to debug log.
+                dprint(self.settings, ('Malformed client connection:', self.sender, err))  # Send to debug log.
                 pass
             print(self.rt_data['ADDRESSES'])
         self.netcom.close()  # Release network sockets.
@@ -207,6 +211,7 @@ class Start:
                     self.send({'SENDER': self.settings.StageID, 'DATA': ready})  # Transmit ready state to director.
                     time.sleep(1)
                     if self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] == 'confirmed':
+                        # self.rt_data['LISTENER'][self.settings.StageID]['STATUS'] = 'confirmed'
                         print('Handshake with director confirmed, starting heartbeat')
                         connected = True
                         # TODO: We should nest another while loop here to autometically send keepalive and determine connection stability.
@@ -215,6 +220,10 @@ class Start:
             elif self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] == 'ready':  # This will allow us to re-confirm after connection dropouts.
                 connected = False
             time.sleep(1)
+
+    def dump(self):
+        """This just dumps the real time model to console"""
+        pprint.PrettyPrinter(indent=4).pprint(self.rt_data)
 
     def close(self):
         """

@@ -2,7 +2,7 @@
 This holds our programs main loops.
 """
 from warehouse.communication import NetCom
-from warehouse.utils import check_dict
+from warehouse.utils import check_dict, update_dict
 from director import settings
 from threading import Thread
 from warehouse.loggers import dprint, tprint
@@ -13,6 +13,7 @@ rt_data = dict()
 term = False
 
 
+# noinspection DuplicatedCode
 class Start:
     """
     Real time program loop.
@@ -118,15 +119,20 @@ class Start:
             address = server.client_address
             # noinspection PyBroadException,PyPep8
             try:
+
                 self.sender = self.received_data['SENDER']
                 if self.sender in self.settings.Paired_Stages:  # Identify incoming connection.
-                    listener[self.sender] = self.received_data['DATA']  # Send received data to real time model.
+                    # listener[self.sender] = self.received_data['DATA']  # Send received data to real time model.
+                    if self.sender not in listener.keys():
+                        listener[self.sender] = dict()
+                    listener[self.sender] = update_dict(listener[self.sender], self.received_data['DATA'])
+
                     addresses[self.sender] = address  # Store client address for future connections.
                 else:
                     dprint(self.settings, ('Unknown client connection:', self.sender))  # Send to debug log.
+
             except (KeyError, TypeError) as err:
-                print(err)
-                dprint(self.settings, ('Malformed client connection:', self.sender))  # Send to debug log.
+                dprint(self.settings, ('Malformed client connection:', self.sender, err))  # Send to debug log.
                 pass
             print(self.rt_data['ADDRESSES'])
         self.netcom.close()  # Release network sockets.
@@ -160,3 +166,4 @@ class Start:
         """
         This is our keepalive thread... Should this be moved to stage?
         """
+        # while not self.term:

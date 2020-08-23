@@ -51,6 +51,27 @@ def check_dict(_dict, key):
     return _dict[key]
 
 
+def update_dict(old, new):
+    """
+    Updates the contents of the old dictionary with the contents of the new.
+    :type old: dict
+    :type new: dict
+    :rtype: dict
+    """
+    n_keys = new.keys()
+    o_keys = old.keys()
+    for n_key in n_keys:  # Update missing keys.
+        if n_key not in o_keys:
+            old[n_key] = new[n_key]
+    for n_key in new:  # Iterate and compare the remainder.
+        if new[n_key] is dict:
+            old[n_key] = update_dict(old[n_key], new[n_key])
+        else:
+            if old[n_key] != new[n_key]:
+                old[n_key] = new[n_key]
+    return old
+
+
 def open_file(filename):
     """
     Opens a text file.
