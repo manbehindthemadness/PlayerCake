@@ -165,7 +165,6 @@ class Start:
         addresses = self.rt_data['ADDRESSES'] = check_dict(self.rt_data, 'ADDRESSES')
 
         while not self.term:
-            # print('waiting for incoming data')
             server = self.netserver()
             self.received_data = server.output
             address = server.client_address
@@ -176,13 +175,13 @@ class Start:
                     listener[self.sender] = self.received_data['DATA']  # Send received data to real time model.
                     addresses[self.sender] = address  # Store client address for future connections.
                 else:
-                    dprint(self.settings, ('Unknown client connection:', self.sender))  # Send to debug log
+                    dprint(self.settings, ('Unknown client connection:', self.sender))  # Send to debug log.
             except (KeyError, TypeError) as err:
                 print(err)
-                dprint(self.settings, ('Malformed client connection:', self.sender))  # Send to debug log
+                dprint(self.settings, ('Malformed client connection:', self.sender))  # Send to debug log.
                 pass
             print(self.rt_data['ADDRESSES'])
-        self.netcom.close()  # Release network sockets
+        self.netcom.close()  # Release network sockets.
 
     def send(self, message):
         """
