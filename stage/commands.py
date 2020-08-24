@@ -20,13 +20,11 @@ class Command:
         :param rt_self: Pass the real time program here.
         :type rt_self: stage.rt.Start
         """
-        self.imports = sys.modules.keys()
-        self.exceptions = [
-            'None',
-        ]
-        # print(self.imports)
+        self.imports = list(sys.modules.keys())
+        self.imports.append('import')  # Prevent commands from importing modules (for saftey).
         self.rt_self = rt_self
         self.settings = self.rt_self.settings
+        self.exceptions = self.settings.Command_exceptions
         self.command = ''
         self.output = None
 
@@ -71,3 +69,10 @@ def command_test():
     Lets see if this shows up...
     """
     print('Test successful')
+
+
+def reboot():
+    """
+    Reboots the SOC.
+    """
+    system_command(['reboot'])

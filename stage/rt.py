@@ -263,12 +263,11 @@ class Start:
 
         while not self.term:
             commands = self.rt_data['LISTENER'][settings.DirectorID]
-            self.command = check_dict(commands, 'COMMAND')  # Confirm the key exists.
+            check_dict(commands, 'COMMAND')  # Confirm the key exists.
+            self.command = commands['COMMAND']
             if self.command:  # Check for command.
-                # noinspection PyTypeChecker
-                self.execute(self.command)
+                Thread(target=self.execute, args=(self.command,)).start()
                 commands['COMMAND'] = ''  # Clear command after execution.
-            time.sleep(1)
 
     def dump(self):
         """This just dumps the real time model to console"""

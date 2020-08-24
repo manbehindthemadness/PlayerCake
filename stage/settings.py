@@ -11,7 +11,9 @@ Debug_Filter = [  # This lists the includes from the real time data model that w
     'GPS',
     'IMU'
 ]
+Command_exceptions = [  # Use this to enable otherwise restricted commands **USE WITH CAUTION**.
 
+]
 Role = 'stage'  # This is the role announcement that is used by the network client UDP lookup broadcast.
 Target = 'director'  # This is the up-stream role used to direct rebort connections.
 DirectorID = '6efc1846-d015-11ea-87d0-0242ac130003'  # This ID matches Stage clients to their respective Directors.
