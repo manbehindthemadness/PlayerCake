@@ -48,6 +48,7 @@ class Start:
         self.netserver = self.netcom.tcpserver  # Get server.
         self.received_data = None
         self.sender = None
+        self.command = None
         self.threads = [
             Thread(target=self.listen, args=()),
             Thread(target=self.confirm_ready_state, args=())
@@ -143,6 +144,8 @@ class Start:
         """
         This transmits a data package to the specified client id.
         """
+        if 'SENDER' not in message.keys():
+            message['SENDER'] = self.settings.DirectorID
         addresses = self.rt_data['ADDRESSES']
         if destination_id in addresses.keys():
             address = self.rt_data['ADDRESSES'][destination_id][0]
@@ -161,7 +164,8 @@ class Start:
             try:
                 for stage in stages:
                     client = stages[stage]
-                    if 'STATUS' not in client.keys(): client['STATUS'] = 'ready'  # Handle state check for sudden disconnects.
+                    if 'STATUS' not in client.keys():
+                        client['STATUS'] = 'ready'  # Handle state check for sudden disconnects.
                     if client['STATUS'] == 'ready':
                         print('sending ready state to', stage)
                         self.send(stage, {'SENDER': self.settings.DirectorID, 'DATA': {'STATUS': 'confirmed'}})  # Transmit ready state to stage.
@@ -170,9 +174,19 @@ class Start:
                         # TODO: start heartbeat thread here.
                         thread = Thread(target=self.heartbeat, args=(stage,))
                         thread.start()
-            except KeyError as err:
-                dprint(self.settings, ('Ready state for client:', client, 'not found, retrying',))
+            except (KeyError, ConnectionRefusedError) as err:
+                client['STATUS'] = 'disconnected'
+                dprint(self.settings, ('Ready state for client:', client, 'not found, retrying', err))
             time.sleep(1)
+
+    def send_command(self, destination_id, command):
+        """
+        This allows us to send commands to down-stream stages.
+        """
+        self.command = {'COMMAND': command}
+        message = {'DATA': self.command}
+        self.send(destination_id, message)
+        return self
 
     def heartbeat(self, stage_id):
         """
@@ -199,4 +213,3 @@ class Start:
                         dprint(self.settings, ('Client:', stage_id, 'has disconnected'))
                     # print('beat age', beat_time)
             time.sleep(1)
-

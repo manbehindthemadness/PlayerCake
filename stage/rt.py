@@ -122,6 +122,9 @@ class Start:
         global term
         self.settings = settings
         self.rt_data = rt_data  # Pass realtime data.
+        listener = self.rt_data['LISTENER'] = dict()
+        listener[settings.DirectorID] = dict()
+        listener[settings.StageID] = dict()
         self.display = SSD1306
         self.term = term  # Pass termination.
         self.gac = ReadIMU  # Init IMU.
@@ -142,6 +145,7 @@ class Start:
         self.sender = None
         self.server_address = None
         self.connected = False
+        self.command = None
         self.addresses = self.rt_data['ADDRESSES'] = check_dict(self.rt_data, 'ADDRESSES')
 
         self.threads = [  # Create threads.
@@ -151,7 +155,8 @@ class Start:
             Thread(target=self.read_networks, args=()),
             Thread(target=self.read_gps, args=()),
             Thread(target=self.listen, args=()),
-            Thread(target=self.send_ready_state, args=())
+            Thread(target=self.send_ready_state, args=()),
+            Thread(target=self.command_parser, args=()),
         ]
         if settings.Debug:
             self.threads.append(Thread(target=self.debug, args=()))
@@ -189,6 +194,7 @@ class Start:
 
             except (KeyError, TypeError) as err:
                 dprint(self.settings, ('Malformed client connection:', self.sender, err))  # Send to debug log.
+                dprint(self.settings, (self.received_data,))
                 pass
             # print(self.rt_data['ADDRESSES'])
         self.netcom.close()  # Release network sockets.
@@ -246,6 +252,20 @@ class Start:
                     pass
             elif self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] == 'ready':  # This will allow us to re-confirm after connection dropouts.
                 self.connected = False
+            time.sleep(1)
+
+    def command_parser(self):
+        """
+        This is where we check for commands that are issued be the director.
+        """
+
+        while not self.term:
+            commands = self.rt_data['LISTENER'][settings.DirectorID]
+            self.command = check_dict(commands, 'COMMAND')
+            if self.command:
+                dprint(self.settings, ('Executing command:', self.command))
+                # TODO: Command execurtion logic here.
+                commands['COMMAND'] = ''
             time.sleep(1)
 
     def dump(self):
