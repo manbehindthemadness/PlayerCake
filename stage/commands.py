@@ -76,3 +76,10 @@ def reboot():
     Reboots the SOC.
     """
     system_command(['reboot'])
+
+
+def poweroff():
+    """
+    Shuts down the SOC.
+    """
+    system_command(['poweroff'])
