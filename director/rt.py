@@ -2,13 +2,13 @@
 This holds our programs main loops.
 """
 from warehouse.communication import NetCom
-from warehouse.utils import check_dict, update_dict
+from warehouse.utils import check_dict, update_dict, get_time_secs
 from director import settings
 from threading import Thread
 from warehouse.loggers import dprint, tprint
 import pprint
 import time
-import datetime
+# import datetime
 
 rt_data = dict()
 term = False
@@ -202,11 +202,12 @@ class Start:
             if stage_id in listener.keys():
                 stage = listener[stage_id]
                 if 'HEARTBEAT' in stage.keys():
-                    beat_time = (  # Compare heartbeat times.
-                            datetime.datetime.utcnow() - datetime.datetime.strptime(
-                                stage['HEARTBEAT'], '%Y-%m-%d %H:%M:%S.%f'
-                            )
-                    ).total_seconds()
+                    # beat_time = (  # Compare heartbeat times.
+                    #         datetime.datetime.utcnow() - datetime.datetime.strptime(
+                    #             stage['HEARTBEAT'], '%Y-%m-%d %H:%M:%S.%f'
+                    #         )
+                    # ).total_seconds()
+                    beat_time = get_time_secs(stage['HEARTBEAT'])
                     if int(beat_time) >= settings.NetworkTimeout:  # Client is dead :(
                         client = False
                         listener[stage_id]['STATUS'] = 'disconected'

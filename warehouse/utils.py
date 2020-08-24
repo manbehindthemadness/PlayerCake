@@ -1,6 +1,8 @@
 """
 This is where we house general utilities.
 """
+import datetime
+import re
 
 
 def average(lst):
@@ -82,3 +84,28 @@ def open_file(filename):
     """
     file = open(filename)
     return file.read()
+
+
+def get_time_secs(timestamp):
+    """
+    We use this for an easy check to see how old a string timestamp is in seconds.
+
+    NOTE: use datetime.datetime.utcnow with '%Y-%m-%d %H:%M:%S.%f' format.
+
+    :param timestamp:
+    :type timestamp: str
+    :rtype: float
+    """
+    seconds = (  # Compare heartbeat times.
+            datetime.datetime.utcnow() - datetime.datetime.strptime(
+                timestamp, '%Y-%m-%d %H:%M:%S.%f'
+            )
+    ).total_seconds()
+    return seconds
+
+
+def split_string(string):
+    """
+    This splits a sring at any non-alphanumeric chars.
+    """
+    return re.split('[^a-zA-Z]', string)

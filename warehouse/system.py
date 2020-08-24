@@ -31,3 +31,15 @@ def get_system_stats():
     sensors['BATTERY'] = psutil.sensors_battery()
     output['SENSORS'] = sensors
     return output
+
+
+def system_command(params):
+    """
+    Use this to execute a system level command.
+
+    NOTE: Use with caution.
+    """
+    process = Popen(params, stdout=PIPE)
+    output, _error = process.communicate()
+    output = output.decode("utf8")
+    return output

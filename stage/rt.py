@@ -5,6 +5,7 @@ TODO: Enhance debudder to use on-board reporting screen.
 """
 
 from stage import settings
+from stage.commands import Command
 from stage.improvisors.berryimu import ReadIMU, ReadAlt
 from stage.improvisors.gps_lkp import ReadGPS
 # from stage.improvisors.bmp280 import alt
@@ -122,6 +123,7 @@ class Start:
         global term
         self.settings = settings
         self.rt_data = rt_data  # Pass realtime data.
+        self.execute = Command(self).execute
         listener = self.rt_data['LISTENER'] = dict()
         listener[settings.DirectorID] = dict()
         listener[settings.StageID] = dict()
@@ -261,11 +263,11 @@ class Start:
 
         while not self.term:
             commands = self.rt_data['LISTENER'][settings.DirectorID]
-            self.command = check_dict(commands, 'COMMAND')
-            if self.command:
-                dprint(self.settings, ('Executing command:', self.command))
-                # TODO: Command execurtion logic here.
-                commands['COMMAND'] = ''
+            self.command = check_dict(commands, 'COMMAND')  # Confirm the key exists.
+            if self.command:  # Check for command.
+                # noinspection PyTypeChecker
+                self.execute(self.command)
+                commands['COMMAND'] = ''  # Clear command after execution.
             time.sleep(1)
 
     def dump(self):
