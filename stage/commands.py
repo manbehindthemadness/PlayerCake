@@ -83,3 +83,45 @@ def poweroff():
     Shuts down the SOC.
     """
     system_command(['poweroff'])
+
+
+def selftest():
+    """
+    Performs hardware self-test.
+    """
+    print('selftest logic here')
+
+
+def calibrate_safe():
+    """
+    Performs a calibration that's safe to use when the unit is standing on the ground.
+    """
+    print('safe calibration logic here')
+
+
+def calibrate():
+    """
+    Performs a full calibration assuming the unit isn't touching the ground.
+    """
+    print('full calibration logic here')
+
+
+def report():
+    """
+    This causes the unit to upload it's virtual telemetry to the director.
+    """
+    print('report logic here')
+
+
+def recall():
+    """
+    This is used to instruct the unit to move back to it's starting position.
+    """
+    print('recall logic here')
+
+
+def shelter():
+    """
+    This causes the unit to assume a defensive position to prevent damage.
+    """
+    print('shelter logic here')
