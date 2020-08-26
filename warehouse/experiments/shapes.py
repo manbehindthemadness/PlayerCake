@@ -15,6 +15,7 @@ import pymesh
 import pprint
 from stl import mesh as mmesh
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 import matplotlib.path as mpath
 import matplotlib.patches as mpatches
@@ -69,12 +70,18 @@ def d_spline():
             TODO: This fucker right here works for line tracing.
             """
 
-            def get_colors(inp, colormap, vmin=None, vmax=None):
+            def plot_angle(start, rotation):
                 """
-                Lets build a color map.
+                plots a text angle from the starting anchor by degrees.
                 """
-                norm = plt.Normalize(vmin, vmax)
-                return colormap(norm(inp))
+                rotation -= 90
+                start = np.array(start)
+                trans_angle = plt.gca().transData.transform_angles(
+                    np.array((rotation,)),
+                    start.reshape((1, 2))
+                )[0]
+                return start[0], start[1], trans_angle
+
 
             # ===============
             #  First subplot
@@ -138,6 +145,7 @@ def d_spline():
             ax.scatter3D(x_line, y_line, z_line, c=weight, cmap='hsv', s=scattersize)
             ax.plot3D([-100, -100, 100, 100, -100], [100, -100, -100, 100, 100], [0, 0, 0, 0, 0], label='surface')  # Plot ground.
             ax.plot3D([0, 0, 0], [0, 0, 0], [0, -50, 0], color='orange', label='start')  # Plot start point.
+            ax.scatter3D([0], [0], [100], color="grey", s=10, label='pivot')  # Plot leg pivot.
             # ===============
             # Second subplot x z
             # ===============
@@ -145,6 +153,17 @@ def d_spline():
             ax.plot(x_line, z_line, color='grey', label='trajectory')  # Plot trajectory.
             ax.plot([-100, 100], [0, 0], label='surface')  # Plot ground
             ax.plot([0, 0], [-100, -50], color='orange', label='surface')  # Plot start.
+            ax.scatter(0, 100, color='grey', label='pivot', s=100)  # Plot leg pivot.
+
+            anchor = plot_angle((0, 100), -30)
+            plt.text(anchor[0], anchor[1], '. '*12, fontsize=8, rotation=anchor[2], rotation_mode='anchor')  # Plot min.
+            anchor = plot_angle((0, 100), 80)
+            plt.text(anchor[0], anchor[1], '. ' * 12, fontsize=8, rotation=anchor[2], rotation_mode='anchor')  # Plot max.
+            ax.add_artist(plt.Circle((0, 100), 50, fill=False, linestyle=':', color='gray'))  # Plot zmin.
+
+            # print(limit)
+            # ax.plot(*limit, color='grey', label='limit_min')
+
             ax.set_xlim(-100, 100)  # TODO: These will need to be set to leg_len*2 in the future.
             ax.set_ylim(-100, 100)
             ax.title.set_text('Front')
@@ -158,6 +177,16 @@ def d_spline():
             ax.plot(y_line, z_line, color='grey', label='trajectory')  # Plot trajectory.
             ax.plot([-100, 100], [0, 0], label='surface')  # Plot ground
             ax.plot([0, 0], [-100, -50], color='orange', label='surface')  # Plot start.
+            ax.scatter(0, 100, color='grey', label='pivot', s=100)  # Plot leg pivot.
+
+            anchor = plot_angle((0, 100), -45)
+            plt.text(anchor[0], anchor[1], '. ' * 12, fontsize=8, rotation=anchor[2],
+                     rotation_mode='anchor')  # Plot min.
+            anchor = plot_angle((0, 100), 45)
+            plt.text(anchor[0], anchor[1], '. ' * 12, fontsize=8, rotation=anchor[2],
+                     rotation_mode='anchor')  # Plot max.
+            ax.add_artist(plt.Circle((0, 100), 50, fill=False, linestyle=':', color='gray'))  # Plot zmin.
+
             ax.set_xlim(-100, 100)  # TODO: These will need to be set to leg_len*2 in the future.
             ax.set_ylim(-100, 100)
             ax.title.set_text('Side')
@@ -171,6 +200,7 @@ def d_spline():
             ax.plot(x_line, y_line, color='grey', label='trajectory')  # Plot trajectory.
             # ax.plot([-100, 100], [0, 0], label='surface')  # Plot ground
             ax.plot([-100, -50], [0, 0], color='orange', label='surface')  # Plot start.
+            # ax.scatter(0, 0, color='grey', label='pivot', s=1)  # Plot leg pivot.
             ax.set_xlim(-100, 100)  # TODO: These will need to be set to leg_len*2 in the future.
             ax.set_ylim(-100, 100)
             ax.title.set_text('Top')
