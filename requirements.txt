@@ -23,9 +23,12 @@ filelock
 gps
 idna
 importlib-metadata
+ipython
 keyring
 keyrings.alt
+matplotlib
 numpy
+numpy-stl
 olefile
 Pillow
 psutil
@@ -33,7 +36,8 @@ pycrypto
 pyftdi
 PyGObject
 pykalman
-matplotlib
+pymesh
+stl
 pyserial
 python-apt
 pyusb
@@ -42,6 +46,7 @@ requests
 rpi-ws281x
 RPi.GPIO
 SecretStorage
+scipy
 six
 smbus2
 ssh-import-id

@@ -8,7 +8,7 @@ import numpy as np
 from pykalman import UnscentedKalmanFilter
 
 
-class SimpKalman:
+class SimpleKalman:
     """A simple implmentation of a kalman filter using numpi."""
 
     def __init__(self):
