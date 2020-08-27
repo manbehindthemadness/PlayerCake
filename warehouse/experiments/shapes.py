@@ -97,7 +97,7 @@ def d_spline():
 
             ax = fig.add_subplot(2, 2, 1, projection='3d')
             ax.title.set_text('3D')
-            ax.set_xlabel('x')
+            ax.set_xlabel('(front) x')
             ax.set_ylabel('y')
             ax.set_zlabel('z')
             # ax.set_xticks(np.arange(0, 100, 20))
@@ -156,10 +156,15 @@ def d_spline():
             ax.scatter(0, 100, color='grey', label='pivot', s=100)  # Plot leg pivot.
 
             anchor = plot_angle((0, 100), -30)
-            plt.text(anchor[0], anchor[1], '. '*12, fontsize=8, rotation=anchor[2], rotation_mode='anchor')  # Plot min.
+            plt.text(anchor[0], anchor[1], '. ' * 7 + 'minx', fontsize=8, rotation=anchor[2], rotation_mode='anchor', verticalalignment='center')  # Plot min.
             anchor = plot_angle((0, 100), 80)
-            plt.text(anchor[0], anchor[1], '. ' * 12, fontsize=8, rotation=anchor[2], rotation_mode='anchor')  # Plot max.
+            plt.text(anchor[0], anchor[1], '. ' * 7 + 'maxx', fontsize=8, rotation=anchor[2], rotation_mode='anchor', verticalalignment='center')  # Plot max.
             ax.add_artist(plt.Circle((0, 100), 50, fill=False, linestyle=':', color='gray'))  # Plot zmin.
+            ax.annotate("minz", xy=(-12, 55), fontsize=7)
+            ax.add_artist(plt.Circle((0, 100), 150, fill=False, linestyle=':', color='gray'))  # Plot zmax.
+            ax.annotate("maxz", xy=(65, -50), fontsize=7)  # Plot zmax.
+            ax.annotate("gnd", xy=(-99, 8), fontsize=7)
+            ax.annotate("start", xy=(1, -94), fontsize=7)
 
             # print(limit)
             # ax.plot(*limit, color='grey', label='limit_min')
@@ -180,18 +185,22 @@ def d_spline():
             ax.scatter(0, 100, color='grey', label='pivot', s=100)  # Plot leg pivot.
 
             anchor = plot_angle((0, 100), -45)
-            plt.text(anchor[0], anchor[1], '. ' * 12, fontsize=8, rotation=anchor[2],
-                     rotation_mode='anchor')  # Plot min.
+            plt.text(anchor[0], anchor[1], '. ' * 7 + 'maxy', fontsize=7, rotation=anchor[2],
+                     rotation_mode='anchor', verticalalignment='center')  # Plot max.
             anchor = plot_angle((0, 100), 45)
-            plt.text(anchor[0], anchor[1], '. ' * 12, fontsize=8, rotation=anchor[2],
-                     rotation_mode='anchor')  # Plot max.
+            plt.text(anchor[0], anchor[1], '. ' * 7 + 'miny', fontsize=7, rotation=anchor[2],
+                     rotation_mode='anchor', verticalalignment='center')  # Plot min.
             ax.add_artist(plt.Circle((0, 100), 50, fill=False, linestyle=':', color='gray'))  # Plot zmin.
-
+            ax.annotate("minz", xy=(-12, 55), fontsize=7)
+            ax.add_artist(plt.Circle((0, 100), 150, fill=False, linestyle=':', color='gray'))  # Plot zmax.
+            ax.annotate("maxz", xy=(65, -50), fontsize=7)
+            ax.annotate("gnd", xy=(-99, 8), fontsize=7)
+            ax.annotate("start", xy=(1, -94), fontsize=7)
             ax.set_xlim(-100, 100)  # TODO: These will need to be set to leg_len*2 in the future.
             ax.set_ylim(-100, 100)
             ax.title.set_text('Side')
             ax.set_xlabel('y')
-            ax.set_ylabel('z')
+            ax.set_ylabel('(front) z')
             ax.scatter(y_line, z_line, c=weight, cmap='hsv', s=scattersize)
             # ===============
             # Fourth subplot x y
@@ -204,11 +213,11 @@ def d_spline():
             ax.set_xlim(-100, 100)  # TODO: These will need to be set to leg_len*2 in the future.
             ax.set_ylim(-100, 100)
             ax.title.set_text('Top')
-            ax.set_xlabel('x')
+            ax.set_xlabel('(front) x')
             ax.set_ylabel('y')
             ax.scatter(x_line, y_line, c=weight, cmap='hsv', s=scattersize)
+            ax.annotate("start", xy=(-99, 8), fontsize=7)
 
-            # plt.subplots_adjust(bottom=4, top=5, right=1, wspace=2, hspace=2)
             plt.subplots_adjust(left=0.1, right=0.9, bottom=0.1, top=0.9)
             plt.tight_layout()
             plt.show()
