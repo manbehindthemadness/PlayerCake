@@ -22,7 +22,9 @@ import matplotlib.patches as mpatches
 from matplotlib import animation, rc, cm
 from IPython.display import HTML
 from scipy.interpolate import splprep, splev, splrep
+# from scipy.optimize import curve_fit, minimize_scalar
 from mpl_toolkits import mplot3d
+from itertools import product
 
 
 hold = mplot3d
@@ -82,6 +84,67 @@ def d_spline():
                 )[0]
                 return start[0], start[1], trans_angle
 
+            def find_weights(trajectory):
+                """
+                This is a simple tool to locate the weighting anchor points of a given trajectory.
+
+                TODO: In order to make this accurate we are going to have to calculate the diffs in relation to the grid boundaries...
+                NOTE: To do the above we are going to have to dynamically evaluate the xyzlim values.
+
+                :param trajectory: spline mesh array: (np.line_x, np.line_y)...
+                :type trajectory: tuple
+                :rtype: dict
+                """
+                tr = list(zip(*trajectory))
+                diffa = list()
+                diffb = list()
+                for axis1, axis2 in tr:
+                    # diff.append(abs(axis1 - axis2))
+                    diffa.append(
+                        sum(
+                            [
+                                abs(axis1 - -100) * -1,  # TODO: the 100/-100 value here will need to be dynamic...
+                                abs(axis2 - -100)
+                            ]
+                        )
+                    )
+                    diffb.append(
+                        sum(
+                            [
+                                abs(axis1 - -100),
+                                abs(axis2 - -100)
+                            ]
+                        )
+                    )
+
+                # minimum = diff.index(min(diff))
+                # maximum = diff.index(max(diff))
+                maximum = diffa.index(max(diffa))
+                minimum = diffb.index(max(diffb))
+                result = (maximum, minimum)
+                return result
+
+            def find_implied_weights(trajectory):
+                """
+                This simple tool allows us to locate the implied weights (where the trajectory meets the ground).
+                Note that this is estimated based on the resolution of the curve.
+                """
+
+                tr = list(zip(*trajectory))
+                diffa = list()
+                diffb = list()
+                for axis1, axis2 in tr:
+                    diffa.append(
+                        abs(axis1 - -100) * -1 / axis2
+                    )
+                    diffb.append(
+                        abs(axis1 - 100) / axis2
+                    )
+                maximum = diffa.index(max(diffa))
+                minimum = diffb.index(min(diffb))
+                result = (maximum, minimum)
+                return result
+
 
             # ===============
             #  First subplot
@@ -93,59 +156,57 @@ def d_spline():
             fig = plt.figure(figsize=plt.figaspect(0.9))
 
             scattersize = 10  # This is the size of our color points.
-            # ax = plt.axes(projection="3d")
 
             ax = fig.add_subplot(2, 2, 1, projection='3d')
             ax.title.set_text('3D')
             ax.set_xlabel('(front) x')
             ax.set_ylabel('y')
             ax.set_zlabel('z')
-            # ax.set_xticks(np.arange(0, 100, 20))
-            # ax.set_yticks(np.arange(0, 100, 20))
-            # ax.set_zticks(np.arange(0, 100, 20))
             ax.set_xlim(-100, 100)  # TODO: These will need to be set to leg_len*2 in the future.
             ax.set_ylim(-100, 100)
             ax.set_zlim(-100, 100)
 
             mesh = pymesh.load_mesh('warehouse/experiments/simplecurve.obj')
-            # mesh = pymesh.wires.WireNetwork.create_from_file('warehouse/experiments/simplecurve.obj')
-            # Bscale = mesh.points.flatten('C')
-            # ax.auto_scale_xyz(1, 1, 1)
 
             cv = mesh_sorter(mesh.vertices)
-            # cv = mesh.vertices
 
             z_line = list()
-            # z_names = list()
             x_line = list()
-            # x_names = list()
             y_line = list()
-            # y_names = list()
-            # pprint.PrettyPrinter(indent=4).pprint(cv)
             for x, y, z in cv:  # TODO: Prolly should use zip here...
                 z_line.append(z)
-                # z_names.append('z' + str(z))
                 x_line.append(x)
-                # x_names.append('x' + str(x))
                 y_line.append(y)
-                # y_names.append('y' + str(y))
             weight_len = len(z_line)
+            wyz = find_weights((y_line, z_line))
+            iyz = find_implied_weights((y_line, z_line))
+            wxz = find_weights((x_line, z_line))
+            ixz = find_implied_weights((x_line, z_line))
+            print(iyz, ixz)
             z_line = np.array(z_line)
             x_line = np.array(x_line)
             y_line = np.array(y_line)
-            # print(z_line, x_line, y_line)
+
             weight = list()
             for ct, it in enumerate(range(0, weight_len)):
                 weight.append(ct)
-            # ax.set_xticklabels(x_names)
-            # ax.set_yticklabels(y_names)
-            # ax.set_zticklabels(z_names)
+
             # TODO: Remember all the earth and reference measurements are going to need to be based on leg length and range of motion.
             ax.plot3D(x_line, y_line, z_line, color='grey', label='trajectory')  # Plot trajectory.
             ax.scatter3D(x_line, y_line, z_line, c=weight, cmap='hsv', s=scattersize)
             ax.plot3D([-100, -100, 100, 100, -100], [100, -100, -100, 100, 100], [0, 0, 0, 0, 0], label='surface')  # Plot ground.
             ax.plot3D([0, 0, 0], [0, 0, 0], [0, -50, 0], color='orange', label='start')  # Plot start point.
             ax.scatter3D([0], [0], [100], color="grey", s=10, label='pivot')  # Plot leg pivot.
+
+            # ax.scatter3D(weightsxz[0][0], weightsxz[0][1], z_line[weightsxz[2][0]], edgecolors='green', facecolors='none', label='mxweightxz',
+            #              s=100)  # Plot max weight xz.
+            # ax.scatter3D(weightsxz[1][0], weightsxz[1][1], z_line[weightsxz[2][1]], edgecolors='black', facecolors='none', label='mnweightxz',
+            #              s=100)  # Plot min weight xz.
+            # ax.scatter3D(weightsyz[0][0], weightsyz[0][1], z_line[weightsyz[2][0]],edgecolors='red', facecolors='none', label='mxweightyz',
+            #              s=100)  # Plot max weight yz.
+            # ax.scatter3D(weightsyz[1][0], weightsyz[1][1], z_line[weightsyz[2][1]], edgecolors='blue', facecolors='none', label='mnweightyz',
+            #              s=100)  # Plot min weight yz.
+
             # ===============
             # Second subplot x z
             # ===============
@@ -154,6 +215,15 @@ def d_spline():
             ax.plot([-100, 100], [0, 0], label='surface')  # Plot ground
             ax.plot([0, 0], [-100, -50], color='orange', label='surface')  # Plot start.
             ax.scatter(0, 100, color='grey', label='pivot', s=100)  # Plot leg pivot.
+
+            ax.scatter(x_line[wxz[0]], z_line[wxz[0]], edgecolors='green', facecolors='none', label='mxweight',
+                       s=100)  # Plot max weight.
+            ax.scatter(x_line[wxz[1]], z_line[wxz[1]], edgecolors='orange', facecolors='none', label='mnweight',
+                       s=100)  # Plot min weight.
+            ax.scatter(x_line[ixz[0]], z_line[ixz[0]], edgecolors='pink', facecolors='none', label='mxweight',
+                       s=100)  # Plot max implied weight.
+            ax.scatter(x_line[ixz[1]], z_line[ixz[1]], edgecolors='pink', facecolors='none', label='mnweight',
+                       s=100)  # Plot min implied weight.
 
             anchor = plot_angle((0, 100), -30)
             plt.text(anchor[0], anchor[1], '. ' * 7 + 'minx', fontsize=8, rotation=anchor[2], rotation_mode='anchor', verticalalignment='center')  # Plot min.
@@ -183,6 +253,18 @@ def d_spline():
             ax.plot([-100, 100], [0, 0], label='surface')  # Plot ground
             ax.plot([0, 0], [-100, -50], color='orange', label='surface')  # Plot start.
             ax.scatter(0, 100, color='grey', label='pivot', s=100)  # Plot leg pivot.
+
+            ax.scatter(y_line[wyz[0]], z_line[wyz[0]], edgecolors='magenta', facecolors='none', label='mxweight', s=100)  # Plot max weight.
+            ax.scatter(y_line[wyz[1]], z_line[wyz[1]], edgecolors='cyan', facecolors='none', label='mnweight', s=100)  # Plot min weight.
+            ax.scatter(y_line[iyz[0]], z_line[iyz[0]], edgecolors='pink', facecolors='none', label='mxweight',
+                       s=100)  # Plot max implied weight.
+            ax.scatter(y_line[iyz[1]], z_line[iyz[1]], edgecolors='pink', facecolors='none', label='mnweight',
+                       s=100)  # Plot min implied weight.
+
+            # yy, zz = np.meshgrid(y_line, z_line)
+            # print(list(zip(yy, zz)))
+            # ax.plot(yy, zz, color='grey', label='trajectory')  # experiment.
+
 
             anchor = plot_angle((0, 100), -45)
             plt.text(anchor[0], anchor[1], '. ' * 7 + 'maxy', fontsize=7, rotation=anchor[2],
@@ -217,6 +299,15 @@ def d_spline():
             ax.set_ylabel('y')
             ax.scatter(x_line, y_line, c=weight, cmap='hsv', s=scattersize)
             ax.annotate("start", xy=(-99, 8), fontsize=7)
+
+            ax.scatter(x_line[wxz[0]], y_line[wxz[0]], edgecolors='green', facecolors='none', label='mxweight',
+                       s=100)  # Plot max weight.
+            ax.scatter(x_line[wxz[1]], y_line[wxz[1]], edgecolors='orange', facecolors='none', label='mnweight',
+                       s=100)  # Plot min weight.
+            ax.scatter(x_line[wyz[0]], y_line[wyz[0]], edgecolors='magenta', facecolors='none', label='mxweight',
+                       s=100)  # Plot max weight.
+            ax.scatter(x_line[wyz[1]], y_line[wyz[1]], edgecolors='cyan', facecolors='none', label='mnweight',
+                       s=100)  # Plot min weight.
 
             plt.subplots_adjust(left=0.1, right=0.9, bottom=0.1, top=0.9)
             plt.tight_layout()
