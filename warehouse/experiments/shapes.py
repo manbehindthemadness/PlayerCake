@@ -16,6 +16,7 @@ import pprint
 from stl import mesh as mmesh
 import numpy as np
 import math
+from warehouse.utils import to_color
 import matplotlib.pyplot as plt
 import matplotlib.path as mpath
 import matplotlib.patches as mpatches
@@ -37,6 +38,8 @@ def d_spline():
     def mesh_sorter(mesh):
         """
         Try to sort all these vertices...
+
+        TODO: Remember this is for visual reprensentation ONLY!! We can add the extra vertex to the real loop.***
         """
         mesh = mesh.tolist()
         mesh.append(mesh[0])
@@ -117,10 +120,8 @@ def d_spline():
                         )
                     )
 
-                # minimum = diff.index(min(diff))
-                # maximum = diff.index(max(diff))
-                maximum = diffa.index(max(diffa))
-                minimum = diffb.index(max(diffb))
+                minimum = diffa.index(max(diffa))
+                maximum = diffb.index(max(diffb))
                 result = (maximum, minimum)
                 return result
 
@@ -155,6 +156,7 @@ def d_spline():
 
                 TODO: Don't forget these outputs are for coloring the diagram, the actual values are going to have to be measured in amount less than max velocity.*
 
+
                 NOTE: ORDERING - I-MIN, I_MAX, MAX, MIN
 
                 trajectory = [x], [y], [z]
@@ -180,31 +182,38 @@ def d_spline():
                     """
                     This will tell us where we are in a segment.
                     """
-                    return min_pos + index
+                    result = index - min_pos
+                    return result
 
                 def solver(index_in_seg, current_speed, target_weight, target_weight_index, max_speed):
                     """
                     This solves a velocity based on out position, speed and the next weight value.
                     """
+                    # position = target_weight_index - abs(index_in_seg - target_weight_index)  # Find how many steps before we hit the target weight.
                     position = abs(index_in_seg - target_weight_index)
-                    div = abs(current_speed - target_weight)
-                    speed_increment = div / position
-                    next_speed = index_in_seg * speed_increment
+                    div = abs(current_speed - target_weight)  # Find the difference between current and target speed.
+                    if current_speed > target_weight:  # Discover if move is accel or decel.
+                        div = div * -1
+                    speed_increment = div / position  # See how many increments its going to take to get to target speed from current.
+                    next_speed = current_speed + (index_in_seg * speed_increment)
                     if next_speed > max_speed:  # Clamp.
                         next_speed = max_speed
+                    # print('index in seg', index_in_seg, 'position', position, 'divided', div, 'current_speed', current_speed, 'next_speed', next_speed, 'target_weight', target_weight, 'target_index', target_weight_index, 'speed_increment', speed_increment)
+                    # next_speed = next_speed * -1  # Reverse output to match colors.
                     return next_speed
 
                 # print(weights[1])
                 # print(implied_weights[1])
-                velocity = 50  # TODO: This is going to have to be a dynamic value in the future.
-                movement_max = 100
+                velocity = 10  # TODO: This is going to have to be a dynamic value in the future.
+                movement_max = 100  # TODO: Dont's forget that this measurement is a percentage.
+                colors = to_color(10, 100)
 
                 # Define weighting values.
-                xz_max_weight = 100
-                xz_min_weight = 75
+                xz_max_weight = 60
+                xz_min_weight = 90
 
-                yz_max_weight = 100
-                yz_min_weight = 75
+                yz_max_weight = 50
+                yz_min_weight = 100
 
                 tlen = len(trajectory[0])
                 xz_max, xz_min = weights[0]  # Gather indexes.
@@ -217,65 +226,76 @@ def d_spline():
                 iyz_seg_len = abs(iyz_min - iyz_max)
                 yz_total = iyz_seg_len
 
-                xz_seg1_len = abs(ixz_seg_len - xz_min)
+                xz_seg1_len = abs(ixz_seg_len - xz_max)
                 xz_total += xz_seg1_len
-                yz_seg1_len = abs(yz_total - yz_min)
+                yz_seg1_len = abs(yz_total - yz_max)
                 yz_total += yz_seg1_len
 
-                xz_seg2_len = abs(xz_seg1_len - xz_max)
+                xz_seg2_len = abs(xz_seg1_len - xz_min)
                 xz_total += xz_seg2_len
-                yz_seg2_len = abs(yz_total - yz_max)
+                yz_seg2_len = abs(yz_total - yz_min)
                 yz_total += yz_seg2_len
 
                 xz_seg3_len = abs(xz_total - tlen)
                 yz_seg3_len = abs(yz_total - tlen)
                 # print(tlen, iyz_seg_len, yz_seg1_len, yz_seg2_len, yz_seg3_len)
-                print(iyz_min, iyz_max, yz_max, yz_min)
-                print(iyz_seg_len, yz_seg1_len, yz_seg2_len, yz_seg3_len)
+                # print('iyzmin', iyz_min, 'iyzmax', iyz_max, 'yzmax', yz_max, 'yz_min', yz_min)
+                # print(iyz_seg_len, yz_seg1_len, yz_seg2_len, yz_seg3_len)
 
                 # Now we solve the velocities.
 
                 speeds_xz = list()
+                colors_xz = list()
                 speeds_yz = list()
+                colors_yz = list()
                 speeds_xyz = list()
+                colors_xyz = list()
 
                 speed = velocity
                 for step in range(0, tlen):
-                    if between(step, (ixz_min, ixz_max)):  # Solve xz implied segment.
-                        speeds_xz.append(velocity)
-                    elif between(step, (ixz_max, xz_min)):  # Solve xz segment 1.
-                        seg_pos = index_in_segment(step, xz_min)  # Find position in segment.
-                        speed = solver(seg_pos, speed, xz_min_weight, xz_min, movement_max)  # Solve speed for step.
-                    elif between(step, (xz_min, xz_max)):  # Solve xz segment 2.
-                        seg_pos = index_in_segment(step, xz_max)  # Find position in segment.
-                        speed = solver(seg_pos, speed, xz_max_weight, xz_max, movement_max)  # Solve speed for step.
-                    elif between(step, (xz_max, ixz_min)):  # Solve xz segment 3.
-                        seg_pos = index_in_segment(step, ixz_min) # Find position in segment.
-                        speed = solver(seg_pos, speed, velocity, ixz_min, movement_max)  # Solve speed for step.
-                    speeds_xz.append(speed)
+                    # if between(step, (ixz_min, ixz_max)):  # Solve xz implied segment.
+                    #     speeds_xz.append(velocity)
+                    #
+                    # elif between(step, (ixz_max, xz_max)):  # Solve xz segment 1.
+                    #     seg_pos = index_in_segment(step, xz_max)  # Find position in segment.
+                    #     speed = solver(seg_pos, speed, xz_max_weight, xz_max, movement_max)  # Solve speed for step.
+                    #
+                    # elif between(step, (xz_min, xz_max)):  # Solve xz segment 2.
+                    #     seg_pos = index_in_segment(step, xz_min)  # Find position in segment.
+                    #     speed = solver(seg_pos, speed, xz_min_weight, xz_min, movement_max)  # Solve speed for step.
+                    #
+                    # elif between(step, (xz_min, ixz_min)):  # Solve xz segment 3.
+                    #     seg_pos = index_in_segment(step, ixz_min) # Find position in segment.
+                    #     speed = solver(seg_pos, speed, velocity, ixz_min, movement_max)  # Solve speed for step.
+                    # speeds_xz.append(speed)
 
                     if between(step, (iyz_min, iyz_max)):  # Solve yz implied segment.
-                        speeds_xz.append(velocity)
-                    elif between(step, (iyz_max, yz_min)):  # Solve yz segment 1.
-                        seg_pos = index_in_segment(step, yz_min)  # Find position in segment.
-                        speed = solver(seg_pos, speed, yz_min_weight, yz_min, movement_max)  # Solve speed for step.
-                    elif between(step, (xz_min, xz_max)):  # Solve yz segment 2.
-                        seg_pos = index_in_segment(step, yz_max)  # Find position in segment.
+                        # print('Iseg', step)
+                        speed = velocity
+                        speeds_xz.append(speed)
+
+                    elif between(step, (iyz_max, yz_max)):  # Solve yz segment 1.
+                        # print('seg1', step)
+                        seg_pos = index_in_segment(step, iyz_max)  # Find position in segment.
                         speed = solver(seg_pos, speed, yz_max_weight, yz_max, movement_max)  # Solve speed for step.
-                    elif between(step, (yz_max, iyz_min)):  # Solve yz segment 3.
-                        seg_pos = index_in_segment(step, iyz_min) # Find position in segment.
+
+                    elif between(step, (yz_max, yz_min)):  # Solve yz segment 2.
+                        # print('seg2', step)
+                        seg_pos = index_in_segment(step, yz_max)  # Find position in segment.
+                        speed = solver(seg_pos, speed, yz_min_weight, yz_min, movement_max)  # Solve speed for step.
+
+                    elif between(step, (yz_min, tlen)):  # Solve yz segment 3.
+                        # print('seg3', step)
+                        seg_pos = index_in_segment(step, yz_min)  # Find position in segment.
                         speed = solver(seg_pos, speed, velocity, iyz_min, movement_max)  # Solve speed for step.
-                    speeds_yz.append(speed)
-                return speeds_xz, speeds_yz, speeds_xyz
+                    colors_yz.append(colors[int(speed)])
+                    speeds_yz.append(speed)  # Convert speed to HSV color.
+                return speeds_xz, speeds_yz, speeds_xyz, colors_xz, colors_yz, colors_xyz
 
 
             # ===============
             #  First subplot
             # ===============
-            # fig = plt.figure()
-            # set up a figure twice as wide as it is tall
-            # fig = plt.figure(figsize=plt.figaspect(0.5))
-            # Set up figure for a 4 way split
             fig = plt.figure(figsize=plt.figaspect(0.9))
 
             scattersize = 10  # This is the size of our color points.
@@ -300,9 +320,15 @@ def d_spline():
                 z_line.append(z)
                 x_line.append(x)
                 y_line.append(y)
+
+            if z_line[1] > 0:  # TODO: We have to transform the order into a counter-clockwise sequence.
+                z_line.reverse()
+                x_line.reverse()
+                y_line.reverse()
+
             weight_len = len(z_line)
             wyz = find_weights((y_line, z_line))
-            print('static weights, max/min', wyz)
+            # print('static weights, max/min', wyz)
             iyz = find_implied_weights((y_line, z_line))
             wxz = find_weights((x_line, z_line))
             ixz = find_implied_weights((x_line, z_line))
@@ -321,7 +347,12 @@ def d_spline():
                 ]
             )
 
-            print(speeds[1])
+            # print(speeds[1])
+            # print(speeds[4])
+            xz_speeds = speeds[0]
+            yz_speeds = speeds[1]
+            yz_colors = speeds[4]
+            xyz_speeds = speeds[2]
 
             z_line = np.array(z_line)
             x_line = np.array(x_line)
@@ -453,7 +484,7 @@ def d_spline():
             ax.title.set_text('Side')
             ax.set_xlabel('y')
             ax.set_ylabel('(front) z')
-            ax.scatter(y_line, z_line, c=weight, cmap='hsv', s=scattersize)
+            ax.scatter(y_line, z_line, c=yz_colors, cmap='hsv', s=scattersize)
             # ===============
             # Fourth subplot x y
             # ===============
