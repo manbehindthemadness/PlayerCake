@@ -145,6 +145,129 @@ def d_spline():
                 result = (maximum, minimum)
                 return result
 
+            def process_weights(trajectory, weights, implied_weights):
+                """
+                Here we will attempt to calculate the various speeds we will have to use for each segment in the trajectory.
+
+                Note: We have to process this per-axis set and then render the movements in x, y, z
+                NOTE: For the coloring we will need xz, yz, xy, and xyz to get the movement correct on each diagram.
+                        We can simply do this be adding the axes and taking an avarage.
+
+                TODO: Don't forget these outputs are for coloring the diagram, the actual values are going to have to be measured in amount less than max velocity.*
+
+                NOTE: ORDERING - I-MIN, I_MAX, MAX, MIN
+
+                trajectory = [x], [y], [z]
+                weights = [[xz_max],[xz_min]], [[yz_max], [yz_min]]
+                implied_weights = ↑
+                """
+                def between(value, limits):
+                    """
+                    This tells us when a value is inbetween two limits.
+
+                    :param value: the value to check.
+                    :type value: int float
+                    :param limits: Tuple of min and max limits.
+                    :type limits: tuple
+                    :rtype: bool
+                    """
+                    if limits[1] >= value > limits[0]:
+                        return True
+                    else:
+                        return False
+
+                def index_in_segment(index, min_pos):
+                    """
+                    This will tell us where we are in a segment.
+                    """
+                    return min_pos + index
+
+                def solver(index_in_seg, current_speed, target_weight, target_weight_index, max_speed):
+                    """
+                    This solves a velocity based on out position, speed and the next weight value.
+                    """
+                    position = abs(index_in_seg - target_weight_index)
+                    div = abs(current_speed - target_weight)
+                    speed_increment = div / position
+                    next_speed = index_in_seg * speed_increment
+                    if next_speed > max_speed:  # Clamp.
+                        next_speed = max_speed
+                    return next_speed
+
+                # print(weights[1])
+                # print(implied_weights[1])
+                velocity = 50  # TODO: This is going to have to be a dynamic value in the future.
+                movement_max = 100
+
+                # Define weighting values.
+                xz_max_weight = 100
+                xz_min_weight = 75
+
+                yz_max_weight = 100
+                yz_min_weight = 75
+
+                tlen = len(trajectory[0])
+                xz_max, xz_min = weights[0]  # Gather indexes.
+                yz_max, yz_min = weights[1]
+                ixz_max, ixz_min = implied_weights[0]
+                iyz_max, iyz_min = implied_weights[1]
+
+                ixz_seg_len = abs(ixz_min - ixz_max)  # Gather lengths.
+                xz_total = ixz_seg_len
+                iyz_seg_len = abs(iyz_min - iyz_max)
+                yz_total = iyz_seg_len
+
+                xz_seg1_len = abs(ixz_seg_len - xz_min)
+                xz_total += xz_seg1_len
+                yz_seg1_len = abs(yz_total - yz_min)
+                yz_total += yz_seg1_len
+
+                xz_seg2_len = abs(xz_seg1_len - xz_max)
+                xz_total += xz_seg2_len
+                yz_seg2_len = abs(yz_total - yz_max)
+                yz_total += yz_seg2_len
+
+                xz_seg3_len = abs(xz_total - tlen)
+                yz_seg3_len = abs(yz_total - tlen)
+                # print(tlen, iyz_seg_len, yz_seg1_len, yz_seg2_len, yz_seg3_len)
+                print(iyz_min, iyz_max, yz_max, yz_min)
+                print(iyz_seg_len, yz_seg1_len, yz_seg2_len, yz_seg3_len)
+
+                # Now we solve the velocities.
+
+                speeds_xz = list()
+                speeds_yz = list()
+                speeds_xyz = list()
+
+                speed = velocity
+                for step in range(0, tlen):
+                    if between(step, (ixz_min, ixz_max)):  # Solve xz implied segment.
+                        speeds_xz.append(velocity)
+                    elif between(step, (ixz_max, xz_min)):  # Solve xz segment 1.
+                        seg_pos = index_in_segment(step, xz_min)  # Find position in segment.
+                        speed = solver(seg_pos, speed, xz_min_weight, xz_min, movement_max)  # Solve speed for step.
+                    elif between(step, (xz_min, xz_max)):  # Solve xz segment 2.
+                        seg_pos = index_in_segment(step, xz_max)  # Find position in segment.
+                        speed = solver(seg_pos, speed, xz_max_weight, xz_max, movement_max)  # Solve speed for step.
+                    elif between(step, (xz_max, ixz_min)):  # Solve xz segment 3.
+                        seg_pos = index_in_segment(step, ixz_min) # Find position in segment.
+                        speed = solver(seg_pos, speed, velocity, ixz_min, movement_max)  # Solve speed for step.
+                    speeds_xz.append(speed)
+
+                    if between(step, (iyz_min, iyz_max)):  # Solve yz implied segment.
+                        speeds_xz.append(velocity)
+                    elif between(step, (iyz_max, yz_min)):  # Solve yz segment 1.
+                        seg_pos = index_in_segment(step, yz_min)  # Find position in segment.
+                        speed = solver(seg_pos, speed, yz_min_weight, yz_min, movement_max)  # Solve speed for step.
+                    elif between(step, (xz_min, xz_max)):  # Solve yz segment 2.
+                        seg_pos = index_in_segment(step, yz_max)  # Find position in segment.
+                        speed = solver(seg_pos, speed, yz_max_weight, yz_max, movement_max)  # Solve speed for step.
+                    elif between(step, (yz_max, iyz_min)):  # Solve yz segment 3.
+                        seg_pos = index_in_segment(step, iyz_min) # Find position in segment.
+                        speed = solver(seg_pos, speed, velocity, iyz_min, movement_max)  # Solve speed for step.
+                    speeds_yz.append(speed)
+                return speeds_xz, speeds_yz, speeds_xyz
+
 
             # ===============
             #  First subplot
@@ -179,10 +302,27 @@ def d_spline():
                 y_line.append(y)
             weight_len = len(z_line)
             wyz = find_weights((y_line, z_line))
+            print('static weights, max/min', wyz)
             iyz = find_implied_weights((y_line, z_line))
             wxz = find_weights((x_line, z_line))
             ixz = find_implied_weights((x_line, z_line))
-            print(iyz, ixz)
+
+            speeds = process_weights(
+                [
+                    x_line,
+                    y_line,
+                    z_line
+                ],
+                [
+                    wxz, wyz
+                ],
+                [
+                    ixz, iyz
+                ]
+            )
+
+            print(speeds[1])
+
             z_line = np.array(z_line)
             x_line = np.array(x_line)
             y_line = np.array(y_line)
@@ -193,6 +333,36 @@ def d_spline():
 
             # TODO: Remember all the earth and reference measurements are going to need to be based on leg length and range of motion.
             ax.plot3D(x_line, y_line, z_line, color='grey', label='trajectory')  # Plot trajectory.
+            implied_line_x = (
+                [
+                    x_line[ixz[0]],
+                    x_line[ixz[1]],
+                ],
+                [
+                    y_line[ixz[0]],
+                    y_line[ixz[1]],
+                ],
+                [
+                    z_line[ixz[0]],
+                    z_line[ixz[1]],
+                ],
+            )
+            ax.plot3D(*implied_line_x, color='pink')  # Print Implied line.
+            implied_line_y = (
+                [
+                    x_line[iyz[0]],
+                    x_line[iyz[1]],
+                ],
+                [
+                    y_line[iyz[0]],
+                    y_line[iyz[1]],
+                ],
+                [
+                    z_line[iyz[0]],
+                    z_line[iyz[1]],
+                ],
+            )
+            ax.plot3D(*implied_line_y, color='pink')  # Print Implied line.
             ax.scatter3D(x_line, y_line, z_line, c=weight, cmap='hsv', s=scattersize)
             ax.plot3D([-100, -100, 100, 100, -100], [100, -100, -100, 100, 100], [0, 0, 0, 0, 0], label='surface')  # Plot ground.
             ax.plot3D([0, 0, 0], [0, 0, 0], [0, -50, 0], color='orange', label='start')  # Plot start point.
@@ -288,6 +458,8 @@ def d_spline():
             # Fourth subplot x y
             # ===============
             ax = fig.add_subplot(2, 2, 4)
+            ax.plot(implied_line_x[0], implied_line_x[1], color='pink')  # Plot implied line.
+            ax.plot(implied_line_y[0], implied_line_y[1], color='pink')  # plot implied line.
             ax.plot(x_line, y_line, color='grey', label='trajectory')  # Plot trajectory.
             # ax.plot([-100, 100], [0, 0], label='surface')  # Plot ground
             ax.plot([-100, -50], [0, 0], color='orange', label='surface')  # Plot start.
