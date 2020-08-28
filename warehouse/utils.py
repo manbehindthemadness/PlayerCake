@@ -3,6 +3,21 @@ This is where we house general utilities.
 """
 import datetime
 import re
+from colour import Color
+
+
+def to_color(limit_low, limit_high):
+    """
+    This converts a number into an RGB tuple this it defined within the limits
+    """
+    limit_high += 1
+    blue = Color("blue")
+    values = dict()
+    colors = list(blue.range_to(Color("red"), abs(limit_high - limit_low)))
+    labels = list(range(limit_low, limit_high))
+    for idx, color in zip(labels, colors):
+        values[idx] = Color.get_rgb(color)
+    return values
 
 
 def average(lst):
