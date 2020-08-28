@@ -17,6 +17,7 @@ certifi
 cbor2
 chardet
 cryptography
+colour
 distlib
 entrypoints
 filelock
