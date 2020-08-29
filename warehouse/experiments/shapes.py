@@ -321,9 +321,12 @@ def d_spline():
             # ===============
             #  First subplot
             # ===============
-            fig = plt.figure(figsize=plt.figaspect(0.9))
-
+            fig = plt.figure(figsize=plt.figaspect(0.9), dpi=200, )
+            plt.rcParams.update({'font.size': 4})
+            xyzticks = np.arange(-100, 100+50, 25)
+            xyticks = np.arange(-100, 100 + 50, 25)
             scattersize = 4  # This is the size of our color points.
+            weight_alpha = 6/10
 
             ax = fig.add_subplot(2, 2, 1, projection='3d')
             ax.title.set_text('3D')
@@ -333,6 +336,9 @@ def d_spline():
             ax.set_xlim(-100, 100)  # TODO: These will need to be set to leg_len*2 in the future.
             ax.set_ylim(-100, 100)
             ax.set_zlim(-100, 100)
+            plt.xticks(xyzticks)
+            plt.yticks(xyzticks)
+            # plt.zticks(xyzticks)
 
             z_line = list()
             x_line = list()
@@ -422,32 +428,26 @@ def d_spline():
             ax.plot3D([0, 0, 0], [0, 0, 0], [0, -50, 0], color='orange', label='start')  # Plot start point.
             ax.scatter3D([0], [0], [100], color="grey", s=10, label='pivot')  # Plot leg pivot.
 
-            # ax.scatter3D(weightsxz[0][0], weightsxz[0][1], z_line[weightsxz[2][0]], edgecolors='green', facecolors='none', label='mxweightxz',
-            #              s=100)  # Plot max weight xz.
-            # ax.scatter3D(weightsxz[1][0], weightsxz[1][1], z_line[weightsxz[2][1]], edgecolors='black', facecolors='none', label='mnweightxz',
+            # ax.scatter3D(wxz[0][0], wxz[0][1], z_line[wxz[2][0]], edgecolors='green', facecolors='none', label='mxweightxz',
+            #              s=100, alpha=weight_alpha)  # Plot max weight xz.
+            # ax.scatter3D(wxz[1][0], wxz[1][1], z_line[wxz[2][1]], edgecolors='black', facecolors='none', label='mnweightxz',
             #              s=100)  # Plot min weight xz.
-            # ax.scatter3D(weightsyz[0][0], weightsyz[0][1], z_line[weightsyz[2][0]],edgecolors='red', facecolors='none', label='mxweightyz',
+            # ax.scatter3D(wyz[0][0], wyz[0][1], z_line[wyz[2][0]],edgecolors='red', facecolors='none', label='mxweightyz',
             #              s=100)  # Plot max weight yz.
-            # ax.scatter3D(weightsyz[1][0], weightsyz[1][1], z_line[weightsyz[2][1]], edgecolors='blue', facecolors='none', label='mnweightyz',
+            # ax.scatter3D(wyz[1][0], wyz[1][1], z_line[wyz[2][1]], edgecolors='blue', facecolors='none', label='mnweightyz',
             #              s=100)  # Plot min weight yz.
 
             # ===============
             # Second subplot x z
             # ===============
             ax = fig.add_subplot(2, 2, 2)
+            plt.xticks(xyticks)
+            plt.yticks(xyticks)
+
             # ax.plot(x_line, z_line, color='grey', label='trajectory')  # Plot trajectory.
             ax.plot([-100, 100], [0, 0], label='surface')  # Plot ground
             ax.plot([0, 0], [-100, -50], color='orange', label='surface')  # Plot start.
             ax.scatter(0, 100, color='grey', label='pivot', s=100)  # Plot leg pivot.
-
-            ax.scatter(x_line[wxz[0]], z_line[wxz[0]], edgecolors='green', facecolors='none', label='mxweight',
-                       s=100)  # Plot max weight.
-            ax.scatter(x_line[wxz[1]], z_line[wxz[1]], edgecolors='orange', facecolors='none', label='mnweight',
-                       s=100)  # Plot min weight.
-            ax.scatter(x_line[ixz[0]], z_line[ixz[0]], edgecolors='pink', facecolors='none', label='mxweight',
-                       s=100)  # Plot max implied weight.
-            ax.scatter(x_line[ixz[1]], z_line[ixz[1]], edgecolors='pink', facecolors='none', label='mnweight',
-                       s=100)  # Plot min implied weight.
 
             anchor = plot_angle((0, 100), -30)
             plt.text(anchor[0], anchor[1], '. ' * 7 + 'minx', fontsize=8, rotation=anchor[2], rotation_mode='anchor', verticalalignment='center')  # Plot min.
@@ -469,26 +469,30 @@ def d_spline():
             ax.set_xlabel('x')
             ax.set_ylabel('z')
             ax.scatter(x_line, z_line, c=xz_colors, cmap='hsv', s=scattersize)
+
+            ax.scatter(x_line[wxz[0]], z_line[wxz[0]], edgecolors='green', facecolors='none', label='mxweight',
+                       s=100, alpha=weight_alpha)  # Plot max weight.
+            ax.scatter(x_line[wxz[1]], z_line[wxz[1]], edgecolors='orange', facecolors='none', label='mnweight',
+                       s=100, alpha=weight_alpha)  # Plot min weight.
+            ax.scatter(x_line[ixz[0]], z_line[ixz[0]], edgecolors='pink', facecolors='none', label='mxweight',
+                       s=100, alpha=weight_alpha)  # Plot max implied weight.
+            ax.scatter(x_line[ixz[1]], z_line[ixz[1]], edgecolors='pink', facecolors='none', label='mnweight',
+                       s=100, alpha=weight_alpha)  # Plot min implied weight.
+
             # ===============
             # Third subplot y z
             # ===============
             ax = fig.add_subplot(2, 2, 3)
+            plt.xticks(xyticks)
+            plt.yticks(xyticks)
             # ax.plot(y_line, z_line, color='grey', label='trajectory')  # Plot trajectory.
             ax.plot([-100, 100], [0, 0], label='surface')  # Plot ground
             ax.plot([0, 0], [-100, -50], color='orange', label='surface')  # Plot start.
             ax.scatter(0, 100, color='grey', label='pivot', s=100)  # Plot leg pivot.
 
-            ax.scatter(y_line[wyz[0]], z_line[wyz[0]], edgecolors='magenta', facecolors='none', label='mxweight', s=100)  # Plot max weight.
-            ax.scatter(y_line[wyz[1]], z_line[wyz[1]], edgecolors='cyan', facecolors='none', label='mnweight', s=100)  # Plot min weight.
-            ax.scatter(y_line[iyz[0]], z_line[iyz[0]], edgecolors='pink', facecolors='none', label='mxweight',
-                       s=100)  # Plot max implied weight.
-            ax.scatter(y_line[iyz[1]], z_line[iyz[1]], edgecolors='pink', facecolors='none', label='mnweight',
-                       s=100)  # Plot min implied weight.
-
             # yy, zz = np.meshgrid(y_line, z_line)
             # print(list(zip(yy, zz)))
             # ax.plot(yy, zz, color='grey', label='trajectory')  # experiment.
-
 
             anchor = plot_angle((0, 100), -45)
             plt.text(anchor[0], anchor[1], '. ' * 7 + 'maxy', fontsize=7, rotation=anchor[2],
@@ -508,10 +512,22 @@ def d_spline():
             ax.set_xlabel('y')
             ax.set_ylabel('(front) z')
             ax.scatter(y_line, z_line, c=yz_colors, cmap='hsv', s=scattersize)
+
+            ax.scatter(y_line[wyz[0]], z_line[wyz[0]], edgecolors='magenta', facecolors='none', label='mxweight', s=100,
+                       alpha=weight_alpha)  # Plot max weight.
+            ax.scatter(y_line[wyz[1]], z_line[wyz[1]], edgecolors='cyan', facecolors='none', label='mnweight', s=100,
+                       alpha=weight_alpha)  # Plot min weight.
+            ax.scatter(y_line[iyz[0]], z_line[iyz[0]], edgecolors='pink', facecolors='none', label='mxweight',
+                       s=100, alpha=weight_alpha)  # Plot max implied weight.
+            ax.scatter(y_line[iyz[1]], z_line[iyz[1]], edgecolors='pink', facecolors='none', label='mnweight',
+                       s=100, alpha=weight_alpha)  # Plot min implied weight.
             # ===============
             # Fourth subplot x y
             # ===============
             ax = fig.add_subplot(2, 2, 4)
+            plt.xticks(xyticks)
+            plt.yticks(xyticks)
+
             ax.plot(implied_line_x[0], implied_line_x[1], '.', color='pink')  # Plot implied line.
             ax.plot(implied_line_y[0], implied_line_y[1], '.', color='pink')  # plot implied line.
             # ax.plot(x_line, y_line, color='grey', label='trajectory')  # Plot trajectory.
@@ -527,13 +543,13 @@ def d_spline():
             ax.annotate("start", xy=(-99, 8), fontsize=7)
 
             ax.scatter(x_line[wxz[0]], y_line[wxz[0]], edgecolors='green', facecolors='none', label='mxweight',
-                       s=100)  # Plot max weight.
+                       s=100, alpha=weight_alpha)  # Plot max weight.
             ax.scatter(x_line[wxz[1]], y_line[wxz[1]], edgecolors='orange', facecolors='none', label='mnweight',
-                       s=100)  # Plot min weight.
+                       s=100, alpha=weight_alpha)  # Plot min weight.
             ax.scatter(x_line[wyz[0]], y_line[wyz[0]], edgecolors='magenta', facecolors='none', label='mxweight',
-                       s=100)  # Plot max weight.
+                       s=100, alpha=weight_alpha)  # Plot max weight.
             ax.scatter(x_line[wyz[1]], y_line[wyz[1]], edgecolors='cyan', facecolors='none', label='mnweight',
-                       s=100)  # Plot min weight.
+                       s=100, alpha=weight_alpha)  # Plot min weight.
 
             plt.subplots_adjust(left=0.1, right=0.9, bottom=0.1, top=0.9)
             plt.tight_layout()
