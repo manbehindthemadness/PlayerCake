@@ -38,6 +38,8 @@ def system_command(params):
     Use this to execute a system level command.
 
     NOTE: Use with caution.
+    :param params: List of commands and args to execute.
+    :type params: list
     """
     process = Popen(params, stdout=PIPE)
     output, _error = process.communicate()
