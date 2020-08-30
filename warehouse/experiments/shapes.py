@@ -18,6 +18,7 @@ import numpy as np
 import math
 from warehouse.utils import to_color
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
 import matplotlib.path as mpath
 import matplotlib.patches as mpatches
 from matplotlib import animation, rc, cm
@@ -318,17 +319,30 @@ def d_spline():
             mesh = pymesh.subdivide(mesh, order=3)
             cv = mesh_sorter(mesh.vertices)
 
+            fig = plt.figure(figsize=plt.figaspect(0.9), dpi=200, )
+            facecolor = 'black'
+            textcolor = 'white'
+            fig.patch.set_facecolor(facecolor)
+            rcParams['text.color'] = textcolor
+            plt.rcParams.update({'font.size': 4})
+            xyzticks = np.arange(-100, 100 + 50, 25)
+            xyticks = np.arange(-100, 100 + 50, 25)
+            scattersize = 4  # This is the size of our color points.
+            weight_alpha = 6 / 10
+
             # ===============
             #  First subplot
             # ===============
-            fig = plt.figure(figsize=plt.figaspect(0.9), dpi=200, )
-            plt.rcParams.update({'font.size': 4})
-            xyzticks = np.arange(-100, 100+50, 25)
-            xyticks = np.arange(-100, 100 + 50, 25)
-            scattersize = 4  # This is the size of our color points.
-            weight_alpha = 6/10
-
             ax = fig.add_subplot(2, 2, 1, projection='3d')
+            ax.set_facecolor(facecolor)
+            ax.spines['bottom'].set_color(textcolor)
+            ax.spines['top'].set_color(textcolor)
+            ax.xaxis.label.set_color(textcolor)
+            ax.yaxis.label.set_color(textcolor)
+            ax.zaxis.label.set_color(textcolor)
+            ax.tick_params(axis='x', colors=textcolor)
+            ax.tick_params(axis='y', colors=textcolor)
+            ax.tick_params(axis='z', colors=textcolor)
             ax.title.set_text('3D')
             ax.set_xlabel('(front) x')
             ax.set_ylabel('y')
@@ -441,6 +455,14 @@ def d_spline():
             # Second subplot x z
             # ===============
             ax = fig.add_subplot(2, 2, 2)
+            ax.set_facecolor(facecolor)
+            ax.spines['bottom'].set_color(textcolor)
+            ax.spines['top'].set_color(textcolor)
+
+            ax.xaxis.label.set_color(textcolor)
+            ax.yaxis.label.set_color(textcolor)
+            ax.tick_params(axis='x', colors=textcolor)
+            ax.tick_params(axis='y', colors=textcolor)
             plt.xticks(xyticks)
             plt.yticks(xyticks)
 
@@ -483,6 +505,14 @@ def d_spline():
             # Third subplot y z
             # ===============
             ax = fig.add_subplot(2, 2, 3)
+            ax.set_facecolor(facecolor)
+            ax.spines['bottom'].set_color(textcolor)
+            ax.spines['top'].set_color(textcolor)
+
+            ax.xaxis.label.set_color(textcolor)
+            ax.yaxis.label.set_color(textcolor)
+            ax.tick_params(axis='x', colors=textcolor)
+            ax.tick_params(axis='y', colors=textcolor)
             plt.xticks(xyticks)
             plt.yticks(xyticks)
             # ax.plot(y_line, z_line, color='grey', label='trajectory')  # Plot trajectory.
@@ -525,6 +555,14 @@ def d_spline():
             # Fourth subplot x y
             # ===============
             ax = fig.add_subplot(2, 2, 4)
+            ax.set_facecolor(facecolor)
+            ax.spines['bottom'].set_color(textcolor)
+            ax.spines['top'].set_color(textcolor)
+
+            ax.xaxis.label.set_color(textcolor)
+            ax.yaxis.label.set_color(textcolor)
+            ax.tick_params(axis='x', colors=textcolor)
+            ax.tick_params(axis='y', colors=textcolor)
             plt.xticks(xyticks)
             plt.yticks(xyticks)
 
