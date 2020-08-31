@@ -22,7 +22,6 @@ distlib
 entrypoints
 filelock
 gps
-guizero
 idna
 importlib-metadata
 ipython
