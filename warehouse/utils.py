@@ -164,16 +164,22 @@ def percent_in(part, whole, use_float=False):
     return result
 
 
-def file_rename(name, file):
+def file_rename(name, file, reverse=False):
     """
     This appends 'name' to a filename 'file' whilst preserving the extension.
     :type name: str
     :type file: str
+    :type reverse: bool
     :rtype: str
     """
     pa, fi = file.rsplit('.', 1)
-    name += '.'
-    return pa + name + fi
+    if reverse:
+        pa += '.'
+        result = name + pa + fi
+    else:
+        name += '.'
+        result = pa + name + fi
+    return result
 
 
 def file_exists(file):
@@ -226,5 +232,6 @@ def image_resize(x, y, image, x_percent, y_percent, preserve_aspect=True):
                 img = resizeimage.resize_cover(img, [x_pix, y_pix], validate=False)
             img.save(tfn, img.format)
         else:
+            print(sfn)
             raise FileNotFoundError
-    return tfn
+    return tfn.as_posix()
