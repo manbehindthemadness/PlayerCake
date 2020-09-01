@@ -11,5 +11,8 @@ theme = 'dark'
 themes = {
     'dark': {
         'main': 'black'
+    },
+    'light': {
+        'main': 'white'
     }
 }

@@ -51,6 +51,7 @@ class Home(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         self.controller = controller
+        self.system_command = system_command
         self.base = Frame(
             self,
             bg=theme['main']
@@ -91,8 +92,8 @@ class Home(Frame):
             height=pry(25)
         )
 
-        self.writer_entry_button = self.entry_button('writer.png', command=lambda: controller.show_frame("Page2"))  # Place entry buttons.
-        self.audience_entry_button = self.entry_button('audience.png')
+        self.writer_entry_button = self.entry_button('writer.png', command=lambda: controller.show_frame("Writer"))  # Place entry buttons.
+        self.audience_entry_button = self.entry_button('audience.png', command=lambda: controller.show_frame("Audience"))
         self.writer_entry_button.grid(row=0, column=0, sticky=W)
         self.entry_spacer = Frame(
             self.entry_frame,
@@ -112,11 +113,11 @@ class Home(Frame):
             x=cp(prx(50), prx(30)),
             y=pry(75)
         )
-        self.shutdown_button = self.power_button('shutdown.png')
+        self.shutdown_button = self.power_button('shutdown.png', self.shutdown_command)
         self.shutdown_button.grid(row=0, column=0, sticky=W)
-        self.restart_system_button = self.power_button('restart_system.png')
+        self.restart_system_button = self.power_button('restart_system.png', self.restart_system_command)
         self.restart_system_button.grid(row=0, column=1)
-        self.restart_button = self.power_button('restart.png')
+        self.restart_button = self.power_button('restart.png', self.restart_command)
         self.restart_button.grid(row=0, column=2, sticky=E)
 
     def entry_button(self, image, command=None):
@@ -141,12 +142,12 @@ class Home(Frame):
         # entry_button.pack(anchor=NW)
         return entry_button
 
-    def power_button(self, image):
+    def power_button(self, image, command=None):
         """
         This creates the power buttons on the home page.
         """
         power_image = PhotoImage(file=img(image, 10, 10))
-        power_button = Button(self.power_frame, image=power_image)
+        power_button = Button(self.power_frame, image=power_image, command=command)
         power_button.image = power_image
         power_button.configure(
             width=prx(10),
@@ -160,6 +161,30 @@ class Home(Frame):
             relief=FLAT
         )
         return power_button
+
+    def shutdown_command(self):
+        """
+        This powers off the SOC.
+        """
+        self.system_command(
+            ['sudo', 'poweroff']
+        )
+
+    def restart_system_command(self):
+        """
+        This restarts the SOC.
+        """
+        self.system_command(
+            ['sudo', 'reboot']
+        )
+
+    def restart_command(self):
+        """
+        This restarts the playercake service.
+        """
+        self.system_command(
+            ['sudo', 'service', 'playercake', 'restart']
+        )
 
 
 class Writer(Frame):
