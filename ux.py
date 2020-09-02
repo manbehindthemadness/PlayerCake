@@ -12,8 +12,10 @@ Good REf: https://stackoverflow.com/questions/7546050/switch-between-two-frames-
 """
 import tkinter as tk
 from tkinter import *
+from tkinter.filedialog import askopenfilename
 from warehouse.system import system_command
 from warehouse.utils import percent_of, percent_in, file_rename, image_resize
+from writer.plot import pymesh_stl
 import settings
 import os
 
@@ -26,7 +28,7 @@ os.environ['DISPLAY'] = settings.display
 os.environ['XAUTHORITY'] = '/home/pi/.Xauthority'
 system_command(['/usr/bin/xhost', '+'])
 
-p2 = None
+rt_data = dict()
 
 
 class Page(Frame):
@@ -193,34 +195,170 @@ class Writer(Frame):
     """
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
+        global rt_data
+        self.rt_data = rt_data
+        self.rt_data['plotfile'] = str()
         self.controller = controller
-        self.base = Frame(
+        self.plotter = pymesh_stl
+        self.plot = None
+        self.plotfile = None
+        self.base = Frame(  # Setup base.
             self,
             bg=theme['main']
         )
-        self.base.place(
+        self.base.place(  # Place Base.
             x=0,
             y=0,
             width=scr_x,
             height=scr_y
         )
-        self.logo_frame = Frame(
-            bg=theme["main"]
+        #  ###########
+        #  Plot window
+        #  ###########
+        self.plot_frame = Frame(  # Setup plotframe.
+            self.base,
+            bg=theme['main']
         )
-        self.logo_frame.place(
-            x=cp(scr_x / 2, prx(30)),
-            y=pry(10),
-            width=prx(30),
-            height=pry(15)
+        self.plot_frame.place(  # Place plotframe.
+            x=cp(prx(50), scr_y),
+            width=scr_y,
+            height=scr_y
         )
-        logo = PhotoImage(file=img('playercake_logo.png', 30, 15))  # Setup main logo.
-        logo_image = Label(
-            self.logo_frame,
-            image=logo,
-            bg=theme["main"]
+        self.panel_size = int((scr_x - scr_y) / 2)  # Figure our panel size.
+        self.left_panel_frame = Frame(  # Setup left panel.
+            self.base,
+            bg=theme['main']
         )
-        logo_image.image = logo
-        logo_image.pack()
+        #  ##################
+        #  Left hand controls
+        #  ##################
+        self.left_panel_frame.place(  # Place left panel.
+            x=0,
+            y=0,
+            width=self.panel_size,
+            height=scr_y
+        )
+        self.back_button = self.half_button(  # Setup back button.
+            self.left_panel_frame,
+            'back.png',
+            command=lambda: controller.show_frame("Home")
+        )
+        self.back_button.grid(row=0, column=0)
+        self.open_button = self.half_button(  # Setup file open button.
+            self.left_panel_frame,
+            'open.png',
+            command=self.get_plotfile
+        )
+        self.open_button.grid(row=0, column=1)
+
+        render = StringVar()
+        self.render_button = self.full_button(
+            self.left_panel_frame,
+            'renderbutton.png',
+            command=self.render_plotfile
+        )
+        self.render_button.grid(row=1, columnspan=2)
+        render.set('Render')
+
+        #  ###################
+        #  Right hand controls
+        #  ###################
+        self.right_panel_frame = Frame(  # Setup right panel.
+            self.base,
+            bg=theme['main']
+        )
+        self.right_panel_frame.place(  # Place right panel.
+            x=scr_x - self.panel_size,
+            y=0,
+            width=self.panel_size,
+            height=scr_y
+        )
+        # self.right_panel_frame.grid_rowconfigure(0, weight=1)
+        self.right_panel_frame.grid_columnconfigure(0, weight=1)  # Center objects.
+        self.plotfile = StringVar()  # Set variable for plot file.
+        self.plotfile_label = self.full_label(self.right_panel_frame, self.plotfile)  # Get plot file label.
+        self.plotfile_label.grid(row=0, columnspan=2)  # Place plotfile label.
+
+    def half_button(self, parent, image, command=None, text=None):
+        """
+        This creates a button that is half the panel width.
+        """
+        half_image = PhotoImage(file=img(image, 10, 10))
+        half_button = Button(parent, image=half_image, command=command)
+        half_button.image = half_image
+        size = self.panel_size / 2
+        half_button.configure(
+            width=size,
+            height=size,
+        )
+        half_button = config_button(half_button)
+        if text:
+            half_button = config_button_text(half_button, text)
+        return half_button
+
+    def full_button(self, parent, image, command=None, text=None):
+        """
+        This creates a button that is the full panel width.
+        """
+        sizex = self.panel_size,
+        sizey = self.panel_size / 3
+        frame = Frame(
+            parent,
+            width=sizex,
+            height=sizey
+        )
+        full_image = PhotoImage(file=img(image, 20, 10))
+        full_button = Button(frame, image=full_image, command=command)
+        full_button.image = full_image
+        full_button.configure(
+            width=self.panel_size,
+            height=self.panel_size / 3,
+        )
+        full_button = config_button(full_button)
+        if text:
+            full_button = config_button_text(full_button, text)
+        full_button.pack()
+        return frame
+
+    def full_label(self, parent, textvariable):
+        """
+        This will produce a subframe with a text label
+        """
+        frame = Frame(
+            parent,
+            width=self.panel_size,
+            height=int(self.panel_size / 3),
+            bg=theme['main']
+        )
+        label = Label(
+            frame
+        )
+        label = config_text(label, textvariable)
+        label.pack(anchor='center')
+        return frame
+
+    def get_plotfile(self):
+        """
+        This will open up a plot file and pass it to a variable.
+        """
+        self.rt_data['plotfile'] = openfile('/plots')
+        self.plotfile.set(
+            self.rt_data['plotfile'].split('/')[-1]
+        )
+        if self.plot:  # Clear if needed.
+            self.plot.get_tk_widget().pack_forget()  # Clear old plot.
+
+    def render_plotfile(self):
+        """
+        This will render the actual plots into the writer app.
+        """
+        plotfile = self.rt_data['plotfile']  # Fetch plot file.
+        if plotfile:
+            if self.plot:  # Clear if needed.
+                self.plot.get_tk_widget().pack_forget()  # Clear old plot.
+            self.plot = self.plotter(plotfile, self.plot_frame)  # Fetch plot.
+            self.plot.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH)  # Fetch canvas widget.
+        return self.plot
 
 
 class Audience(Frame):
@@ -266,6 +404,54 @@ class MainView(tk.Tk):
         """
         frame = self.frames[page_name]
         frame.tkraise()
+
+
+def config_button(element):
+    """
+    This configures our button styles.
+    """
+    element.configure(
+        activebackground=theme['main'],
+        activeforeground=theme['buttontext'],
+        foreground=theme['buttontext'],
+        background=theme['main'],
+        borderwidth=0,
+        highlightthickness=0,
+        relief=FLAT
+    )
+    return element
+
+
+def config_text(element, text):
+    """
+    This takes an element and configures the text properties
+    """
+    element.configure(
+        font=(theme['font'], pointsy(2)),
+        pady=pry(3),
+        fg=theme['text'],
+        bg=theme['main']
+    )
+    if isinstance(text, tk.StringVar):
+        element.configure(
+            textvariable=text
+        )
+    else:
+        element.configure(
+            text=text
+        )
+    return element
+
+
+def config_button_text(element, text):
+    """
+    This will configure our button text.
+    """
+    element = config_text(element, text)
+    element.configure(
+        fg=theme['buttontext']
+    )
+    return element
 
 
 def open_window(parent):
@@ -325,6 +511,28 @@ def img(image, x_percent, y_percent, aspect=True):
         aspect
     )
     return image
+
+
+def pointsy(percent):
+    """
+    This factors the point size of text in contrast to screen size.
+    """
+    pix_size = pry(percent)
+    points = pix_size / 1.333
+    return int(points)
+
+
+def openfile(defdir):
+
+    """
+    Opens a file.
+    """
+    name = askopenfilename(
+        initialdir=os.path.abspath(os.getcwd() + defdir),
+        filetypes=[("Obj files", "*.obj")],
+        title="Choose a file."
+        )
+    return name
 
 
 app = MainView()
