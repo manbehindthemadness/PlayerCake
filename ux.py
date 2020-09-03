@@ -198,6 +198,7 @@ class Writer(Frame):
         global rt_data
         self.rt_data = rt_data
         self.rt_data['plotfile'] = str()
+        self.rt_data['calibrations'] = settings.defaults
         self.controller = controller
         self.plotter = pymesh_stl
         self.plot = None
@@ -356,7 +357,7 @@ class Writer(Frame):
         if plotfile:
             if self.plot:  # Clear if needed.
                 self.plot.get_tk_widget().pack_forget()  # Clear old plot.
-            self.plot = self.plotter(plotfile, self.plot_frame)  # Fetch plot.
+            self.plot = self.plotter(plotfile, self.plot_frame, theme, settings.defaults, 1, self.rt_data)  # TODO: This will need to be revised for simulations.
             self.plot.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH)  # Fetch canvas widget.
         return self.plot
 
@@ -468,18 +469,18 @@ def cp(value, offset):
     return value - (offset / 2)
 
 
-def prx(percent):
+def prx(percent, use_float=False):
     """
     This ficures a percentage of x.
     """
-    return percent_of(percent, scr_x)
+    return percent_of(percent, scr_x, use_float)
 
 
-def pry(percent):
+def pry(percent, use_float=False):
     """
     This figures a percentage of y.
     """
-    return percent_of(percent, scr_y)
+    return percent_of(percent, scr_y, use_float)
 
 
 def prix(percent):
@@ -535,6 +536,12 @@ def openfile(defdir):
     return name
 
 
+# TODO: I have no idea if matplotlib is measuring the fontsize in points or pixels...
+theme['fontsize'] = pointsy(theme['fontsize'])  # This is the fontsize for the matplotlib graphs.
+theme['scattersize'] = pry(theme['scattersize'], True)
+theme['pivotsize'] = pry(theme['pivotsize'])
+theme['weightsize'] = pry(theme['weightsize'])
+theme['linewidth'] = pry(theme['linewidth'], True)
 app = MainView()
 app.geometry(
     str(scr_x) + 'x' + str(scr_y) + '+0+0'
