@@ -183,7 +183,6 @@ def pymesh_stl(obj_file, parent, theme, config, target, rt_data):
         velocity = 10  # TODO: This is going to have to be a dynamic value in the future.
         movement_max = 100  # TODO: Dont's forget that this measurement is a percentage.
         colors = to_color(0, 100)
-        print(len(colors))
 
         # Define weighting values.
         xz_max_weight = 10
@@ -218,58 +217,75 @@ def pymesh_stl(obj_file, parent, theme, config, target, rt_data):
 
         # Now we solve the velocities.
 
-        speeds_xz = list()
-        colors_xz = list()
-        speeds_yz = list()
-        colors_yz = list()
         speeds_xyz = list()
         colors_xyz = list()
 
         # TODO: It looks like we might have a problem solving scenarios where the implied weights are in the same location...
 
-        speedxz = speedyz = velocity
-        for step in range(0, tlen):
-            # SOLVE XZ
-            if between(step, (ixz_min, ixz_max)):  # Solve xz implied segment.
-                speedxz = velocity
-                speeds_xz.append(speedxz)
+        def solvexy(a_speed, length, inc_min, inc_max, a_min, a_max, min_weight, max_weight):
+            """
+            This figures out our velocity by-step, over increment.
+            :param a_speed: Velocity.
+            :param length: Length of trajectory.
+            :param inc_min: Increment minimum.
+            :param inc_max: Increment maximum.
+            :param a_min: Axis minimum.
+            :param a_max: Axis maximum.
+            :param max_weight: Maximum axis weight.
+            :param min_weight: Minimum axis weight.
+            """
+            a_colors = list()
+            a_speeds = list()
+            speed = a_speed
+            for stp in range(0, length):
+                if between(stp, (inc_min, inc_max)):  # Solve implied segment.
+                    speed = a_speed
+                    # a_speeds.append(speed)
 
-            elif between(step, (ixz_max, xz_max)):  # Solve xz segment 1.
-                seg_pos = index_in_segment(step, ixz_max)  # Find position in segment.
-                speedxz = solver(seg_pos, speedxz, xz_max_weight, xz_max, movement_max)  # Solve speed for step.
+                elif between(stp, (inc_max, a_max)):  # Solve segment 1.
+                    seg_pos = index_in_segment(stp, inc_max)  # Find position in segment.
+                    speed = solver(seg_pos, speed, max_weight, a_max, movement_max)  # Solve speed for step.
 
-            elif between(step, (xz_max, xz_min)):  # Solve xz segment 2.
-                seg_pos = index_in_segment(step, xz_max)  # Find position in segment.
-                speedxz = solver(seg_pos, speedxz, xz_min_weight, xz_min, movement_max)  # Solve speed for step.
+                elif between(stp, (a_max, a_min)):  # Solve segment 2.
+                    seg_pos = index_in_segment(stp, a_max)  # Find position in segment.
+                    speed = solver(seg_pos, speed, min_weight, a_min, movement_max)  # Solve speed for step.
 
-            elif between(step, (xz_min, tlen)):  # Solve xz segment 3.
-                speedxz = xz_min_weight
+                elif between(stp, (a_min, length)):  # Solve segment 3.
+                    speed = min_weight
 
-            colors_xz.append(colors[int(speedxz)])
-            speeds_xz.append(speedxz)
+                a_colors.append(colors[int(speed)])
+                a_speeds.append(speed)
 
-            # SOLVE YZ
-            if between(step, (iyz_min, iyz_max)):  # Solve yz implied segment.
-                speedyz = velocity
-                speeds_yz.append(speedyz)
+            return a_colors, a_speeds
 
-            elif between(step, (iyz_max, yz_max)):  # Solve yz segment 1.
-                seg_pos = index_in_segment(step, iyz_max)  # Find position in segment.
-                speedyz = solver(seg_pos, speedyz, yz_max_weight, yz_max, movement_max)  # Solve speed for step.
+        colors_xz, speeds_xz = solvexy(
+            velocity,
+            tlen,
+            ixz_min,
+            ixz_max,
+            xz_min,
+            xz_max,
+            xz_min_weight,
+            xz_max_weight,
+        )
 
-            elif between(step, (yz_max, yz_min)):  # Solve yz segment 2.
-                seg_pos = index_in_segment(step, yz_max)  # Find position in segment.
-                speedyz = solver(seg_pos, speedyz, yz_min_weight, yz_min, movement_max)  # Solve speed for step.
+        colors_yz, speeds_yz = solvexy(
+            velocity,
+            tlen,
+            iyz_min,
+            iyz_max,
+            yz_min,
+            yz_max,
+            yz_min_weight,
+            yz_max_weight,
+        )
 
-            elif between(step, (yz_min, tlen)):  # Solve yz segment 3.
-                speedyz = yz_min_weight
-            colors_yz.append(colors[int(speedyz)])
-            speeds_yz.append(speedyz)
-
-            # SOLV XYZ
+        # SOLV XYZ
+        for speedxz, speedyz in zip(speeds_xz, speeds_yz):
             xyz_sp = (speedxz + speedyz) / 2
             colors_xyz.append(colors[int(xyz_sp)])
             speeds_xyz.append(xyz_sp)
+
         return speeds_xz, speeds_yz, speeds_xyz, colors_xz, colors_yz, colors_xyz
 
     def min_max(_ax, _plt, _axis):
@@ -364,7 +380,7 @@ def pymesh_stl(obj_file, parent, theme, config, target, rt_data):
 
     mesh = pymesh.load_mesh(obj_file)  # load trajectory file.
     mesh = pymesh.subdivide(mesh, order=3)  # Split mesh.
-    cv = mesh_sorter(mesh.vertices)  # Convert mmesh to array.
+    cv = mesh_sorter(mesh.vertices)  # Convert mesh to array.
 
     fig = plt.figure(figsize=plt.figaspect(1), dpi=200, tight_layout=True)  # Configure layout.
     facecolor = theme['main']
