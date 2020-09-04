@@ -32,7 +32,7 @@ themes = {
 }
 defaults = {
     'contact': 50,  # percentage of leg extension to place ground.
-    'velocity': 100,  # Implied for sims.
+    'velocity': 10,  # Implied for sims.
     'resolution': 1.8,  # 180/100 (generally).
     'weightxmin': 50,  # Unit=percentage of velocity.
     'weightxmax': 50,

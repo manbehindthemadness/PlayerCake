@@ -22,6 +22,7 @@ import os
 scr_x, scr_y = settings.screensize
 
 theme = settings.themes[settings.theme]
+defaults = settings.defaults
 
 # This crap is for tunneling the app over ssh
 os.environ['DISPLAY'] = settings.display
@@ -29,6 +30,12 @@ os.environ['XAUTHORITY'] = '/home/pi/.Xauthority'
 system_command(['/usr/bin/xhost', '+'])
 
 rt_data = dict()
+
+# for sett in defaults:  # Populate defaults
+#     rt_data[sett] = StringVar()
+#     rt_data[sett].set(str(defaults[sett]))
+# rt_data['plotfile'] = str()
+# rt_data['temp'] = dict()
 
 
 class Page(Frame):
@@ -52,6 +59,8 @@ class Home(Frame):
     """
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
+        global rt_data
+        self.rt_data = rt_data
         self.controller = controller
         self.system_command = system_command
         self.base = Frame(
@@ -197,10 +206,22 @@ class Writer(Frame):
         Frame.__init__(self, parent)
         global rt_data
         self.rt_data = rt_data
+
+        for sett in defaults:  # Populate defaults
+            self.rt_data[sett] = StringVar()
+            self.rt_data[sett].set(str(defaults[sett]))
         self.rt_data['plotfile'] = str()
-        self.rt_data['calibrations'] = settings.defaults
+        self.rt_data['temp'] = dict()
+        self.rt_data['0'] = StringVar()
+        self.rt_data['0'].set('0')
+        self.temp = self.rt_data['temp']
+        self.temp['number'] = StringVar()
+        self.temp['number'].set('0')
+
         self.controller = controller
+        self.numpad = NumPad(self, self.controller)
         self.plotter = pymesh_stl
+        self.number = None
         self.plot = None
         self.plotfile = None
         self.base = Frame(  # Setup base.
@@ -279,6 +300,34 @@ class Writer(Frame):
         self.plotfile = StringVar()  # Set variable for plot file.
         self.plotfile_label = self.full_label(self.right_panel_frame, self.plotfile)  # Get plot file label.
         self.plotfile_label.grid(row=0, columnspan=2)  # Place plotfile label.
+        self.minweightx_label = self.full_label(self.right_panel_frame, 'x min weight')  # Setup weight buttons.
+        self.minweightx_label.grid(row=1, columnspan=2)
+        self.minweightx_var = self.rt_data['weightxmin']
+
+        # mxw_image = PhotoImage(file=img('circle.png', int(self.panel_size / 2), int(self.panel_size / 2)))
+        self.minweightx_button = Button(
+            self.right_panel_frame,
+            textvariable=self.minweightx_var,
+            bg=theme['main'],
+            fg=theme['text'],
+            # image=mxw_image,
+            command=lambda: self.show_numpad('weightxmin')
+        )
+        # self.minweightx_button.image = mxw_image
+        self.minweightx_button.grid(row=2, columnspan=2)
+
+        # self.minweightx_button = self.full_text_button(
+        #     self.right_panel_frame,
+        #     lambda: self.show_numpad(self.minweightx_var),
+        #     self.minweightx_var
+        # ).grid(row=2, columnspan=2)
+
+        self.maxweightx_label = self.full_label(self.right_panel_frame, 'x max weight')
+        self.maxweightx_label.grid(row=3, columnspan=2)
+        self.minweighty_label = self.full_label(self.right_panel_frame, 'y min weight')
+        self.minweighty_label.grid(row=4, columnspan=2)
+        self.maxweighty_label = self.full_label(self.right_panel_frame, 'y max weight')
+        self.maxweighty_label.grid(row=5, columnspan=2)
 
     def half_button(self, parent, image, command=None, text=None):
         """
@@ -318,6 +367,27 @@ class Writer(Frame):
         full_button = config_button(full_button)
         if text:
             full_button = config_button_text(full_button, text)
+        full_button.pack()
+        return frame
+
+    def full_text_button(self, parent, command, text):
+        """
+        This presents us with a full width button containing text only.
+        """
+        sizex = self.panel_size
+        sizey = int(self.panel_size / 3)
+        print(sizex, sizey)
+        frame = Frame(
+            parent,
+            width=sizex,
+            height=sizey
+        )
+        full_button = Button(frame, textvariable=text, command=command)
+        full_button.configure(
+            width=sizex,
+            height=sizey,
+        )
+        full_button = config_button_text(full_button, text)
         full_button.pack()
         return frame
 
@@ -361,6 +431,16 @@ class Writer(Frame):
             self.plot.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH)  # Fetch canvas widget.
         return self.plot
 
+    def show_numpad(self, varname):
+        """
+        Lifts the numberpad page.
+
+        :param varname: String var to set.
+        :type varname: str
+        """
+        self.temp['number'].set(varname)
+        self.controller.show_frame("NumPad")
+
 
 class Audience(Frame):
     """
@@ -379,6 +459,9 @@ class MainView(tk.Tk):
     """
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
+        global rt_data
+        self.rt_data = rt_data
+        self.rt_data['temp'] = dict()  # Create temp cache so we can push and pull variables around.
         container = tk.Frame(self)
         container.place(
             x=0,
@@ -389,7 +472,7 @@ class MainView(tk.Tk):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
         self.frames = dict()
-        for F in (Home, Writer, Audience):
+        for F in (Home, Writer, Audience, NumPad):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -405,6 +488,83 @@ class MainView(tk.Tk):
         """
         frame = self.frames[page_name]
         frame.tkraise()
+
+
+class NumPad(Frame):
+    """
+    Creates a simple number pad.
+    """
+    def __init__(self, parent, controller):
+        Frame.__init__(self, parent)
+        global rt_data
+        self.rt_data = rt_data
+        self.temp = self.rt_data['temp']
+        self.model = parent
+        self.controller = controller
+        self.grid()
+        self.numvar = StringVar()
+        self.numvar.set('')
+        # print(self.numvar.get())
+        self.number = None
+        self.numpad_create()
+        self.b = None
+
+    def get_num(self):
+        """
+        This fetches the target number StringVar value from the rt_data.
+        :rtype: StringVar
+        """
+        return self.rt_data[self.temp['number'].get()]
+
+    def set_num(self, number):
+        """
+        Sets or updates the number variable
+        """
+        number = str(number)
+        if self.number:
+            self.number += number
+        else:
+            self.number = number
+        self.numvar.set(self.number)
+
+    def pass_nums(self):
+        """
+        This passes our numbers to the parent model.
+        """
+
+        self.get_num().set(self.numvar.get())
+        self.temp['number'].set('0')
+        self.controller.show_frame('Writer')
+        self.numvar.set('')
+        self.number = None
+
+    def delete_nums(self):
+        """
+        Removes the last number entered.
+        """
+        self.number = self.number[0:-1]
+        self.numvar.set(self.number)
+
+    def numpad_create(self):
+        """
+        Creates a simple number pad.
+        """
+        btn_list = [
+            '7', '8', '9',
+            '4', '5', '6',
+            '1', '2', '3', '0'
+        ]
+        r = 1
+        c = 1
+        Label(self, textvariable=self.numvar, width=15).grid(row=0, columnspan=3)
+        for b in btn_list:
+            self.b = Button(self, text=b, width=5, command=lambda b=b: self.set_num(b)).grid(row=r, column=c)
+            c += 1
+            if c > 3:
+                c = 1
+                r += 1
+        Button(self, text='del', width=5, command=lambda: self.delete_nums()).grid(row=4, column=2)
+        Button(self, text='go', width=5, command=lambda: self.pass_nums()).grid(row=4, column=3)
 
 
 def config_button(element):

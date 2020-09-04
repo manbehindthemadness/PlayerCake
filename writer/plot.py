@@ -178,53 +178,11 @@ def pymesh_stl(obj_file, parent, theme, config, target, rt_data):
             # next_speed = next_speed * -1  # Reverse output to match colors.
             return next_speed
 
-        # print(weights[1])
-        # print(implied_weights[1])
-        velocity = 10  # TODO: This is going to have to be a dynamic value in the future.
-        movement_max = 100  # TODO: Dont's forget that this measurement is a percentage.
-        colors = to_color(0, 100)
-
-        # Define weighting values.
-        xz_max_weight = 10
-        xz_min_weight = 100
-
-        yz_max_weight = 50
-        yz_min_weight = 100
-
-        tlen = len(trajectory[0])
-        xz_max, xz_min = weights[0]  # Gather indexes.
-        yz_max, yz_min = weights[1]
-        ixz_max, ixz_min = implied_weights[0]
-        iyz_max, iyz_min = implied_weights[1]
-
-        ixz_seg_len = abs(ixz_min - ixz_max)  # Gather lengths.
-        xz_total = ixz_seg_len
-        iyz_seg_len = abs(iyz_min - iyz_max)
-        yz_total = iyz_seg_len
-
-        xz_seg1_len = abs(ixz_seg_len - xz_max)
-        xz_total += xz_seg1_len
-        yz_seg1_len = abs(yz_total - yz_max)
-        yz_total += yz_seg1_len
-
-        xz_seg2_len = abs(xz_seg1_len - xz_min)
-        xz_total += xz_seg2_len
-        yz_seg2_len = abs(yz_total - yz_min)
-        yz_total += yz_seg2_len
-
-        xz_seg3_len = abs(xz_total - tlen)
-        yz_seg3_len = abs(yz_total - tlen)
-
-        # Now we solve the velocities.
-
-        speeds_xyz = list()
-        colors_xyz = list()
-
-        # TODO: It looks like we might have a problem solving scenarios where the implied weights are in the same location...
-
         def solvexy(a_speed, length, inc_min, inc_max, a_min, a_max, min_weight, max_weight):
             """
             This figures out our velocity by-step, over increment.
+            # TODO: It looks like we might have a problem solving scenarios where the implied weights are in the same location...
+
             :param a_speed: Velocity.
             :param length: Length of trajectory.
             :param inc_min: Increment minimum.
@@ -257,6 +215,48 @@ def pymesh_stl(obj_file, parent, theme, config, target, rt_data):
                 a_speeds.append(speed)
 
             return a_colors, a_speeds
+
+        # print(weights[1])
+        # print(implied_weights[1])
+        velocity = config['velocity']  # TODO: This is going to have to be a dynamic value in the future.
+        movement_max = 100  # TODO: Dont's forget that this measurement is a percentage.
+        colors = to_color(0, 100)
+
+        # Define weighting values.
+        xz_max_weight = config['weightxmax']
+        xz_min_weight = config['weightxmin']
+
+        yz_max_weight = config['weightymax']
+        yz_min_weight = config['weightymin']
+
+        tlen = len(trajectory[0])
+        xz_max, xz_min = weights[0]  # Gather indexes.
+        yz_max, yz_min = weights[1]
+        ixz_max, ixz_min = implied_weights[0]
+        iyz_max, iyz_min = implied_weights[1]
+
+        ixz_seg_len = abs(ixz_min - ixz_max)  # Gather lengths.
+        xz_total = ixz_seg_len
+        iyz_seg_len = abs(iyz_min - iyz_max)
+        yz_total = iyz_seg_len
+
+        xz_seg1_len = abs(ixz_seg_len - xz_max)
+        xz_total += xz_seg1_len
+        yz_seg1_len = abs(yz_total - yz_max)
+        yz_total += yz_seg1_len
+
+        xz_seg2_len = abs(xz_seg1_len - xz_min)
+        xz_total += xz_seg2_len
+        yz_seg2_len = abs(yz_total - yz_min)
+        yz_total += yz_seg2_len
+
+        xz_seg3_len = abs(xz_total - tlen)
+        yz_seg3_len = abs(yz_total - tlen)
+
+        # Now we solve the velocities.
+
+        speeds_xyz = list()
+        colors_xyz = list()
 
         colors_xz, speeds_xz = solvexy(
             velocity,

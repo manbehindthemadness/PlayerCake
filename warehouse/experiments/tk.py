@@ -1,202 +1,77 @@
-"""
-This is our top-level ux file
-
-This is the main program loop for the user interface.
-
-Tips for messed up X: https://www.ibm.com/support/pages/x11-forwarding-ssh-connection-rejected-because-wrong-authentication
-NOTE: Copy the .Xauthority file from root to pi.
-
-NOTE: THE X-SERVER MUST BE RUNNING!
-
-"""
-
+import tkinter as tk
 from tkinter import *
-# from tkinter import ttk
-from warehouse.system import system_command
-from warehouse.utils import percent_of, percent_in, file_rename, image_resize
-import settings
 import os
+from warehouse.system import system_command
 
-
-scr_x, scr_y = settings.screensize
-
-theme = settings.themes[settings.theme]
-
-# This crap is for tunneling the app over ssh
-os.environ['DISPLAY'] = settings.display
+os.environ['DISPLAY'] = 'localhost:11.0'
 os.environ['XAUTHORITY'] = '/home/pi/.Xauthority'
 system_command(['/usr/bin/xhost', '+'])
 
 
-class UX:
+def main():
+    root = tk.Tk()
+    numpad = NumPad(root, StringVar())
+    root.mainloop()
+
+
+class NumPad(Frame):
     """
-    This is our user interface class
+    Creates a simple number pad.
     """
+    def __init__(self, root, model):
+        Frame.__init__(self, root)
+        self.model = model
+        self.grid()
+        self.numvar = StringVar()
+        self.number = None
+        self.numpad_create()
+        self.b = None
 
-    def __init__(self):
-
-        self.root = Tk()
-        self.root.title("PlayerCake")
-        self.root.geometry(str(scr_x) + 'x' + str(scr_y) + '+0+0')
-        self.root.configure(background=theme['main'])
-
-        #  #########
-        #  Home page
-        #  #########
-
-        logo = PhotoImage(file=self.img('playercake_logo.png', 30, 15))  # Setup main logo.
-        logo_image = Label(
-            image=logo,
-            bg=theme['main']
-        )
-        logo_image.place(
-            x=self.cp(scr_x / 2, self.prx(30)),
-            y=self.pry(10),
-            width=self.prx(30),
-            height=self.pry(15)
-        )
-
-        self.entry_frame = Frame(
-            self.root,
-            bg=theme['main'],
-        )
-        self.entry_frame.place(  # Create entry button container.
-            x=self.cp(self.prx(50), self.prx(60)),
-            y=self.cp(self.pry(45), self.pry(25)),
-            width=self.prx(60),
-            height=self.pry(25)
-        )
-
-        self.writer_entry_button = self.entry_button('writer.png')  # Place entry buttons.
-        self.audience_entry_button = self.entry_button('audience.png')
-        self.writer_entry_button.grid(row=0, column=0, sticky=W)
-        self.entry_spacer = Frame(
-            self.entry_frame,
-            bg=theme['main'],
-            width=self.prx(9)
-        )
-        self.entry_spacer.grid(row=0, column=1)
-        self.audience_entry_button.grid(row=0, column=2, sticky=E)
-
-        self.power_frame = Frame(
-            self.root,
-            bg=theme['main'],
-            width=self.prx(30),
-            height=self.pry(10)
-        )
-        self.power_frame.place(
-            x=self.cp(self.prx(50), self.prx(30)),
-            y=self.pry(75)
-        )
-        self.shutdown_button = self.power_button('shutdown.png')
-        self.shutdown_button.grid(row=0, column=0, sticky=W)
-        self.restart_system_button = self.power_button('restart_system.png')
-        self.restart_system_button.grid(row=0, column=1)
-        self.restart_button = self.power_button('restart.png')
-        self.restart_button.grid(row=0, column=2, sticky=E)
-
-        self.root.mainloop()
-
-    def entry_button(self, image, command=''):
+    def set_num(self, number):
         """
-        Creates the application launch buttons.
+        Sets or updates the number variable
         """
+        number = str(number)
+        if self.number:
+            self.number += number
+        else:
+            self.number = number
+        self.numvar.set(self.number)
 
-        entry_image = PhotoImage(file=self.img(image, 25, 25))
-        entry_button = Button(self.entry_frame, image=entry_image, command=command)
-        entry_button.image = entry_image
-        entry_button.configure(
-            width=self.prx(25),
-            height=self.pry(25),
-            activebackground=theme['main'],
-            activeforeground=theme['main'],
-            foreground=theme['main'],
-            background=theme['main'],
-            borderwidth=0,
-            highlightthickness=0,
-            relief=FLAT
-        )
-        # entry_button.pack(anchor=NW)
-        return entry_button
+    def pass_nums(self):
+        """
+        This passes our numbers to the parent model.
+        """
+        self.model.set(int(self.number))
+        # TODO: we need to drop the numpad here.
 
-    def power_button(self, image):
+    def delete_nums(self):
         """
-        This creates the power buttons on the home page.
+        Removes the last number entered.
         """
-        power_image = PhotoImage(file=self.img(image, 10, 10))
-        power_button = Button(self.power_frame, image=power_image)
-        power_button.image = power_image
-        power_button.configure(
-            width=self.prx(10),
-            height=self.pry(10),
-            activebackground=theme['main'],
-            activeforeground=theme['main'],
-            foreground=theme['main'],
-            background=theme['main'],
-            borderwidth=0,
-            highlightthickness=0,
-            relief=FLAT
-        )
-        return power_button
+        self.number = self.number[0:-1]
+        self.numvar.set(self.number)
 
-    @staticmethod
-    def open_window(parent):
+    def numpad_create(self):
         """
-        This opens a new window.
+        Creates a simple number pad.
         """
-        window = Toplevel(parent)
-
-    @staticmethod
-    def cp(value, offset):
-        """
-        This offsets the position of an object from the the side to the middle.
-        """
-        return value - (offset / 2)
-
-    @staticmethod
-    def prx(percent):
-        """
-        This ficures a percentage of x.
-        """
-        return percent_of(percent, scr_x)
-
-    @staticmethod
-    def pry(percent):
-        """
-        This figures a percentage of y.
-        """
-        return percent_of(percent, scr_y)
-
-    @staticmethod
-    def prix(percent):
-        """
-        This figures what percentage in x.
-        """
-        return percent_in(percent, scr_x)
-
-    @staticmethod
-    def priy(percent):
-        """
-        This figures what percentage in x.
-
-        """
-        return percent_in(percent, scr_y)
-
-    @staticmethod
-    def img(image, x_percent, y_percent, aspect=True):
-        """
-        Quick and dirty way to grab images.
-        """
-        image = file_rename(settings.theme + '_', image, reverse=True)
-        image = image_resize(
-            scr_x,
-            scr_y,
-            image,
-            x_percent,
-            y_percent,
-            aspect
-        )
-        return image
+        btn_list = [
+            '7', '8', '9',
+            '4', '5', '6',
+            '1', '2', '3', '0'
+        ]
+        r = 1
+        c = 1
+        Label(self, textvariable=self.numvar, width=15).grid(row=0, columnspan=3)
+        for b in btn_list:
+            self.b = Button(self, text=b, width=5, command=lambda b=b: self.set_num(b)).grid(row=r, column=c)
+            c += 1
+            if c > 3:
+                c = 1
+                r += 1
+        Button(self, text='del', width=5, command=lambda: self.delete_nums()).grid(row=4, column=2)
+        Button(self, text='go', width=5, command=lambda: self.pass_nums()).grid(row=4, column=3)
 
 
-UX()
+main()
