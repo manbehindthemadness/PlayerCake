@@ -37,8 +37,7 @@ pycrypto
 pyftdi
 PyGObject
 pykalman
-pymesh
-stl
+pymesh2
 pyserial
 python-apt
 pyusb

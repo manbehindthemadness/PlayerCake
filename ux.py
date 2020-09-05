@@ -31,12 +31,6 @@ system_command(['/usr/bin/xhost', '+'])
 
 rt_data = dict()
 
-# for sett in defaults:  # Populate defaults
-#     rt_data[sett] = StringVar()
-#     rt_data[sett].set(str(defaults[sett]))
-# rt_data['plotfile'] = str()
-# rt_data['temp'] = dict()
-
 
 class Page(Frame):
 
@@ -202,12 +196,14 @@ class Writer(Frame):
     """
     Writer Page.
     """
+
+    # noinspection PyShadowingNames
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         global rt_data
         self.rt_data = rt_data
-
-        for sett in defaults:  # Populate defaults
+        self.defaults = defaults
+        for sett in self.defaults:  # Populate defaults
             self.rt_data[sett] = StringVar()
             self.rt_data[sett].set(str(defaults[sett]))
         self.rt_data['plotfile'] = str()
@@ -276,8 +272,9 @@ class Writer(Frame):
         render = StringVar()
         self.render_button = self.full_button(
             self.left_panel_frame,
-            'renderbutton.png',
-            command=self.render_plotfile
+            'fullbuttonframe.png',
+            command=self.render_plotfile,
+            text='audition'  # TODO: Now that we have this working we can iron out the tangle that is the weight buttons.
         )
         self.render_button.grid(row=1, columnspan=2)
         render.set('Render')
@@ -295,39 +292,35 @@ class Writer(Frame):
             width=self.panel_size,
             height=scr_y
         )
-        # self.right_panel_frame.grid_rowconfigure(0, weight=1)
         self.right_panel_frame.grid_columnconfigure(0, weight=1)  # Center objects.
         self.plotfile = StringVar()  # Set variable for plot file.
         self.plotfile_label = self.full_label(self.right_panel_frame, self.plotfile)  # Get plot file label.
         self.plotfile_label.grid(row=0, columnspan=2)  # Place plotfile label.
-        self.minweightx_label = self.full_label(self.right_panel_frame, 'x min weight')  # Setup weight buttons.
-        self.minweightx_label.grid(row=1, columnspan=2)
-        self.minweightx_var = self.rt_data['weightxmin']
 
-        # mxw_image = PhotoImage(file=img('circle.png', int(self.panel_size / 2), int(self.panel_size / 2)))
-        self.minweightx_button = Button(
-            self.right_panel_frame,
-            textvariable=self.minweightx_var,
-            bg=theme['main'],
-            fg=theme['text'],
-            # image=mxw_image,
-            command=lambda: self.show_numpad('weightxmin')
-        )
-        # self.minweightx_button.image = mxw_image
-        self.minweightx_button.grid(row=2, columnspan=2)
-
-        # self.minweightx_button = self.full_text_button(
-        #     self.right_panel_frame,
-        #     lambda: self.show_numpad(self.minweightx_var),
-        #     self.minweightx_var
-        # ).grid(row=2, columnspan=2)
-
-        self.maxweightx_label = self.full_label(self.right_panel_frame, 'x max weight')
-        self.maxweightx_label.grid(row=3, columnspan=2)
-        self.minweighty_label = self.full_label(self.right_panel_frame, 'y min weight')
-        self.minweighty_label.grid(row=4, columnspan=2)
-        self.maxweighty_label = self.full_label(self.right_panel_frame, 'y max weight')
-        self.maxweighty_label.grid(row=5, columnspan=2)
+        weights = [
+            'weightxmin',
+            'weightxmax',
+            'weightymin',
+            'weightymax'
+        ]
+        names = [
+            'x min weight',
+            'x max weight',
+            'y min weight',
+            'y max weight'
+        ]
+        r = 1
+        for weight, name in zip(weights, names):
+            self.full_label(self.right_panel_frame, name).grid(row=r, columnspan=2)
+            r += 1
+            exec(weight + "var = self.rt_data['" + weight + "']")
+            self.full_button(
+                self.right_panel_frame,
+                'circle.png',
+                lambda weight=weight: self.show_numpad(weight),  # Remember we need to declare x=x to instance the variable.
+                eval(weight + 'var')
+            ).grid(row=r, columnspan=2)
+            r += 1
 
     def half_button(self, parent, image, command=None, text=None):
         """
@@ -398,7 +391,7 @@ class Writer(Frame):
         frame = Frame(
             parent,
             width=self.panel_size,
-            height=int(self.panel_size / 3),
+            height=prx(5),
             bg=theme['main']
         )
         label = Label(
@@ -407,6 +400,17 @@ class Writer(Frame):
         label = config_text(label, textvariable)
         label.pack(anchor='center')
         return frame
+
+    def update_defaults(self):
+        """
+        This updates the default values we pass to the trajectory plotter.
+        """
+        for setting in self.rt_data:
+            if setting in self.defaults.keys():
+                u_set = self.rt_data[setting].get()
+                if u_set.lstrip("-").isdigit():  # Confirm we have a number.
+                    u_set = eval(u_set)  # Eval the setting back into a literal.
+                self.defaults[setting] = u_set
 
     def get_plotfile(self):
         """
@@ -423,6 +427,7 @@ class Writer(Frame):
         """
         This will render the actual plots into the writer app.
         """
+        self.update_defaults()  # update with latest config.
         plotfile = self.rt_data['plotfile']  # Fetch plot file.
         if plotfile:
             if self.plot:  # Clear if needed.
@@ -438,6 +443,7 @@ class Writer(Frame):
         :param varname: String var to set.
         :type varname: str
         """
+        # print(varname, self.rt_data[varname].get())
         self.temp['number'].set(varname)
         self.controller.show_frame("NumPad")
 
@@ -476,8 +482,16 @@ class MainView(tk.Tk):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
-
-            frame.grid(row=0, column=0, sticky="nsew")
+            if page_name == 'NumPad':
+                frame.configure(
+                    height=pry(50),
+                    width=pry(50),
+                    bg='grey',
+                    borderwidth=pry(1),
+                )
+                frame.grid(row=0, column=0)
+            else:
+                frame.grid(row=0, column=0, sticky="nsew")
 
         # home.show()
         self.show_frame('Home')
@@ -490,6 +504,7 @@ class MainView(tk.Tk):
         frame.tkraise()
 
 
+# noinspection PyShadowingNames
 class NumPad(Frame):
     """
     Creates a simple number pad.
@@ -508,6 +523,8 @@ class NumPad(Frame):
         self.number = None
         self.numpad_create()
         self.b = None
+        self.dell = None
+        self.go = None
 
     def get_num(self):
         """
@@ -531,9 +548,10 @@ class NumPad(Frame):
         """
         This passes our numbers to the parent model.
         """
-
-        self.get_num().set(self.numvar.get())
-        self.temp['number'].set('0')
+        # print(self.numvar.get())
+        if self.numvar.get():  # Prevent returning nulls.
+            self.get_num().set(self.numvar.get())
+            self.temp['number'].set('0')
         self.controller.show_frame('Writer')
         self.numvar.set('')
         self.number = None
@@ -555,16 +573,26 @@ class NumPad(Frame):
             '1', '2', '3', '0'
         ]
         r = 1
-        c = 1
-        Label(self, textvariable=self.numvar, width=15).grid(row=0, columnspan=3)
+        c = 0
+        height = 3
+        width = 4
+        lb = Label(self, textvariable=self.numvar)
+        config_number_button(lb)
+        lb.grid(row=0, columnspan=3, sticky=(E, W))
         for b in btn_list:
-            self.b = Button(self, text=b, width=5, command=lambda b=b: self.set_num(b)).grid(row=r, column=c)
+            self.b = Button(self, text=b, width=width, height=height, command=lambda b=b: self.set_num(b))
+            config_number_button(self.b)
+            self.b.grid(row=r, column=c)
             c += 1
-            if c > 3:
-                c = 1
+            if c > 2:
+                c = 0
                 r += 1
-        Button(self, text='del', width=5, command=lambda: self.delete_nums()).grid(row=4, column=2)
-        Button(self, text='go', width=5, command=lambda: self.pass_nums()).grid(row=4, column=3)
+        self.dell = Button(self, text='del', width=width, height=height, command=lambda: self.delete_nums())
+        config_number_button(self.dell)
+        self.dell.grid(row=4, column=1)
+        self.go = Button(self, text='go', width=width, height=height, command=lambda: self.pass_nums())
+        config_number_button(self.go)
+        self.go.grid(row=4, column=2)
 
 
 def config_button(element):
@@ -578,9 +606,20 @@ def config_button(element):
         background=theme['main'],
         borderwidth=0,
         highlightthickness=0,
-        relief=FLAT
+        relief=FLAT,
+        compound='center'
     )
     return element
+
+
+def config_number_button(element):
+    """
+    This styles the buttons on the number pad.
+    """
+    el = config_button(element)
+    el.configure(
+        font=('Helvetica', str(pointsy(5))),
+    )
 
 
 def config_text(element, text):
@@ -589,9 +628,10 @@ def config_text(element, text):
     """
     element.configure(
         font=(theme['font'], pointsy(2)),
-        pady=pry(3),
+        pady=pry(2),
         fg=theme['text'],
-        bg=theme['main']
+        bg=theme['main'],
+        compound='center'
     )
     if isinstance(text, tk.StringVar):
         element.configure(
