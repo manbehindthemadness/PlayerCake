@@ -268,16 +268,51 @@ class Writer(Frame):
             command=self.get_plotfile
         )
         self.open_button.grid(row=0, column=1)
-
+        # TODO: Stuff this into a loop.
         render = StringVar()
         self.render_button = self.full_button(
             self.left_panel_frame,
             'fullbuttonframe.png',
             command=self.render_plotfile,
-            text='audition'  # TODO: Now that we have this working we can iron out the tangle that is the weight buttons.
+            text='audition'
         )
         self.render_button.grid(row=1, columnspan=2)
         render.set('Render')
+        self.rehersal_button = self.full_button(
+            self.left_panel_frame,
+            'fullbuttonframe.png',
+            command='',
+            text='rehersal'
+        )
+        self.rehersal_button.grid(row=2, columnspan=2)
+        self.publish_button = self.full_button(
+            self.left_panel_frame,
+            'fullbuttonframe.png',
+            command='',
+            text='publish'
+        )
+        self.publish_button.grid(row=3, columnspan=2)
+        self.calibrate_button = self.full_button(
+            self.left_panel_frame,
+            'fullbuttonframe.png',
+            command='',
+            text='calibrate'
+        )
+        self.calibrate_button.grid(row=4, columnspan=2)
+        self.share_button = self.full_button(
+            self.left_panel_frame,
+            'fullbuttonframe.png',
+            command='',
+            text='share'
+        )
+        self.share_button.grid(row=5, columnspan=2)
+        self.receive_button = self.full_button(
+            self.left_panel_frame,
+            'fullbuttonframe.png',
+            command='',
+            text='receive'
+        )
+        self.receive_button.grid(row=6, columnspan=2)
 
         #  ###################
         #  Right hand controls
@@ -301,13 +336,15 @@ class Writer(Frame):
             'weightxmin',
             'weightxmax',
             'weightymin',
-            'weightymax'
+            'weightymax',
+            'contact'
         ]
         names = [
             'x min weight',
             'x max weight',
             'y min weight',
-            'y max weight'
+            'y max weight',
+            'contact'
         ]
         r = 1
         for weight, name in zip(weights, names):
@@ -355,7 +392,7 @@ class Writer(Frame):
         full_button.image = full_image
         full_button.configure(
             width=self.panel_size,
-            height=self.panel_size / 3,
+            height=self.panel_size / 5,
         )
         full_button = config_button(full_button)
         if text:
@@ -439,6 +476,8 @@ class Writer(Frame):
     def show_numpad(self, varname):
         """
         Lifts the numberpad page.
+
+        TODO: We need to figure out some sore of clamp so we can prevent impossible numbers from being entered.
 
         :param varname: String var to set.
         :type varname: str
