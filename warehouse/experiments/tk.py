@@ -8,52 +8,57 @@ os.environ['DISPLAY'] = 'localhost:11.0'
 os.environ['XAUTHORITY'] = '/home/pi/.Xauthority'
 system_command(['/usr/bin/xhost', '+'])
 
-keys_lower = [
-    [
-        [
-            "Character_Keys",
-            ({'side': 'top', 'expand': 'yes', 'fill': 'both'}),
-            [
-                ('`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\\', 'del'),
-                ('q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']'),
-                ('a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', "'", "enter"),
-                ('z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/'),
-                ('caps', '\t\tspace\t\t')
-            ]
-        ]
-    ]
-]
-keys_upper = [
-    '~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '|',
-    'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}',
-    'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"',
-    'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?'
-]
-
 
 class Keyboard(Tkinter.Frame):
     """
     Virtual Keyboard.
+
+    TODO: Insure to create parent, controller and default text passage in the INIT statement.
     """
+
     def __init__(self, *args, **kwargs):
         Tkinter.Frame.__init__(self, *args, **kwargs)
         self.stringvars = list()
         self.keys_lower = list()
-        # Function For Creating Buttons
+        self.input = StringVar()
+        self.text = str()
+        self.default_keys = [
+            [
+                [
+                    "Character_Keys",
+                    ({'side': 'top', 'expand': 'yes', 'fill': 'both'}),
+                    [
+                        ('`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\\', 'del'),
+                        ('q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']'),
+                        ('a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', "'", "enter"),
+                        ('z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/'),
+                        ('caps', '\t\tspace\t\t')
+                    ]
+                ]
+            ]
+        ]
+        self.keys_upper = [
+            '~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '|',
+            'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}',
+            'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"',
+            'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?'
+        ]
+
         self.create_frames_and_buttons()
 
     def create_frames_and_buttons(self):
         """
         Loop to create keys.
         """
-        # take section one by one
-        for key_section in keys_lower:
-            # create Sperate Frame For Every Section
+        for key_section in self.default_keys:  # create Sperate Frame For Every Section
             store_section = Tkinter.Frame(self)
             store_section.pack(side='left', expand='yes', fill='both', padx=10, pady=10, ipadx=10, ipady=10)
-
+            input_frame = Tkinter.Frame(store_section)  # Create input label.
+            input_frame.pack(side='top', expand='yes', fill='both')
+            input_label = Label(input_frame, textvariable=self.input)
+            input_label.pack(side='top', expand='yes', fill='both')
             for layer_name, layer_properties, layer_keys in key_section:
-                store_layer = Tkinter.LabelFrame(store_section)  # , text=layer_name)
+                store_layer = Tkinter.LabelFrame(store_section)
                 store_layer.pack(layer_properties)
                 for key_bunch in layer_keys:
                     store_key_frame = Tkinter.Frame(store_layer)
@@ -81,6 +86,7 @@ class Keyboard(Tkinter.Frame):
         """
         This is where we will insert the button events.
         """
+
         def switch_case(keys, varss):
             """
             Changes the case of the passed variables.
@@ -90,11 +96,23 @@ class Keyboard(Tkinter.Frame):
 
         ename = event.get().strip()
         if ename == 'caps':
-            switch_case(keys_upper, self.stringvars)
+            switch_case(self.keys_upper, self.stringvars)
             event.set('lower')
         elif ename == 'lower':
             switch_case(self.keys_lower, self.stringvars)
             event.set('caps')
+        elif ename == 'del':
+            self.text = self.text[0:-1]
+        elif ename == 'space':
+            self.text += ' '
+        elif ename == 'enter':
+            self.text = ''
+            print('enter command!')
+            # TODO: Pass variables here!
+            # TODO: Drop keyboard frame here!
+        else:
+            self.text += event.get()
+        self.input.set(self.text)
         return event
 
 
