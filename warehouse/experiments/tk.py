@@ -1,77 +1,113 @@
-import tkinter as tk
-from tkinter import *
 import os
+import tkinter as Tkinter
+from tkinter import *
+
 from warehouse.system import system_command
 
 os.environ['DISPLAY'] = 'localhost:11.0'
 os.environ['XAUTHORITY'] = '/home/pi/.Xauthority'
 system_command(['/usr/bin/xhost', '+'])
 
-
-def main():
-    root = tk.Tk()
-    numpad = NumPad(root, StringVar())
-    root.mainloop()
-
-
-class NumPad(Frame):
-    """
-    Creates a simple number pad.
-    """
-    def __init__(self, root, model):
-        Frame.__init__(self, root)
-        self.model = model
-        self.grid()
-        self.numvar = StringVar()
-        self.number = None
-        self.numpad_create()
-        self.b = None
-
-    def set_num(self, number):
-        """
-        Sets or updates the number variable
-        """
-        number = str(number)
-        if self.number:
-            self.number += number
-        else:
-            self.number = number
-        self.numvar.set(self.number)
-
-    def pass_nums(self):
-        """
-        This passes our numbers to the parent model.
-        """
-        self.model.set(int(self.number))
-        # TODO: we need to drop the numpad here.
-
-    def delete_nums(self):
-        """
-        Removes the last number entered.
-        """
-        self.number = self.number[0:-1]
-        self.numvar.set(self.number)
-
-    def numpad_create(self):
-        """
-        Creates a simple number pad.
-        """
-        btn_list = [
-            '7', '8', '9',
-            '4', '5', '6',
-            '1', '2', '3', '0'
+keys_lower = [
+    [
+        [
+            "Character_Keys",
+            ({'side': 'top', 'expand': 'yes', 'fill': 'both'}),
+            [
+                ('`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\\', 'del'),
+                ('q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']'),
+                ('a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', "'", "enter"),
+                ('z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/'),
+                ('caps', '\t\tspace\t\t')
+            ]
         ]
-        r = 1
-        c = 1
-        Label(self, textvariable=self.numvar, width=15).grid(row=0, columnspan=3)
-        for b in btn_list:
-            self.b = Button(self, text=b, width=5, command=lambda b=b: self.set_num(b)).grid(row=r, column=c)
-            c += 1
-            if c > 3:
-                c = 1
-                r += 1
-        Button(self, text='del', width=5, command=lambda: self.delete_nums()).grid(row=4, column=2)
-        Button(self, text='go', width=5, command=lambda: self.pass_nums()).grid(row=4, column=3)
+    ]
+]
+keys_upper = [
+    '~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '|',
+    'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}',
+    'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"',
+    'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?'
+]
 
 
+class Keyboard(Tkinter.Frame):
+    """
+    Virtual Keyboard.
+    """
+    def __init__(self, *args, **kwargs):
+        Tkinter.Frame.__init__(self, *args, **kwargs)
+        self.stringvars = list()
+        self.keys_lower = list()
+        # Function For Creating Buttons
+        self.create_frames_and_buttons()
+
+    def create_frames_and_buttons(self):
+        """
+        Loop to create keys.
+        """
+        # take section one by one
+        for key_section in keys_lower:
+            # create Sperate Frame For Every Section
+            store_section = Tkinter.Frame(self)
+            store_section.pack(side='left', expand='yes', fill='both', padx=10, pady=10, ipadx=10, ipady=10)
+
+            for layer_name, layer_properties, layer_keys in key_section:
+                store_layer = Tkinter.LabelFrame(store_section)  # , text=layer_name)
+                store_layer.pack(layer_properties)
+                for key_bunch in layer_keys:
+                    store_key_frame = Tkinter.Frame(store_layer)
+                    store_key_frame.pack(side='top', expand='yes', fill='both')
+                    for k in key_bunch:
+                        txt = StringVar()
+                        if len(k.strip()) < 3:
+                            txt.set(k)
+                            store_button = Tkinter.Button(store_key_frame, textvariable=txt, width=2, height=2)
+                            self.stringvars.append(txt)
+                            self.keys_lower.append(k)
+                        else:
+                            txt.set(k.center(5, ' '))
+                            store_button = Tkinter.Button(store_key_frame, textvariable=txt, height=2)
+                        if " " in k:
+                            store_button['state'] = 'disable'
+                        # flat, groove, raised, ridge, solid, or sunken
+                        store_button['relief'] = "sunken"
+                        store_button['bg'] = "powderblue"
+                        store_button['command'] = lambda q=txt: self.button_command(q)
+                        store_button.pack(side='left', fill='both', expand='yes')
+        return
+
+    def button_command(self, event):
+        """
+        This is where we will insert the button events.
+        """
+        def switch_case(keys, varss):
+            """
+            Changes the case of the passed variables.
+            """
+            for lab, var in zip(keys, varss):
+                var.set(lab)
+
+        ename = event.get().strip()
+        if ename == 'caps':
+            switch_case(keys_upper, self.stringvars)
+            event.set('lower')
+        elif ename == 'lower':
+            switch_case(self.keys_lower, self.stringvars)
+            event.set('caps')
+        return event
+
+
+# Creating Main Window
+def main():
+    """
+    mainloop.
+    """
+    root = Tkinter.Tk(className=" Python Virtual KeyBoard")
+    Keyboard(root).pack()
+    root.mainloop()
+    return
+
+
+# Function Trigger
 main()
