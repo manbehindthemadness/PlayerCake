@@ -40,7 +40,7 @@ def pymesh_stl(obj_file, parent, theme, config, target, rt_data):
     """
     target = str(target)
     leglength = config['zlength' + target]
-    contact = config['contact']
+    contact = 100 - config['contact']
     travel = config['ztravel' + target]
     rt_data['plot'] = dict()
     rt_data = rt_data['plot']

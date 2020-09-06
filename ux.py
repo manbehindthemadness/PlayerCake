@@ -213,11 +213,17 @@ class Writer(Frame):
         self.temp = self.rt_data['temp']
         self.temp['number'] = StringVar()
         self.temp['number'].set('0')
+        self.temp['word'] = StringVar()
+        self.temp['word'].set('')
+
+        self.rt_data['key_test'] = StringVar()  # TODO: This is just for testing the keyboard.
+        self.rt_data['key_test'].set('')
 
         self.controller = controller
         self.numpad = NumPad(self, self.controller)
         self.plotter = pymesh_stl
-        self.number = None
+        self.number = None  # Temp space for passing numbers.
+        self.word = None  # Temp space for passing words.
         self.plot = None
         self.plotfile = None
         self.base = Frame(  # Setup base.
@@ -316,7 +322,7 @@ class Writer(Frame):
         self.pair_button = self.full_button(
             self.left_panel_frame,
             'fullbuttonframe.png',
-            command='',
+            command=lambda: self.show_keyboard('key_test'),
             text='pair'
         )
         self.pair_button.grid(row=7, columnspan=2)
@@ -480,6 +486,8 @@ class Writer(Frame):
             self.plot.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH)  # Fetch canvas widget.
         return self.plot
 
+    # def get_word(self):
+
     def show_numpad(self, varname):
         """
         Lifts the numberpad page.
@@ -492,6 +500,14 @@ class Writer(Frame):
         # print(varname, self.rt_data[varname].get())
         self.temp['number'].set(varname)
         self.controller.show_frame("NumPad")
+
+    def show_keyboard(self, varname):
+        """
+        Lifts the keyboard page.
+        """
+        print('showing keyboard')
+        self.temp['word'].set(varname)
+        self.controller.show_frame("Keyboard")
 
 
 class Audience(Frame):
@@ -524,7 +540,7 @@ class MainView(tk.Tk):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
         self.frames = dict()
-        for F in (Home, Writer, Audience, NumPad):
+        for F in (Home, Writer, Audience, Keyboard, NumPad,):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -536,6 +552,12 @@ class MainView(tk.Tk):
                     borderwidth=pry(1),
                 )
                 frame.grid(row=0, column=0)
+            elif page_name == 'Keyboard':
+                frame.configure(
+                    height=pry(70),
+                    width=scr_x
+                )
+                frame.grid(row=0, column=0, sticky=S)
             else:
                 frame.grid(row=0, column=0, sticky="nsew")
 
@@ -550,15 +572,15 @@ class MainView(tk.Tk):
         frame.tkraise()
 
 
-# noinspection PyShadowingNames
 class NumPad(Frame):
     """
     Creates a simple number pad.
     """
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, target='Writer'):
         Frame.__init__(self, parent)
         global rt_data
         self.rt_data = rt_data
+        self.target = target
         self.temp = self.rt_data['temp']
         self.model = parent
         self.controller = controller
@@ -581,7 +603,7 @@ class NumPad(Frame):
 
     def set_num(self, number):
         """
-        Sets or updates the number variable
+        Sets or updates the number variable.
         """
         number = str(number)
         if self.number:
@@ -598,7 +620,7 @@ class NumPad(Frame):
         if self.numvar.get():  # Prevent returning nulls.
             self.get_num().set(self.numvar.get())
             self.temp['number'].set('0')
-        self.controller.show_frame('Writer')
+        self.controller.show_frame(self.target)
         self.numvar.set('')
         self.number = None
 
@@ -639,6 +661,145 @@ class NumPad(Frame):
         self.go = Button(self, text='go', width=width, height=height, command=lambda: self.pass_nums())
         config_number_button(self.go)
         self.go.grid(row=4, column=2)
+
+
+class Keyboard(Frame):
+    """
+    Virtual Keyboard.
+
+    TODO: Insure to create parent, controller and default text passage in the INIT statement.
+    """
+
+    def __init__(self, parent, controller, target='Writer'):
+        Frame.__init__(self, parent)
+        global rt_data
+        self.rt_data = rt_data
+        self.temp = self.rt_data['temp']
+        self.target = target
+        self.wordvar = StringVar()
+        self.wordvar.set('')
+        self.word = ''
+        self.controller = controller
+        self.stringvars = list()
+        self.keys_lower = list()
+        self.default_keys = [
+            [
+                [
+                    "Character_Keys",
+                    ({'side': 'top', 'expand': 'yes', 'fill': 'both'}),
+                    [
+                        ('`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\\', 'del'),
+                        ('q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']'),
+                        ('a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', "'", "enter"),
+                        ('z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/'),
+                        ('caps', '\t\tspace\t\t')
+                    ]
+                ]
+            ]
+        ]
+        self.keys_upper = [
+            '~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '|',
+            'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}',
+            'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"',
+            'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?'
+        ]
+
+        self.create_frames_and_buttons()
+
+    def create_frames_and_buttons(self):
+        """
+        Loop to create keys.
+        """
+        for key_section in self.default_keys:  # create Sperate Frame For Every Section
+            store_section = Frame(self)
+            store_section.pack(side='left', expand='yes', fill='both', padx=10, pady=10, ipadx=10, ipady=10)
+            input_frame = Frame(store_section)  # Create input label.
+            input_frame.pack(side='top', expand='yes', fill='both')
+            input_label = Label(input_frame, textvariable=self.wordvar)
+            input_label.pack(side='top', expand='yes', fill='both')
+            for layer_name, layer_properties, layer_keys in key_section:
+                store_layer = LabelFrame(store_section)
+                store_layer.pack(layer_properties)
+                for key_bunch in layer_keys:
+                    store_key_frame = Frame(store_layer)
+                    store_key_frame.pack(side='top', expand='yes', fill='both')
+                    for k in key_bunch:
+                        txt = StringVar()
+                        if len(k.strip()) < 3:
+                            txt.set(k)
+                            store_button = Button(store_key_frame, textvariable=txt, width=2, height=2)
+                            self.stringvars.append(txt)
+                            self.keys_lower.append(k)
+                        else:
+                            txt.set(k.center(5, ' '))
+                            store_button = Button(store_key_frame, textvariable=txt, height=2)
+                        if " " in k:
+                            store_button['state'] = 'disable'
+                        # flat, groove, raised, ridge, solid, or sunken
+                        store_button['relief'] = "sunken"
+                        store_button['bg'] = "powderblue"
+                        store_button['command'] = lambda q=txt: self.button_command(q)
+                        store_button.pack(side='left', fill='both', expand='yes')
+
+    def button_command(self, event):
+        """
+        This is where we will insert the button events.
+        """
+
+        def switch_case(keys, varss):
+            """
+            Changes the case of the passed variables.
+            """
+            for lab, var in zip(keys, varss):
+                var.set(lab)
+
+        ename = event.get().strip()
+        if ename == 'caps':
+            switch_case(self.keys_upper, self.stringvars)
+            event.set('lower')
+        elif ename == 'lower':
+            switch_case(self.keys_lower, self.stringvars)
+            event.set('caps')
+        elif ename == 'del':
+            self.word = self.word[0:-1]
+        elif ename == 'space':
+            self.word += ' '
+        elif ename == 'enter':
+            print('enter command!', self.word)
+            self.word = ''
+            self.pass_word()
+        else:
+            self.word += event.get()
+        self.wordvar.set(self.word)
+        return event
+
+    def get_word(self):
+        """
+        This fetches the target word stringvar from the rt_data.
+        :rtype: StringVar
+        """
+        return self.rt_data[self.temp['word'].get()]
+
+    def set_word(self,  word):
+        """
+        Sets or updates the word variable.
+        """
+        if self.word:
+            self.word += word
+        else:
+            self.word = word
+            self.wordvar.set(self.word)
+
+    def pass_word(self):
+        """
+        This passes our words to the parent model
+        """
+        if self.wordvar.get():  # Prevent returning nulls.
+            self.get_word().set(self.wordvar.get())
+            self.temp['number'].set('0')
+        self.controller.show_frame(self.target)
+        self.wordvar.set('')
+        self.word = ''
 
 
 def config_button(element):

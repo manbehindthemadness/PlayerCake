@@ -1,5 +1,4 @@
 import os
-import tkinter as Tkinter
 from tkinter import *
 
 from warehouse.system import system_command
@@ -9,7 +8,7 @@ os.environ['XAUTHORITY'] = '/home/pi/.Xauthority'
 system_command(['/usr/bin/xhost', '+'])
 
 
-class Keyboard(Tkinter.Frame):
+class Keyboard(Frame):
     """
     Virtual Keyboard.
 
@@ -17,7 +16,7 @@ class Keyboard(Tkinter.Frame):
     """
 
     def __init__(self, *args, **kwargs):
-        Tkinter.Frame.__init__(self, *args, **kwargs)
+        Frame.__init__(self, *args, **kwargs)
         self.stringvars = list()
         self.keys_lower = list()
         self.input = StringVar()
@@ -51,28 +50,28 @@ class Keyboard(Tkinter.Frame):
         Loop to create keys.
         """
         for key_section in self.default_keys:  # create Sperate Frame For Every Section
-            store_section = Tkinter.Frame(self)
+            store_section = Frame(self)
             store_section.pack(side='left', expand='yes', fill='both', padx=10, pady=10, ipadx=10, ipady=10)
-            input_frame = Tkinter.Frame(store_section)  # Create input label.
+            input_frame = Frame(store_section)  # Create input label.
             input_frame.pack(side='top', expand='yes', fill='both')
             input_label = Label(input_frame, textvariable=self.input)
             input_label.pack(side='top', expand='yes', fill='both')
             for layer_name, layer_properties, layer_keys in key_section:
-                store_layer = Tkinter.LabelFrame(store_section)
+                store_layer = LabelFrame(store_section)
                 store_layer.pack(layer_properties)
                 for key_bunch in layer_keys:
-                    store_key_frame = Tkinter.Frame(store_layer)
+                    store_key_frame = Frame(store_layer)
                     store_key_frame.pack(side='top', expand='yes', fill='both')
                     for k in key_bunch:
                         txt = StringVar()
                         if len(k.strip()) < 3:
                             txt.set(k)
-                            store_button = Tkinter.Button(store_key_frame, textvariable=txt, width=2, height=2)
+                            store_button = Button(store_key_frame, textvariable=txt, width=2, height=2)
                             self.stringvars.append(txt)
                             self.keys_lower.append(k)
                         else:
                             txt.set(k.center(5, ' '))
-                            store_button = Tkinter.Button(store_key_frame, textvariable=txt, height=2)
+                            store_button = Button(store_key_frame, textvariable=txt, height=2)
                         if " " in k:
                             store_button['state'] = 'disable'
                         # flat, groove, raised, ridge, solid, or sunken
@@ -106,8 +105,8 @@ class Keyboard(Tkinter.Frame):
         elif ename == 'space':
             self.text += ' '
         elif ename == 'enter':
+            print('enter command!', self.text)
             self.text = ''
-            print('enter command!')
             # TODO: Pass variables here!
             # TODO: Drop keyboard frame here!
         else:
@@ -121,7 +120,7 @@ def main():
     """
     mainloop.
     """
-    root = Tkinter.Tk(className=" Python Virtual KeyBoard")
+    root = Tk(className=" Python Virtual KeyBoard")
     Keyboard(root).pack()
     root.mainloop()
     return
