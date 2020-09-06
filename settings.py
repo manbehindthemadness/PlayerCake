@@ -13,7 +13,7 @@ themes = {
         'main': 'black',
         # 'text': '#414141',
         'text': 'white',
-        'buttontext': '#383c90',
+        'buttontext': '#06c125',
         'font': None,
         'fontsize': 0.6,
         'scattersize': 0.1,

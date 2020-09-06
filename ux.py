@@ -313,6 +313,13 @@ class Writer(Frame):
             text='receive'
         )
         self.receive_button.grid(row=6, columnspan=2)
+        self.pair_button = self.full_button(
+            self.left_panel_frame,
+            'fullbuttonframe.png',
+            command='',
+            text='pair'
+        )
+        self.pair_button.grid(row=7, columnspan=2)
 
         #  ###################
         #  Right hand controls

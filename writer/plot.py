@@ -101,6 +101,9 @@ def pymesh_stl(obj_file, parent, theme, config, target, rt_data):
         """
         This simple tool allows us to locate the implied weights (where the trajectory meets the ground).
         Note that this is estimated based on the resolution of the curve.
+
+        TODO: We can use this to determine the order of points so we can normalize the start point.
+
         """
 
         tr = list(zip(*trajectory))
