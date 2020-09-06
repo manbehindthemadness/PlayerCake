@@ -14,7 +14,7 @@ themes = {
         # 'text': '#414141',
         'text': 'white',
         'buttontext': '#06c125',
-        'font': None,
+        'font': 'Helvetica',
         'fontsize': 0.6,
         'scattersize': 0.1,
         'pivotsize': 1,
@@ -22,6 +22,7 @@ themes = {
         'plotthickness': 1,
         'plotalpha': 6/10,
         'linewidth': 0.03,
+        'entrybackground': 'grey',
     },
     'light': {
         'main': 'white',

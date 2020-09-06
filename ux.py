@@ -540,7 +540,7 @@ class MainView(tk.Tk):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
         self.frames = dict()
-        for F in (Home, Writer, Audience, Keyboard, NumPad,):
+        for F in (Home, Writer, Audience, Keyboard, NumPad,):  # Ensure the primary classes are passed before the widgets.
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -548,14 +548,16 @@ class MainView(tk.Tk):
                 frame.configure(
                     height=pry(50),
                     width=pry(50),
-                    bg='grey',
+                    bg=theme['entrybackground'],
                     borderwidth=pry(1),
                 )
                 frame.grid(row=0, column=0)
             elif page_name == 'Keyboard':
                 frame.configure(
                     height=pry(70),
-                    width=scr_x
+                    width=scr_x,
+                    bg=theme['entrybackground'],
+                    borderwidth=pry(1)
                 )
                 frame.grid(row=0, column=0, sticky=S)
             else:
@@ -668,6 +670,7 @@ class Keyboard(Frame):
     Virtual Keyboard.
 
     TODO: Insure to create parent, controller and default text passage in the INIT statement.
+    TODO: Now that i think about it we are gonna have to pass that through the real time model...
     """
 
     def __init__(self, parent, controller, target='Writer'):
@@ -711,15 +714,26 @@ class Keyboard(Frame):
         Loop to create keys.
         """
         for key_section in self.default_keys:  # create Sperate Frame For Every Section
-            store_section = Frame(self)
-            store_section.pack(side='left', expand='yes', fill='both', padx=10, pady=10, ipadx=10, ipady=10)
-            input_frame = Frame(store_section)  # Create input label.
-            input_frame.pack(side='top', expand='yes', fill='both')
-            input_label = Label(input_frame, textvariable=self.wordvar)
-            input_label.pack(side='top', expand='yes', fill='both')
+            store_section = Frame(self, bg=theme['main'])
+            store_section.pack(side='left', expand='yes', fill='both')  #  padx=10, pady=10, ipadx=10, ipady=10)
+            # input_frame = Frame(store_section)  # Create input label.
+            # input_frame.pack(side='top', expand='yes', fill='both')
+            # input_label = Label(input_frame, textvariable=self.wordvar, bg=theme['main'], fg=theme['buttontext'])
+            # input_label.pack(side='top', expand='yes', fill='both')
             for layer_name, layer_properties, layer_keys in key_section:
                 store_layer = LabelFrame(store_section)
+                store_layer.configure(bg=theme['main'])
                 store_layer.pack(layer_properties)
+                input_frame = Frame(store_layer)  # Create input label.
+                input_frame.pack(side='top', expand='yes', fill='both')
+                input_label = Label(
+                    input_frame,
+                    textvariable=self.wordvar,
+                    bg=theme['main'],
+                    fg=theme['buttontext'],
+                    font=(theme['font'], str(pointsy(5)))
+                )
+                input_label.pack(side='top', expand='yes', fill='both')
                 for key_bunch in layer_keys:
                     store_key_frame = Frame(store_layer)
                     store_key_frame.pack(side='top', expand='yes', fill='both')
@@ -736,8 +750,9 @@ class Keyboard(Frame):
                         if " " in k:
                             store_button['state'] = 'disable'
                         # flat, groove, raised, ridge, solid, or sunken
-                        store_button['relief'] = "sunken"
-                        store_button['bg'] = "powderblue"
+                        # store_button['relief'] = "sunken"
+                        # store_button['bg'] = "powderblue"
+                        config_word_button(store_button)
                         store_button['command'] = lambda q=txt: self.button_command(q)
                         store_button.pack(side='left', fill='both', expand='yes')
 
@@ -825,7 +840,17 @@ def config_number_button(element):
     """
     el = config_button(element)
     el.configure(
-        font=('Helvetica', str(pointsy(5))),
+        font=(theme['font'], str(pointsy(5))),
+    )
+
+
+def config_word_button(element):
+    """
+    This styles the buttons on the keyboard.
+    """
+    el = config_button(element)
+    el.configure(
+        font=(theme['font'], str(pointsy(5))),
     )
 
 
