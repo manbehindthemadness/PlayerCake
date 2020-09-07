@@ -30,6 +30,7 @@ os.environ['XAUTHORITY'] = '/home/pi/.Xauthority'
 system_command(['/usr/bin/xhost', '+'])
 
 rt_data = dict()
+# rt_data['temp'] = dict()
 
 
 class Page(Frame):
@@ -207,17 +208,22 @@ class Writer(Frame):
             self.rt_data[sett] = StringVar()
             self.rt_data[sett].set(str(defaults[sett]))
         self.rt_data['plotfile'] = str()
-        self.rt_data['temp'] = dict()
+        self.folder = None
+        self.ext = None
+        # self.rt_data['temp'] = dict()
         self.rt_data['0'] = StringVar()
         self.rt_data['0'].set('0')
-        self.temp = self.rt_data['temp']
+
+        self.temp = self.rt_data['temp']  # Create temp cache so we can push and pull variables around.
         self.temp['number'] = StringVar()
         self.temp['number'].set('0')
         self.temp['word'] = StringVar()
         self.temp['word'].set('')
-
-        self.rt_data['key_test'] = StringVar()  # TODO: This is just for testing the keyboard.
-        self.rt_data['key_test'].set('')
+        self.temp['file'] = StringVar()
+        self.temp['file'].set('')
+        self.temp['ext'] = '.obj'
+        self.temp['folder'] = settings.plot_dir
+        self.temp['targetfile'] = StringVar()
 
         self.controller = controller
         self.numpad = NumPad(self, self.controller)
@@ -466,19 +472,24 @@ class Writer(Frame):
         """
         This will open up a plot file and pass it to a variable.
         """
-        self.rt_data['plotfile'] = openfile('/plots')
-        self.plotfile.set(
-            self.rt_data['plotfile'].split('/')[-1]
-        )
-        if self.plot:  # Clear if needed.
-            self.plot.get_tk_widget().pack_forget()  # Clear old plot.
+        self.ext = self.temp['ext'] = '.obj'
+        self.folder = self.temp['folder'] = settings.plot_dir  # Get working directory.
+        self.show_file_browser('folder')
+        # self.rt_data['plotfile'] = openfile('/plots')
+        # self.plotfile.set(
+        #     self.rt_data['plotfile'].split('/')[-1]
+        # )
 
     def render_plotfile(self):
         """
         This will render the actual plots into the writer app.
         """
+        if self.plot:  # Clear if needed.
+            self.plot.get_tk_widget().pack_forget()  # Clear old plot.
+
         self.update_defaults()  # update with latest config.
-        plotfile = self.rt_data['plotfile']  # Fetch plot file.
+
+        plotfile = self.rt_data['plotfile'] = self.temp['targetfile'].get()  # Fetch plot file.
         if plotfile:
             if self.plot:  # Clear if needed.
                 self.plot.get_tk_widget().pack_forget()  # Clear old plot.
@@ -509,6 +520,14 @@ class Writer(Frame):
         self.temp['word'].set(varname)
         self.controller.show_frame("Keyboard")
 
+    def show_file_browser(self, varname):
+        """
+        Lifts the file browser page.
+        """
+        self.temp[varname] = settings.plot_dir
+        self.controller.clear('FileBrowser')
+        self.controller.show_frame('FileBrowser')
+
 
 class Audience(Frame):
     """
@@ -529,7 +548,10 @@ class MainView(tk.Tk):
         tk.Tk.__init__(self, *args, **kwargs)
         global rt_data
         self.rt_data = rt_data
-        self.rt_data['temp'] = dict()  # Create temp cache so we can push and pull variables around.
+        self.rt_data['temp'] = dict()
+        self.rt_data['key_test'] = StringVar()  # TODO: This is just for testing the keyboard.
+        self.rt_data['key_test'].set('')
+
         container = tk.Frame(self)
         container.place(
             x=0,
@@ -540,7 +562,7 @@ class MainView(tk.Tk):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
         self.frames = dict()
-        for F in (Home, Writer, Audience, Keyboard, NumPad,):  # Ensure the primary classes are passed before the widgets.
+        for F in (Home, Writer, Audience, Keyboard, NumPad, FileBrowser,):  # Ensure the primary classes are passed before the widgets.
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -560,18 +582,40 @@ class MainView(tk.Tk):
                     borderwidth=pry(1)
                 )
                 frame.grid(row=0, column=0, sticky=S)
+            elif page_name == 'FileBrowser':
+                frame.configure(
+                    height=pry(73),
+                    width=pry(43),
+                    bg=theme['entrybackground'],
+                    borderwidth=pry(1),
+                    highlightbackground=theme['entrybackground']
+                )
+                frame.grid(row=0, column=0)
             else:
                 frame.grid(row=0, column=0, sticky="nsew")
 
         # home.show()
         self.show_frame('Home')
 
+    def get_frame(self, page_name):
+        """
+        This fetches the target frame.
+        """
+        return self.frames[page_name]
+
     def show_frame(self, page_name):
         """
         Shows a frame...
         """
-        frame = self.frames[page_name]
+        frame = self.get_frame(page_name)
         frame.tkraise()
+
+    def clear(self, page_name):
+        """
+        This triggers a page to clear or refresh contents.
+        """
+        frame = self.get_frame(page_name)
+        frame.clear()
 
 
 class NumPad(Frame):
@@ -650,7 +694,7 @@ class NumPad(Frame):
         config_number_button(lb)
         lb.grid(row=0, columnspan=3, sticky=(E, W))
         for b in btn_list:
-            self.b = Button(self, text=b, width=width, height=height, command=lambda b=b: self.set_num(b))
+            self.b = Button(self, text=b, width=width, height=height, command=lambda q=b: self.set_num(q))
             config_number_button(self.b)
             self.b.grid(row=r, column=c)
             c += 1
@@ -715,11 +759,7 @@ class Keyboard(Frame):
         """
         for key_section in self.default_keys:  # create Sperate Frame For Every Section
             store_section = Frame(self, bg=theme['main'])
-            store_section.pack(side='left', expand='yes', fill='both')  #  padx=10, pady=10, ipadx=10, ipady=10)
-            # input_frame = Frame(store_section)  # Create input label.
-            # input_frame.pack(side='top', expand='yes', fill='both')
-            # input_label = Label(input_frame, textvariable=self.wordvar, bg=theme['main'], fg=theme['buttontext'])
-            # input_label.pack(side='top', expand='yes', fill='both')
+            store_section.pack(side='left', expand='yes', fill='both')
             for layer_name, layer_properties, layer_keys in key_section:
                 store_layer = LabelFrame(store_section)
                 store_layer.configure(bg=theme['main'])
@@ -817,6 +857,182 @@ class Keyboard(Frame):
         self.word = ''
 
 
+class FileBrowser(Frame):
+    """
+    This is a pretty cute touch oriented file browser.
+    """
+    def __init__(self, parent, controller, target='Writer'):
+        Frame.__init__(self, parent)
+        global rt_data
+        self.rt_data = rt_data
+        self.temp = rt_data['temp']
+        self.controller = controller
+        self.frame = VerticalScrolledFrame(self)  # Change this to get the lifting right.
+        self.frame.pack()
+        self.target = target
+        self.buttons = list()
+        self.ext = self.temp['ext']
+        self.dir = self.temp['folder']
+        self.list_dirs()
+
+    def list_dirs(self):
+        """
+        This will list the files and folder under the self.dir path.
+        """
+        self.ext = self.temp['ext']
+        self.dir = self.temp['folder']
+        self.buttons.append(
+            config_file_button(
+                Button(self.frame.interior, text='...', command=lambda: self.up_event())
+            )
+        )
+        self.buttons[-1].pack()
+        for i in os.listdir(self.dir):
+            if os.path.isdir(self.dir + i):
+                self.buttons.append(
+                    config_file_button(Button(self.frame.interior, text=i + '/', command=lambda q=i: self.folder_event(q)))
+                )
+            else:
+                if i[-4:] == self.ext:
+                    self.buttons.append(
+                        config_file_button(Button(self.frame.interior, text=i, command=lambda q=i: self.select_event(q)))
+                    )
+                else:
+                    self.buttons.append(
+                        config_file_button(Label(self.frame.interior, text=i), True)
+                    )
+            self.buttons[-1].pack()
+
+    def clear(self):
+        """
+        This clears the contents of the scroll window
+        """
+        for button in self.buttons:
+            button.destroy()
+            del button
+
+        self.list_dirs()
+
+    def folder_event(self, folder):
+        """
+        This will drop us into a folder on selection.
+        """
+        self.temp['folder'] += folder + '/'
+        self.clear()
+
+    def up_event(self):
+        """
+        This will take us up one folder level.
+        """
+        self.temp['folder'] = '/' + self.temp['folder'].split('/', 1)[-1].rsplit('/', 2)[0] + '/'
+        self.clear()
+
+    def select_event(self, filename):
+        """
+        This will pass the filename variable into realtime data and drop the browser frame.
+        """
+        self.temp['targetfile'].set(self.temp['folder'] + '/' + filename)  # Build full path.
+        self.controller.show_frame(self.target)  # Set global target file.
+
+
+class VerticalScrolledFrame(Frame):
+    """A pure Tkinter scrollable frame that actually works!
+    * Use the 'interior' attribute to place widgets inside the scrollable frame
+    * Construct and pack/place/grid normally
+    * This frame only allows vertical scrolling
+
+    """
+    def __init__(self, parent):
+        Frame.__init__(self, parent)
+
+        # create a canvas object and a vertical scrollbar for scrolling it
+
+        canvas = Canvas(
+            self,
+            bg=theme['main'],
+            height=pry(70)
+
+        )
+        canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
+
+        # reset the view
+        canvas.xview_moveto(0)
+        canvas.yview_moveto(0)
+
+        self.canvasheight = pry(70)
+        self.canvaswidth = pry(40)
+
+        # create a frame inside the canvas which will be scrolled with it
+        self.interior = interior = Frame(canvas, height=self.canvasheight, width=self.canvaswidth)
+        self.interior.configure(
+            bg=theme['main'],
+        )
+        self.interior_id = canvas.create_window(0, 0, window=interior, anchor=NW)
+
+        # track changes to the canvas and frame width and sync them,
+        # also updating the scrollbar
+        def _configure_interior(event):
+            # update the scrollbars to match the size of the inner frame
+            self.event = event
+            size = (interior.winfo_reqwidth(), interior.winfo_reqheight())
+            canvas.config(scrollregion="0 0 %s %s" % size)
+            if interior.winfo_reqwidth() != canvas.winfo_width():
+                # update the canvas's width to fit the inner frame
+                canvas.config(width=interior.winfo_reqwidth())
+        interior.bind('<Configure>', _configure_interior)
+
+        def _configure_canvas(event):
+            self.event = event
+            if interior.winfo_reqwidth() != canvas.winfo_width():
+                # update the inner frame's width to fill the canvas
+                canvas.itemconfigure(self.interior_id, width=canvas.winfo_width())
+        canvas.bind('<Configure>', _configure_canvas)
+
+        self.offset_y = 0
+        self.prevy = 0
+        self.scrollposition = 1
+
+        def on_press(event):
+            """
+            On press event.
+            """
+            self.offset_y = event.y_root
+            if self.scrollposition < 1:
+                self.scrollposition = 1
+            elif self.scrollposition > self.canvasheight:
+                self.scrollposition = self.canvasheight
+            canvas.yview_moveto(self.scrollposition / self.canvasheight)
+
+        def on_touch_scroll(event):
+            """
+            On scroll event.
+            """
+            nowy = event.y_root
+
+            sectionmoved = 15
+            if nowy > self.prevy:
+                event.delta = -sectionmoved
+            elif nowy < self.prevy:
+                event.delta = sectionmoved
+            else:
+                event.delta = 0
+            self.prevy = nowy
+
+            self.scrollposition += event.delta
+            canvas.yview_moveto(self.scrollposition / self.canvasheight)
+
+        self.bind("<Enter>", lambda _: self.bind_all('<Button-1>', on_press), '+')
+        self.bind("<Leave>", lambda _: self.unbind_all('<Button-1>'), '+')
+        self.bind("<Enter>", lambda _: self.bind_all('<B1-Motion>', on_touch_scroll), '+')
+        self.bind("<Leave>", lambda _: self.unbind_all('<B1-Motion>'), '+')
+
+    def clear(self):
+        """
+        This clears the interior.
+        """
+        self.interior.pack_forget()
+
+
 def config_button(element):
     """
     This configures our button styles.
@@ -852,6 +1068,25 @@ def config_word_button(element):
     el.configure(
         font=(theme['font'], str(pointsy(5))),
     )
+
+
+def config_file_button(element, bad=False):
+    """
+        This styles the buttons on the file browser.
+        """
+    el = config_button(element)
+    el.configure(
+        font=(theme['font'], str(pointsy(5))),
+        anchor=W,
+        width=20,
+        pady=pry(2),
+        justify=LEFT
+    )
+    if bad:
+        el.configure(
+            fg=theme['badfiletext']
+        )
+    return element
 
 
 def config_text(element, text):

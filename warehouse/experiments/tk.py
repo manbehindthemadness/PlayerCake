@@ -35,7 +35,7 @@ class VerticalScrolledFrame(Frame):
 
         # create a frame inside the canvas which will be scrolled with it
         self.interior = interior = Frame(canvas, height=self.canvasheight)
-        interior_id = canvas.create_window(0, 0, window=interior, anchor=NW)
+        self.interior_id = canvas.create_window(0, 0, window=interior, anchor=NW)
 
         # track changes to the canvas and frame width and sync them,
         # also updating the scrollbar
@@ -53,7 +53,7 @@ class VerticalScrolledFrame(Frame):
             self.event = event
             if interior.winfo_reqwidth() != canvas.winfo_width():
                 # update the inner frame's width to fill the canvas
-                canvas.itemconfigure(interior_id, width=canvas.winfo_width())
+                canvas.itemconfigure(self.interior_id, width=canvas.winfo_width())
         canvas.bind('<Configure>', _configure_canvas)
 
         self.offset_y = 0
@@ -94,6 +94,12 @@ class VerticalScrolledFrame(Frame):
         self.bind("<Enter>", lambda _: self.bind_all('<B1-Motion>', on_touch_scroll), '+')
         self.bind("<Leave>", lambda _: self.unbind_all('<B1-Motion>'), '+')
 
+    def clear(self):
+        """
+        This clears the interior.
+        """
+        self.interior.pack_forget()
+
 
 if __name__ == "__main__":
 
@@ -106,12 +112,53 @@ if __name__ == "__main__":
 
             self.frame = VerticalScrolledFrame(root)
             self.frame.pack()
-            self.label = Label(text="Shrink the window to activate the scrollbar.")
-            self.label.pack()
-            buttons = []
-            for i in range(10):
-                buttons.append(Label(self.frame.interior, text="Button " + str(i)))
-                buttons[-1].pack()
+            # self.label = Label(text="Shrink the window to activate the scrollbar.")
+            # self.label.pack()
+            self.buttons = list()
+            self.ext = '.obj'
+            self.dir = self.plot_dir = '/home/pi/playercake/plots/'
+            self.list_dirs()
+
+        def list_dirs(self):
+            """
+            This will list the files and folder under the self.dir path.
+            """
+            self.buttons.append(Button(self.frame.interior, text='...', command=lambda: self.up_event()))
+            self.buttons[-1].pack()
+            for i in os.listdir(self.dir):
+                if os.path.isdir(self.dir + i):
+                    self.buttons.append(Button(self.frame.interior, text=i, command=lambda q=i: self.folder_event(q)))
+                else:
+                    if i[-4:] == self.ext:
+                        self.buttons.append(Button(self.frame.interior, text=i))
+                    else:
+                        self.buttons.append(Label(self.frame.interior, text=i))
+                self.buttons[-1].pack()
+
+        def clear_list(self):
+            """
+            This clears the contents of the scroll window
+            """
+            for button in self.buttons:
+                button.destroy()
+
+        def folder_event(self, folder):
+            """
+            This will drop us into a folder on selection.
+            """
+            self.dir += folder + '/'
+            print(self.dir)
+            self.clear_list()
+            self.list_dirs()
+
+        def up_event(self):
+            """
+            This will take us up one folder level.
+            """
+            self.dir = '/' + self.dir.split('/', 1)[-1].rsplit('/', 2)[0] + '/'
+            print(self.dir)
+            self.clear_list()
+            self.list_dirs()
 
     app = SampleApp()
     app.mainloop()

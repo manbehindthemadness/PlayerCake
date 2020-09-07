@@ -1,9 +1,10 @@
 """
 This is our master settings file.
 """
+import os
 
 deployment_type = 'writer'
-plot_dir = 'plots/'
+plot_dir = os.getcwd() + '/plots/'
 display = 'localhost:11.0'
 screensize = (1024, 600)
 
@@ -23,6 +24,7 @@ themes = {
         'plotalpha': 6/10,
         'linewidth': 0.03,
         'entrybackground': 'grey',
+        'badfiletext': '#066916'
     },
     'light': {
         'main': 'white',
