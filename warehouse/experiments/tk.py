@@ -1,3 +1,7 @@
+"""
+Tkinter playground...
+"""
+
 import os
 from tkinter import *
 
@@ -8,123 +12,106 @@ os.environ['XAUTHORITY'] = '/home/pi/.Xauthority'
 system_command(['/usr/bin/xhost', '+'])
 
 
-class Keyboard(Frame):
+class VerticalScrolledFrame(Frame):
+    """A pure Tkinter scrollable frame that actually works!
+    * Use the 'interior' attribute to place widgets inside the scrollable frame
+    * Construct and pack/place/grid normally
+    * This frame only allows vertical scrolling
+
     """
-    Virtual Keyboard.
+    def __init__(self, parent):
+        Frame.__init__(self, parent)
 
-    TODO: Insure to create parent, controller and default text passage in the INIT statement.
-    """
+        # create a canvas object and a vertical scrollbar for scrolling it
 
-    def __init__(self, *args, **kwargs):
-        Frame.__init__(self, *args, **kwargs)
-        self.stringvars = list()
-        self.keys_lower = list()
-        self.input = StringVar()
-        self.text = str()
-        self.default_keys = [
-            [
-                [
-                    "Character_Keys",
-                    ({'side': 'top', 'expand': 'yes', 'fill': 'both'}),
-                    [
-                        ('`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\\', 'del'),
-                        ('q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']'),
-                        ('a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', "'", "enter"),
-                        ('z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/'),
-                        ('caps', '\t\tspace\t\t')
-                    ]
-                ]
-            ]
-        ]
-        self.keys_upper = [
-            '~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '|',
-            'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}',
-            'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"',
-            'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?'
-        ]
+        canvas = Canvas(self, bd=0, highlightthickness=0, bg='white')
+        canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
 
-        self.create_frames_and_buttons()
+        # reset the view
+        canvas.xview_moveto(0)
+        canvas.yview_moveto(0)
 
-    def create_frames_and_buttons(self):
-        """
-        Loop to create keys.
-        """
-        for key_section in self.default_keys:  # create Sperate Frame For Every Section
-            store_section = Frame(self)
-            store_section.pack(side='left', expand='yes', fill='both', padx=10, pady=10, ipadx=10, ipady=10)
-            input_frame = Frame(store_section)  # Create input label.
-            input_frame.pack(side='top', expand='yes', fill='both')
-            input_label = Label(input_frame, textvariable=self.input)
-            input_label.pack(side='top', expand='yes', fill='both')
-            for layer_name, layer_properties, layer_keys in key_section:
-                store_layer = LabelFrame(store_section)
-                store_layer.pack(layer_properties)
-                for key_bunch in layer_keys:
-                    store_key_frame = Frame(store_layer)
-                    store_key_frame.pack(side='top', expand='yes', fill='both')
-                    for k in key_bunch:
-                        txt = StringVar()
-                        if len(k.strip()) < 3:
-                            txt.set(k)
-                            store_button = Button(store_key_frame, textvariable=txt, width=2, height=2)
-                            self.stringvars.append(txt)
-                            self.keys_lower.append(k)
-                        else:
-                            txt.set(k.center(5, ' '))
-                            store_button = Button(store_key_frame, textvariable=txt, height=2)
-                        if " " in k:
-                            store_button['state'] = 'disable'
-                        # flat, groove, raised, ridge, solid, or sunken
-                        store_button['relief'] = "sunken"
-                        store_button['bg'] = "powderblue"
-                        store_button['command'] = lambda q=txt: self.button_command(q)
-                        store_button.pack(side='left', fill='both', expand='yes')
-        return
+        self.canvasheight = 2000
 
-    def button_command(self, event):
-        """
-        This is where we will insert the button events.
-        """
+        # create a frame inside the canvas which will be scrolled with it
+        self.interior = interior = Frame(canvas, height=self.canvasheight)
+        interior_id = canvas.create_window(0, 0, window=interior, anchor=NW)
 
-        def switch_case(keys, varss):
+        # track changes to the canvas and frame width and sync them,
+        # also updating the scrollbar
+        def _configure_interior(event):
+            # update the scrollbars to match the size of the inner frame
+            self.event = event
+            size = (interior.winfo_reqwidth(), interior.winfo_reqheight())
+            canvas.config(scrollregion="0 0 %s %s" % size)
+            if interior.winfo_reqwidth() != canvas.winfo_width():
+                # update the canvas's width to fit the inner frame
+                canvas.config(width=interior.winfo_reqwidth())
+        interior.bind('<Configure>', _configure_interior)
+
+        def _configure_canvas(event):
+            self.event = event
+            if interior.winfo_reqwidth() != canvas.winfo_width():
+                # update the inner frame's width to fill the canvas
+                canvas.itemconfigure(interior_id, width=canvas.winfo_width())
+        canvas.bind('<Configure>', _configure_canvas)
+
+        self.offset_y = 0
+        self.prevy = 0
+        self.scrollposition = 1
+
+        def on_press(event):
             """
-            Changes the case of the passed variables.
+            On press event.
             """
-            for lab, var in zip(keys, varss):
-                var.set(lab)
+            self.offset_y = event.y_root
+            if self.scrollposition < 1:
+                self.scrollposition = 1
+            elif self.scrollposition > self.canvasheight:
+                self.scrollposition = self.canvasheight
+            canvas.yview_moveto(self.scrollposition / self.canvasheight)
 
-        ename = event.get().strip()
-        if ename == 'caps':
-            switch_case(self.keys_upper, self.stringvars)
-            event.set('lower')
-        elif ename == 'lower':
-            switch_case(self.keys_lower, self.stringvars)
-            event.set('caps')
-        elif ename == 'del':
-            self.text = self.text[0:-1]
-        elif ename == 'space':
-            self.text += ' '
-        elif ename == 'enter':
-            print('enter command!', self.text)
-            self.text = ''
-            # TODO: Pass variables here!
-            # TODO: Drop keyboard frame here!
-        else:
-            self.text += event.get()
-        self.input.set(self.text)
-        return event
+        def on_touch_scroll(event):
+            """
+            On scroll event.
+            """
+            nowy = event.y_root
 
+            sectionmoved = 15
+            if nowy > self.prevy:
+                event.delta = -sectionmoved
+            elif nowy < self.prevy:
+                event.delta = sectionmoved
+            else:
+                event.delta = 0
+            self.prevy = nowy
 
-# Creating Main Window
-def main():
-    """
-    mainloop.
-    """
-    root = Tk(className=" Python Virtual KeyBoard")
-    Keyboard(root).pack()
-    root.mainloop()
-    return
+            self.scrollposition += event.delta
+            canvas.yview_moveto(self.scrollposition / self.canvasheight)
+
+        self.bind("<Enter>", lambda _: self.bind_all('<Button-1>', on_press), '+')
+        self.bind("<Leave>", lambda _: self.unbind_all('<Button-1>'), '+')
+        self.bind("<Enter>", lambda _: self.bind_all('<B1-Motion>', on_touch_scroll), '+')
+        self.bind("<Leave>", lambda _: self.unbind_all('<B1-Motion>'), '+')
 
 
-# Function Trigger
-main()
+if __name__ == "__main__":
+
+    class SampleApp(Tk):
+        """
+        sample
+        """
+        def __init__(self, *args, **kwargs):
+            root = Tk.__init__(self, *args, **kwargs)
+
+            self.frame = VerticalScrolledFrame(root)
+            self.frame.pack()
+            self.label = Label(text="Shrink the window to activate the scrollbar.")
+            self.label.pack()
+            buttons = []
+            for i in range(10):
+                buttons.append(Label(self.frame.interior, text="Button " + str(i)))
+                buttons[-1].pack()
+
+    app = SampleApp()
+    app.mainloop()

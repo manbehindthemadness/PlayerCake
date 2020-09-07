@@ -3,7 +3,7 @@ This is our master settings file.
 """
 
 deployment_type = 'writer'
-
+plot_dir = 'plots/'
 display = 'localhost:11.0'
 screensize = (1024, 600)
 
