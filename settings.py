@@ -7,6 +7,7 @@ deployment_type = 'writer'
 plot_dir = os.getcwd() + '/plots/'
 display = 'localhost:11.0'
 screensize = (1024, 600)
+scroll_speed = 3
 
 theme = 'dark'
 themes = {

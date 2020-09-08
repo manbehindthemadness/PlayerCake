@@ -896,7 +896,8 @@ class FileBrowser(Frame):
             )
         )
         self.buttons[-1].pack()
-        for i in os.listdir(self.dir):
+        files = os.listdir(self.dir)
+        for i in files:
             if os.path.isdir(self.dir + i):
                 self.buttons.append(
                     config_file_button(Button(self.frame.interior, text=i + '/', command=lambda q=i: self.folder_event(q)))
@@ -919,6 +920,7 @@ class FileBrowser(Frame):
         for button in self.buttons:
             button.destroy()
             del button
+        self.frame.reset()
 
         self.list_dirs()
 
@@ -956,7 +958,7 @@ class VerticalScrolledFrame(Frame):
 
         # create a canvas object and a vertical scrollbar for scrolling it
 
-        canvas = Canvas(
+        self.canvas = canvas = Canvas(
             self,
             bg=theme['main'],
             height=pry(70)
@@ -965,8 +967,9 @@ class VerticalScrolledFrame(Frame):
         canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
 
         # reset the view
-        canvas.xview_moveto(0)
-        canvas.yview_moveto(0)
+        self.reset()
+        # canvas.xview_moveto(0)
+        # canvas.yview_moveto(0)
 
         self.canvasheight = pry(70)
         self.canvaswidth = pry(40)
@@ -1018,7 +1021,7 @@ class VerticalScrolledFrame(Frame):
             """
             nowy = event.y_root
 
-            sectionmoved = 15
+            sectionmoved = settings.scroll_speed  # Adjust scroll speed.
             if nowy > self.prevy:
                 event.delta = -sectionmoved
             elif nowy < self.prevy:
@@ -1035,11 +1038,20 @@ class VerticalScrolledFrame(Frame):
         self.bind("<Enter>", lambda _: self.bind_all('<B1-Motion>', on_touch_scroll), '+')
         self.bind("<Leave>", lambda _: self.unbind_all('<B1-Motion>'), '+')
 
+    def reset(self):
+        """
+        resets the canvas position.
+        """
+        print('doing reset')
+        self.canvas.xview_moveto(0)
+        self.canvas.yview_moveto(0)
+
     def clear(self):
         """
         This clears the interior.
         """
         self.interior.pack_forget()
+        self.reset()
 
 
 class CloseWidget(Frame):
