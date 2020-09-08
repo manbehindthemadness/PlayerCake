@@ -28,6 +28,7 @@ defaults = settings.defaults
 os.environ['DISPLAY'] = settings.display
 os.environ['XAUTHORITY'] = '/home/pi/.Xauthority'
 system_command(['/usr/bin/xhost', '+'])
+system_command(['echo', '$DISPLAY'])
 
 rt_data = dict()
 # rt_data['temp'] = dict()
@@ -476,9 +477,6 @@ class Writer(Frame):
         self.folder = self.temp['folder'] = settings.plot_dir  # Get working directory.
         self.show_file_browser('folder')
         # self.rt_data['plotfile'] = openfile('/plots')
-        # self.plotfile.set(
-        #     self.rt_data['plotfile'].split('/')[-1]
-        # )
 
     def render_plotfile(self):
         """
@@ -490,14 +488,15 @@ class Writer(Frame):
         self.update_defaults()  # update with latest config.
 
         plotfile = self.rt_data['plotfile'] = self.temp['targetfile'].get()  # Fetch plot file.
+        self.plotfile.set(  # Update filename label.
+            self.rt_data['plotfile'].split('/')[-1]
+        )
         if plotfile:
             if self.plot:  # Clear if needed.
                 self.plot.get_tk_widget().pack_forget()  # Clear old plot.
             self.plot = self.plotter(plotfile, self.plot_frame, theme, settings.defaults, 1, self.rt_data)  # TODO: This will need to be revised for simulations.
             self.plot.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH)  # Fetch canvas widget.
         return self.plot
-
-    # def get_word(self):
 
     def show_numpad(self, varname):
         """
@@ -510,15 +509,16 @@ class Writer(Frame):
         """
         # print(varname, self.rt_data[varname].get())
         self.temp['number'].set(varname)
-        self.controller.show_frame("NumPad")
+        safe_raise(self.controller, 'NumPad', 'Writer')
+        self.controller.show_frame('CloseWidget')
 
     def show_keyboard(self, varname):
         """
         Lifts the keyboard page.
         """
-        print('showing keyboard')
         self.temp['word'].set(varname)
-        self.controller.show_frame("Keyboard")
+        safe_raise(self.controller, 'Keyboard', 'Writer')
+        self.controller.show_frame('CloseWidget')
 
     def show_file_browser(self, varname):
         """
@@ -526,7 +526,8 @@ class Writer(Frame):
         """
         self.temp[varname] = settings.plot_dir
         self.controller.clear('FileBrowser')
-        self.controller.show_frame('FileBrowser')
+        safe_raise(self.controller, 'FileBrowser', 'Writer')
+        self.controller.show_frame('CloseWidget')
 
 
 class Audience(Frame):
@@ -548,7 +549,8 @@ class MainView(tk.Tk):
         tk.Tk.__init__(self, *args, **kwargs)
         global rt_data
         self.rt_data = rt_data
-        self.rt_data['temp'] = dict()
+        self.temp = self.rt_data['temp'] = dict()
+        self.target = self.temp['targetframe'] = 'Writer'  # This is the page we will raise after a widget is closed.
         self.rt_data['key_test'] = StringVar()  # TODO: This is just for testing the keyboard.
         self.rt_data['key_test'].set('')
 
@@ -562,7 +564,7 @@ class MainView(tk.Tk):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
         self.frames = dict()
-        for F in (Home, Writer, Audience, Keyboard, NumPad, FileBrowser,):  # Ensure the primary classes are passed before the widgets.
+        for F in (Home, Writer, Audience, Keyboard, NumPad, FileBrowser, CloseWidget):  # Ensure the primary classes are passed before the widgets.
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -591,6 +593,12 @@ class MainView(tk.Tk):
                     highlightbackground=theme['entrybackground']
                 )
                 frame.grid(row=0, column=0)
+            elif page_name == 'CloseWidget':
+                frame.configure(
+                    height=(pry(18)),
+                    width=(prx(10)),
+                )
+                frame.grid(row=0, column=0, sticky=NW)
             else:
                 frame.grid(row=0, column=0, sticky="nsew")
 
@@ -622,11 +630,11 @@ class NumPad(Frame):
     """
     Creates a simple number pad.
     """
-    def __init__(self, parent, controller, target='Writer'):
+    def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         global rt_data
         self.rt_data = rt_data
-        self.target = target
+        self.target = controller.target
         self.temp = self.rt_data['temp']
         self.model = parent
         self.controller = controller
@@ -717,12 +725,12 @@ class Keyboard(Frame):
     TODO: Now that i think about it we are gonna have to pass that through the real time model...
     """
 
-    def __init__(self, parent, controller, target='Writer'):
+    def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         global rt_data
         self.rt_data = rt_data
         self.temp = self.rt_data['temp']
-        self.target = target
+        self.target = controller.target
         self.wordvar = StringVar()
         self.wordvar.set('')
         self.word = ''
@@ -860,8 +868,9 @@ class Keyboard(Frame):
 class FileBrowser(Frame):
     """
     This is a pretty cute touch oriented file browser.
+
     """
-    def __init__(self, parent, controller, target='Writer'):
+    def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         global rt_data
         self.rt_data = rt_data
@@ -869,7 +878,7 @@ class FileBrowser(Frame):
         self.controller = controller
         self.frame = VerticalScrolledFrame(self)  # Change this to get the lifting right.
         self.frame.pack()
-        self.target = target
+        self.target = controller.target
         self.buttons = list()
         self.ext = self.temp['ext']
         self.dir = self.temp['folder']
@@ -1033,6 +1042,50 @@ class VerticalScrolledFrame(Frame):
         self.interior.pack_forget()
 
 
+class CloseWidget(Frame):
+    """
+    This is the object we will call to offer to drop a widget and raise the target frame.
+    """
+    def __init__(self, parent, controller):
+        Frame.__init__(self, parent)
+        global rt_data
+        self.controller = controller
+        self.target = controller.target
+        self.temp = rt_data['temp']
+        x = pry(20)
+        y = pry(18)
+        image = PhotoImage(file=img('close.png', 10, 10))
+        self.close_button_frame = Frame(
+            self,
+            height=y,
+            width=x
+        )
+        self.close_button_frame.grid(row=0, column=0)
+        # self.close_button_frame.grid_columnconfigure(0, weight=1)
+        self.close_button = Button(
+            self.close_button_frame,
+            height=y,
+            width=x,
+            image=image,
+            command=lambda: self.drop_event(),
+        )
+        self.close_button.image = image
+        config_button(self.close_button)
+        self.close_button.pack()
+
+    def drop_event(self):
+        """
+        This will raise the target frame hiding whatever widget is currently in focus.
+        """
+        self.controller.show_frame(self.target)
+
+    def show(self):
+        """
+        This allows us to raise the close button widget from a parent.
+        """
+        self.tkraise()
+
+
 def config_button(element):
     """
     This configures our button styles.
@@ -1120,6 +1173,14 @@ def config_button_text(element, text):
         fg=theme['buttontext']
     )
     return element
+
+
+def safe_raise(controller, fraise, fsource):
+    """
+    This safly rases widgets so they don't stack.
+    """
+    controller.show_frame(fsource)
+    controller.show_frame(fraise)
 
 
 def open_window(parent):
