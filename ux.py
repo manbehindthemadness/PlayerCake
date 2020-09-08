@@ -18,6 +18,7 @@ from warehouse.utils import percent_of, percent_in, file_rename, image_resize
 from writer.plot import pymesh_stl
 import settings
 import os
+import pyqrcode
 
 scr_x, scr_y = settings.screensize
 
@@ -551,8 +552,10 @@ class MainView(tk.Tk):
         self.rt_data = rt_data
         self.temp = self.rt_data['temp'] = dict()
         self.target = self.temp['targetframe'] = 'Writer'  # This is the page we will raise after a widget is closed.
+        self.entertext = self.temp['entertext'] = 'enter'
         self.rt_data['key_test'] = StringVar()  # TODO: This is just for testing the keyboard.
         self.rt_data['key_test'].set('')
+        self.update()  # I wish I had thought of this sooner...
 
         container = tk.Frame(self)
         container.place(
@@ -624,6 +627,13 @@ class MainView(tk.Tk):
         """
         frame = self.get_frame(page_name)
         frame.clear()
+
+    def update(self):
+        """
+        This updates the controller with all the new values in the real time data model.
+        """
+        for setting in self.rt_data:
+            exec('self.' + setting + ' = self.rt_data[setting]')
 
 
 class NumPad(Frame):
@@ -745,7 +755,7 @@ class Keyboard(Frame):
                     [
                         ('`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\\', 'del'),
                         ('q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']'),
-                        ('a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', "'", "enter"),
+                        ('a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', "'", self.controller.entertext),
                         ('z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/'),
                         ('caps', '\t\tspace\t\t')
                     ]
@@ -882,6 +892,9 @@ class FileBrowser(Frame):
         self.buttons = list()
         self.ext = self.temp['ext']
         self.dir = self.temp['folder']
+        self.bad = True  # Toggle grey-out of wrong file types.
+        if not self.ext:
+            self.bad = False
         self.list_dirs()
 
     def list_dirs(self):
@@ -895,6 +908,13 @@ class FileBrowser(Frame):
                 Button(self.frame.interior, text='...', command=lambda: self.up_event())
             )
         )
+        if not self.bad:
+            self.buttons.append(
+                config_file_button(
+                    Button(self.frame.interior, text='< select folder >', command=lambda: self.up_event())
+                )
+            )
+
         self.buttons[-1].pack()
         files = os.listdir(self.dir)
         for i in files:
@@ -908,9 +928,16 @@ class FileBrowser(Frame):
                         config_file_button(Button(self.frame.interior, text=i, command=lambda q=i: self.select_event(q)))
                     )
                 else:
-                    self.buttons.append(
-                        config_file_button(Label(self.frame.interior, text=i), True)
-                    )
+                    if self.bad:
+                        self.buttons.append(
+                            config_file_button(Label(self.frame.interior, text=i), True)
+                        )
+                    else:
+                        self.buttons.append(
+                            config_file_button(
+                                Button(self.frame.interior, text=i, command=lambda q=i: self.select_event(q)))
+                        )
+
             self.buttons[-1].pack()
 
     def clear(self):
@@ -941,9 +968,16 @@ class FileBrowser(Frame):
     def select_event(self, filename):
         """
         This will pass the filename variable into realtime data and drop the browser frame.
+
+        TODO: When we want to perform a file-save operation we will set the ext variable to not-true.
         """
-        self.temp['targetfile'].set(self.temp['folder'] + '/' + filename)  # Build full path.
-        self.controller.show_frame(self.target)  # Set global target file.
+        if self.ext:
+            self.temp['targetfile'].set(self.temp['folder'] + '/' + filename)  # Build full path.
+            self.controller.show_frame(self.target)  # Set global target file.
+        else:
+            self.controller.entertext = 'save'
+            self.controller.show_frame('Keyboard')
+            print('Save file logic here!')
 
 
 class VerticalScrolledFrame(Frame):
@@ -1042,7 +1076,6 @@ class VerticalScrolledFrame(Frame):
         """
         resets the canvas position.
         """
-        print('doing reset')
         self.canvas.xview_moveto(0)
         self.canvas.yview_moveto(0)
 
@@ -1096,6 +1129,23 @@ class CloseWidget(Frame):
         This allows us to raise the close button widget from a parent.
         """
         self.tkraise()
+
+
+class QRCodeLabel(Label):
+    """
+    Cute little QR code maker.
+    """
+    def __init__(self, parent, qr_data, scale=8):
+        super().__init__(parent)
+        tmp_img = os.getcwd() + '/img/temp/'
+        url = pyqrcode.create(qr_data)
+        url.png(tmp_img + 'qr.png', scale=scale)
+        self.image = tk.PhotoImage(file=tmp_img + 'qr.png')
+        self.x = self.image.width()
+        self.y = self.image.height()
+        self.configure(
+            image=self.image
+        )
 
 
 def config_button(element):
