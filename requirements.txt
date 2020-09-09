@@ -38,6 +38,7 @@ pyftdi
 PyGObject
 pykalman
 pymesh2
+pyqrcode
 pyserial
 python-apt
 pyusb
