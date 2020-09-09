@@ -16,9 +16,11 @@ from tkinter.filedialog import askopenfilename
 from warehouse.system import system_command
 from warehouse.utils import percent_of, percent_in, file_rename, image_resize
 from writer.plot import pymesh_stl
-import settings
+# import settings
+from settings import settings
 import os
 import pyqrcode
+import uuid
 
 scr_x, scr_y = settings.screensize
 
@@ -32,7 +34,6 @@ system_command(['/usr/bin/xhost', '+'])
 system_command(['echo', '$DISPLAY'])
 
 rt_data = dict()
-# rt_data['temp'] = dict()
 
 
 class Page(Frame):
@@ -212,7 +213,6 @@ class Writer(Frame):
         self.rt_data['plotfile'] = str()
         self.folder = None
         self.ext = None
-        # self.rt_data['temp'] = dict()
         self.rt_data['0'] = StringVar()
         self.rt_data['0'].set('0')
 
@@ -226,6 +226,13 @@ class Writer(Frame):
         self.temp['ext'] = '.obj'
         self.temp['folder'] = settings.plot_dir
         self.temp['targetfile'] = StringVar()
+        self.temp['qr_data'] = str({
+            'ssid': settings.ssid,
+            'secret': settings.secret,
+            'enc': 'WPA',
+            'directorid': settings.director_id,
+            'stageid': str(uuid.uuid4())
+        })
 
         self.controller = controller
         self.numpad = NumPad(self, self.controller)
@@ -323,14 +330,14 @@ class Writer(Frame):
         self.receive_button = self.full_button(
             self.left_panel_frame,
             'fullbuttonframe.png',
-            command='',
+            command=lambda: self.show_keyboard('key_test'),
             text='receive'
         )
         self.receive_button.grid(row=6, columnspan=2)
         self.pair_button = self.full_button(
             self.left_panel_frame,
             'fullbuttonframe.png',
-            command=lambda: self.show_keyboard('key_test'),
+            command=lambda: self.show_qr_code(),
             text='pair'
         )
         self.pair_button.grid(row=7, columnspan=2)
@@ -530,6 +537,20 @@ class Writer(Frame):
         safe_raise(self.controller, 'FileBrowser', 'Writer')
         self.controller.show_frame('CloseWidget')
 
+    def show_qr_code(self):
+        """
+        This will create and show a QR code reflecting the temp data stored in key qr_data.
+        """
+
+        safe_raise(self.controller, 'QRCodeWidget', 'Writer')
+        self.controller.refresh('QRCodeWidget')
+        self.controller.show_frame('CloseWidget')
+        qr_data = eval(self.temp['qr_data'])
+        # TODO: We may need to investigate additional handling of this during the pairing procedure.
+        qr_data['stageid'] = str(uuid.uuid4())  # Refresh id for the next stage.
+        self.temp['qr_data'] = str(qr_data)
+        print(self.temp['qr_data'])
+
 
 class Audience(Frame):
     """
@@ -567,7 +588,16 @@ class MainView(tk.Tk):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
         self.frames = dict()
-        for F in (Home, Writer, Audience, Keyboard, NumPad, FileBrowser, CloseWidget):  # Ensure the primary classes are passed before the widgets.
+        for F in (  # Ensure the primary classes are passed before the widgets.
+                Home,
+                Writer,
+                Audience,
+                Keyboard,
+                NumPad,
+                FileBrowser,
+                CloseWidget,
+                QRCodeWidget
+        ):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -602,6 +632,13 @@ class MainView(tk.Tk):
                     width=(prx(10)),
                 )
                 frame.grid(row=0, column=0, sticky=NW)
+            elif page_name == 'QRCodeWidget':
+                frame.configure(
+                    height=pry(90),
+                    width=pry(90),
+                    bg='white'
+                )
+                frame.grid(row=0, column=0)
             else:
                 frame.grid(row=0, column=0, sticky="nsew")
 
@@ -620,6 +657,13 @@ class MainView(tk.Tk):
         """
         frame = self.get_frame(page_name)
         frame.tkraise()
+
+    def refresh(self, page_name):
+        """
+        We can use this to refresh the target frame.
+        """
+        frame = self.get_frame(page_name)
+        frame.refresh()
 
     def clear(self, page_name):
         """
@@ -1106,7 +1150,6 @@ class CloseWidget(Frame):
             width=x
         )
         self.close_button_frame.grid(row=0, column=0)
-        # self.close_button_frame.grid_columnconfigure(0, weight=1)
         self.close_button = Button(
             self.close_button_frame,
             height=y,
@@ -1136,16 +1179,60 @@ class QRCodeLabel(Label):
     Cute little QR code maker.
     """
     def __init__(self, parent, qr_data, scale=8):
-        super().__init__(parent)
-        tmp_img = os.getcwd() + '/img/temp/'
+        Label.__init__(self, parent)
+        tmp_img = os.getcwd() + '/img/tmp/'
         url = pyqrcode.create(qr_data)
         url.png(tmp_img + 'qr.png', scale=scale)
-        self.image = tk.PhotoImage(file=tmp_img + 'qr.png')
+        self.image = PhotoImage(file=tmp_img + 'qr.png')
         self.x = self.image.width()
         self.y = self.image.height()
         self.configure(
             image=self.image
         )
+        os.remove(tmp_img + 'qr.png')
+
+
+class QRCodeWidget(Frame):
+    """
+    This is the QR code frame we will use to onboard and bind downstream stages.
+    """
+    def __init__(self, parent, controller):
+        Frame.__init__(self, parent)
+        self.controller = controller
+        global rt_data
+        self.rt_data = controller.rt_data
+        self.temp = self.rt_data['temp']
+        self.qr_data = self.temp['qr_data']
+        self.qr_label = None
+        self.refresh = self.build_qr
+        self.refresh()
+
+    def build_qr(self):
+        """
+        This refreshes the QR code and displays the code in our widget.
+        """
+        if self.qr_label:
+            self.clear()
+        self.qr_label = QRCodeLabel(self, self.qr_data, theme['qrscale'])
+        self.qr_label.pack()
+
+    def drop_event(self):
+        """
+        This lifts the parent frame.
+        """
+        self.controller.show_frame(self.controller.target)
+
+    def show(self):
+        """
+        Lift self.
+        """
+        self.tkraise()
+
+    def clear(self):
+        """
+        This allows us to remove the qr data after we are finished with the code.
+        """
+        self.qr_label.destroy()
 
 
 def config_button(element):

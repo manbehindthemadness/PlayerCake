@@ -3,11 +3,13 @@ This is where we house general utilities.
 """
 import datetime
 import re
+import os
 from colour import Color
 from PIL import Image
 from resizeimage import resizeimage
-from os import path
+from os import path, rename, remove
 from pathlib import Path
+import configparser
 
 
 def to_color(limit_low, limit_high):
@@ -101,8 +103,121 @@ def open_file(filename):
     :return: Contents of file.
     :rtype: str
     """
-    file = open(filename)
+    file = open(filename, 'r+')
     return file.read()
+
+
+def update_setting(filename, section, setting, value, merge=False):
+    """
+    Here we are able to update a settings file's contents, this is for deploying new settings.
+
+    NOTE: THis will create a file if it's not present.
+    """
+    def fileswap(file):
+        """
+        Does a silly musical chairs with the files to work around the update limitation.
+        """
+        with open(file + '.new', "w") as fh:
+            config.write(fh)
+        rename(file, file + "~")
+        rename(file + ".new", file)
+        remove(file + "~")
+
+    if not os.path.exists(filename):
+        os.mknod(filename)
+    config = configparser.ConfigParser()
+    config.read(filename, encoding='utf-8-sig')
+    try:
+        if merge:
+            try:
+                config.get(section, setting)
+            except configparser.NoOptionError:  # Check for missing setting.
+                config.set(section, setting, value)
+        else:
+            config.set(section, setting, value)
+        fileswap(filename)
+    except configparser.NoSectionError:  # Check for missing section.
+        config.add_section(section)
+        fileswap(filename)
+        config = update_setting(filename, section, setting, value)  # Loop to go back and add settings to the newly added section.
+    return config
+
+
+class BuildSettings:
+    """
+    This constructs a reloadable settings module.
+    """
+    def __init__(self, filename, defaults=None):
+        self.config = configparser.ConfigParser()
+        self.filename = filename
+        self.settings = dict()
+        self.defaults = defaults
+        self.default_settings = dict()
+        self.upgrade()
+
+    def load(self, defaults=None):
+        """
+        Loads or reloads the settings file.
+        """
+        file = self.filename
+        store = self.settings
+        if defaults:
+            file = defaults
+            store = self.default_settings
+        self.config.read(file, encoding='utf-8-sig')
+        for section in self.config.sections():
+            for (key, val) in self.config.items(section):
+                store[key] = val
+                val = val.replace('\n', '')
+                try:
+                    exec('self.' + key + ' = eval("' + val + '")')
+                except NameError:
+                    exec('self.' + key + ' = "' + val + '"')
+        return self
+
+    def save(self, upgrade=False):
+        """
+        Saves the current settings model to file.
+        """
+        store = self.settings
+        if upgrade:
+            store = self.default_settings
+        for key in store:
+            update_setting(
+                self.filename,
+                'settings',
+                key,
+                store[key],
+                upgrade
+            )
+        self.load()
+        return self
+
+    def add(self, setting, value):
+        """
+        This will add a setting into our setup.
+        """
+        if setting in self.settings.keys():
+            raise KeyError
+        else:
+            self.settings[setting] = value
+            self.save()
+        return self
+
+    def upgrade(self):
+        """
+        This takes any new settings from the defaults file and merges them into settings.ini.
+        """
+        self.load(self.defaults)
+        self.save(upgrade=True)
+        return self
+
+    def set(self, setting, value):
+        """
+        This changes a specific setting value.
+        """
+        self.settings[setting] = value
+        return self
 
 
 def get_time_secs(timestamp):

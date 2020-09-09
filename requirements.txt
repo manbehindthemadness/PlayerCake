@@ -18,6 +18,7 @@ cbor2
 chardet
 cryptography
 colour
+configparser
 distlib
 entrypoints
 filelock
