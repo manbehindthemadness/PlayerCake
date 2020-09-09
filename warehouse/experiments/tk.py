@@ -23,7 +23,7 @@ print(display)
 class QRCodeLabel(tk.Label):
     def __init__(self, parent):
         super().__init__(parent)
-        s = "www.geeksforgeeks.org"
+        s = "Hey Nicole, I thought you would think this is neat ;)"
         url = pyqrcode.create(s)
         url.png('myqr.png', scale=8)
         self.image = tk.PhotoImage(file='myqr.png')
