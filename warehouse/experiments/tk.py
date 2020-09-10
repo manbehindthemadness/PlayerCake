@@ -1,15 +1,12 @@
 """
 Tkinter playground...
+
+Count frames: identify -format "%n\n" Hover.gif | head -n 1
+
+'/home/pi/playercake/img/base/Hover.gif'
 """
 import os
-import random
-import tkinter as tk
-from tkinter.font import Font
-
-import pyqrcode
-from pyqrcode import QRCode
-import png
-from PIL import Image, ImageTk
+from tkinter import *
 
 from warehouse.system import system_command
 
@@ -17,29 +14,40 @@ os.environ['DISPLAY'] = 'localhost:11.0'
 os.environ['XAUTHORITY'] = '/home/pi/.Xauthority'
 system_command(['/usr/bin/xhost', '+'])
 display = system_command(['echo', '$DISPLAY'])
-print(display)
+
+root = Tk()
 
 
-class QRCodeLabel(tk.Label):
+class Animation(Frame):
+    """
+    Nifty gif animmated widget.
+    """
     def __init__(self, parent):
-        super().__init__(parent)
-        s = "Hey Nicole, I thought you would think this is neat ;)"
-        url = pyqrcode.create(s)
-        url.png('myqr.png', scale=8)
-        self.image = tk.PhotoImage(file='myqr.png')
-        self.x = self.image.width()
-        self.y = self.image.height()
-        self.configure(
-            image=self.image
-        )
-
-
-class App(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.label = QRCodeLabel(self)
+        Frame.__init__(self, parent)
+        image = '/home/pi/playercake/img/base/Hover.gif'
+        self.total_frames = int(system_command(['identify', '-format', '"%n\\n"', image]).split('\n')[0].replace('"', ''))
+        self.frames = [PhotoImage(file=image, format='gif -index %i' % i) for i in range(self.total_frames)]
+        self.label = Label(parent)
         self.label.pack()
+        self.label.after(0, self.update, 0)
+
+    # noinspection PyMethodOverriding
+    def update(self, ind):
+        """
+        This is just an update loop.
+        """
+        maxx = self.total_frames - 1
+        frame = self.frames[ind]
+
+        self.label.configure(image=frame)
+
+        if ind >= maxx:
+            ind = 0
+        else:
+            ind += 1
+        self.after(maxx, self.update, ind)
+        return self
 
 
-if __name__ == "__main__":
-    App().mainloop()
+label = Animation(root)
+root.mainloop()
