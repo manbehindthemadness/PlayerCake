@@ -10,17 +10,19 @@ NOTE: THE X-SERVER MUST BE RUNNING!
 
 Good REf: https://stackoverflow.com/questions/7546050/switch-between-two-frames-in-tkinter
 """
+import os
 import tkinter as tk
+import uuid
 from tkinter import *
 from tkinter.filedialog import askopenfilename
+
+import pyqrcode
+
+# import settings
+from settings import settings
 from warehouse.system import system_command
 from warehouse.utils import percent_of, percent_in, file_rename, image_resize
 from writer.plot import pymesh_stl
-# import settings
-from settings import settings
-import os
-import pyqrcode
-import uuid
 
 scr_x, scr_y = settings.screensize
 
@@ -37,10 +39,10 @@ rt_data = dict()
 
 
 class Page(Frame):
-
     """
     Base page.
     """
+
     def __init__(self, *args, **kwargs):
         tk.Frame.__init__(self, *args, **kwargs)
 
@@ -55,6 +57,7 @@ class Home(Frame):
     """
     This is the homepage of the writer interface
     """
+
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         global rt_data
@@ -101,8 +104,10 @@ class Home(Frame):
             height=pry(25)
         )
 
-        self.writer_entry_button = self.entry_button('writer.png', command=lambda: controller.show_frame("Writer"))  # Place entry buttons.
-        self.audience_entry_button = self.entry_button('audience.png', command=lambda: controller.show_frame("Audience"))
+        self.writer_entry_button = self.entry_button('writer.png', command=lambda: controller.show_frame(
+            "Writer"))  # Place entry buttons.
+        self.audience_entry_button = self.entry_button('audience.png',
+                                                       command=lambda: controller.show_frame("Audience"))
         self.writer_entry_button.grid(row=0, column=0, sticky=W)
         self.entry_spacer = Frame(
             self.entry_frame,
@@ -261,8 +266,9 @@ class Writer(Frame):
         self.plot_frame.place(  # Place plotframe.
             x=cp(prx(50), scr_y),
             width=scr_y,
-            height=scr_y
+            height=scr_y,
         )
+
         self.panel_size = int((scr_x - scr_y) / 2)  # Figure our panel size.
         self.left_panel_frame = Frame(  # Setup left panel.
             self.base,
@@ -382,7 +388,8 @@ class Writer(Frame):
             self.full_button(
                 self.right_panel_frame,
                 'circle.png',
-                lambda weight=weight: self.show_numpad(weight),  # Remember we need to declare x=x to instance the variable.
+                lambda weight=weight: self.show_numpad(weight),
+                # Remember we need to declare x=x to instance the variable.
                 eval(weight + 'var')
             ).grid(row=r, columnspan=2)
             r += 1
@@ -490,20 +497,25 @@ class Writer(Frame):
         """
         This will render the actual plots into the writer app.
         """
+        plotfile = self.rt_data['plotfile'] = self.temp['targetfile'].get()  # Fetch plot file.
+        if plotfile:
+            self.controller.show_frame('LoadingIcon')  # Raise loading icon.
+
         if self.plot:  # Clear if needed.
             self.plot.get_tk_widget().pack_forget()  # Clear old plot.
 
         self.update_defaults()  # update with latest config.
 
-        plotfile = self.rt_data['plotfile'] = self.temp['targetfile'].get()  # Fetch plot file.
         self.plotfile.set(  # Update filename label.
             self.rt_data['plotfile'].split('/')[-1]
         )
         if plotfile:
             if self.plot:  # Clear if needed.
                 self.plot.get_tk_widget().pack_forget()  # Clear old plot.
-            self.plot = self.plotter(plotfile, self.plot_frame, theme, settings.defaults, 1, self.rt_data)  # TODO: This will need to be revised for simulations.
+            self.plot = self.plotter(plotfile, self.plot_frame, theme, settings.defaults, 1,
+                                     self.rt_data)  # TODO: This will need to be revised for simulations.
             self.plot.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH)  # Fetch canvas widget.
+        self.controller.show_frame('Writer')  # Hide loading icon.
         return self.plot
 
     def show_numpad(self, varname):
@@ -526,6 +538,7 @@ class Writer(Frame):
         """
         self.temp['word'].set(varname)
         safe_raise(self.controller, 'Keyboard', 'Writer')
+
         self.controller.show_frame('CloseWidget')
 
     def show_file_browser(self, varname):
@@ -556,6 +569,7 @@ class Audience(Frame):
     """
     Audience page.
     """
+
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         self.controller = controller
@@ -567,6 +581,7 @@ class MainView(tk.Tk):
     """
     Main application root.
     """
+
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
         global rt_data
@@ -596,7 +611,8 @@ class MainView(tk.Tk):
                 NumPad,
                 FileBrowser,
                 CloseWidget,
-                QRCodeWidget
+                QRCodeWidget,
+                LoadingIcon
         ):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
@@ -637,6 +653,13 @@ class MainView(tk.Tk):
                     height=pry(90),
                     width=pry(90),
                     bg='white'
+                )
+                frame.grid(row=0, column=0)
+            elif page_name == 'LoadingIcon':
+                frame.configure(
+                    height=prx(15),
+                    width=pry(15),
+                    bg=theme['main']
                 )
                 frame.grid(row=0, column=0)
             else:
@@ -684,6 +707,7 @@ class NumPad(Frame):
     """
     Creates a simple number pad.
     """
+
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         global rt_data
@@ -897,7 +921,7 @@ class Keyboard(Frame):
         """
         return self.rt_data[self.temp['word'].get()]
 
-    def set_word(self,  word):
+    def set_word(self, word):
         """
         Sets or updates the word variable.
         """
@@ -924,6 +948,7 @@ class FileBrowser(Frame):
     This is a pretty cute touch oriented file browser.
 
     """
+
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         global rt_data
@@ -964,12 +989,14 @@ class FileBrowser(Frame):
         for i in files:
             if os.path.isdir(self.dir + i):
                 self.buttons.append(
-                    config_file_button(Button(self.frame.interior, text=i + '/', command=lambda q=i: self.folder_event(q)))
+                    config_file_button(
+                        Button(self.frame.interior, text=i + '/', command=lambda q=i: self.folder_event(q)))
                 )
             else:
                 if i[-4:] == self.ext:
                     self.buttons.append(
-                        config_file_button(Button(self.frame.interior, text=i, command=lambda q=i: self.select_event(q)))
+                        config_file_button(
+                            Button(self.frame.interior, text=i, command=lambda q=i: self.select_event(q)))
                     )
                 else:
                     if self.bad:
@@ -1031,6 +1058,7 @@ class VerticalScrolledFrame(Frame):
     * This frame only allows vertical scrolling
 
     """
+
     def __init__(self, parent):
         Frame.__init__(self, parent)
 
@@ -1069,6 +1097,7 @@ class VerticalScrolledFrame(Frame):
             if interior.winfo_reqwidth() != canvas.winfo_width():
                 # update the canvas's width to fit the inner frame
                 canvas.config(width=interior.winfo_reqwidth())
+
         interior.bind('<Configure>', _configure_interior)
 
         def _configure_canvas(event):
@@ -1076,6 +1105,7 @@ class VerticalScrolledFrame(Frame):
             if interior.winfo_reqwidth() != canvas.winfo_width():
                 # update the inner frame's width to fill the canvas
                 canvas.itemconfigure(self.interior_id, width=canvas.winfo_width())
+
         canvas.bind('<Configure>', _configure_canvas)
 
         self.offset_y = 0
@@ -1135,6 +1165,7 @@ class CloseWidget(Frame):
     """
     This is the object we will call to offer to drop a widget and raise the target frame.
     """
+
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         global rt_data
@@ -1178,6 +1209,7 @@ class QRCodeLabel(Label):
     """
     Cute little QR code maker.
     """
+
     def __init__(self, parent, qr_data, scale=8):
         Label.__init__(self, parent)
         tmp_img = os.getcwd() + '/img/tmp/'
@@ -1196,6 +1228,7 @@ class QRCodeWidget(Frame):
     """
     This is the QR code frame we will use to onboard and bind downstream stages.
     """
+
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         self.controller = controller
@@ -1233,6 +1266,64 @@ class QRCodeWidget(Frame):
         This allows us to remove the qr data after we are finished with the code.
         """
         self.qr_label.destroy()
+
+
+class LoadingIcon(Frame):
+    """
+    This is a cool animated loading icon.
+    """
+    def __init__(self, parent, controller):
+        Frame.__init__(self, parent)
+        self.controller = controller
+        self.animated_label = LoadingAnimation(self)
+
+        self.configure(
+            width=prx(15),
+            height=pry(15),
+            bg='red'
+        )
+
+
+
+class LoadingAnimation(Frame):
+    """
+    Nifty gif animmated widget.
+    """
+    def __init__(self, parent):
+        Frame.__init__(self, parent)
+        # images = '/home/pi/playercake/img/base/Leonardo/'
+        self.total_frames = 51
+        self.frames = list()
+        for frame in range(self.total_frames):
+            frame_file = 'Leonardo_' + f"{frame:05d}" + '.png'
+            # self.frames.append(PhotoImage(file=image + frame_file))
+            frame_file = img(frame_file, 15, 15, folder_add='Leonardo/')
+            self.frames.append(PhotoImage(file=frame_file))
+        # self.total_frames = int(system_command(['identify', '-format', '"%n\\n"', image]).split('\n')[0].replace('"', ''))
+        # self.frames = [PhotoImage(file=image, format='gif -index %i' % i) for i in range(self.total_frames)]
+        self.label = Label(parent)
+        self.label.configure(
+            bg=theme['main']
+        )
+        self.label.pack()
+        self.label.after(0, self.update, 0)
+
+    # noinspection PyMethodOverriding
+    def update(self, ind):
+        """
+        This is just an update loop.
+        """
+        maxx = self.total_frames - 1
+        frame = self.frames[ind]
+
+        self.label.configure(image=frame)
+
+        if ind >= maxx:
+            ind = 0
+        else:
+            ind += 1
+        self.after(maxx, self.update, ind)
+        return self
 
 
 def config_button(element):
@@ -1375,18 +1466,26 @@ def priy(percent):
     return percent_in(percent, scr_y)
 
 
-def img(image, x_percent, y_percent, aspect=True):
+def img(image, x_percent, y_percent, aspect=True, folder_add=False):
     """
     Quick and dirty way to grab images.
+
+    :type image: str
+    :type x_percent: int
+    :type y_percent: int
+    :type aspect: bool
+    :type folder_add: bool, str
     """
-    image = file_rename(settings.theme + '_', image, reverse=True)
+    if not folder_add:
+        image = file_rename(settings.theme + '_', image, reverse=True)
     image = image_resize(
         scr_x,
         scr_y,
         image,
         x_percent,
         y_percent,
-        aspect
+        aspect,
+        folder_add
     )
     return image
 
@@ -1401,7 +1500,6 @@ def pointsy(percent):
 
 
 def openfile(defdir):
-
     """
     Opens a file.
     """
@@ -1409,7 +1507,7 @@ def openfile(defdir):
         initialdir=os.path.abspath(os.getcwd() + defdir),
         filetypes=[("Obj files", "*.obj")],
         title="Choose a file."
-        )
+    )
     return name
 
 

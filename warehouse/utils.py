@@ -306,7 +306,7 @@ def file_exists(file):
     return path.exists(file)
 
 
-def image_resize(x, y, image, x_percent, y_percent, preserve_aspect=True):
+def image_resize(x, y, image, x_percent, y_percent, preserve_aspect=True, folder_add=False):
     """
     This resizes images to a percentage of x and y and saves it to the /img folder
     This skips the action if the resized file already exists.
@@ -326,6 +326,8 @@ def image_resize(x, y, image, x_percent, y_percent, preserve_aspect=True):
     :type y_percent: int, float
     :param preserve_aspect: Toggles preservation of the aspect ratio.
     :type preserve_aspect: bool
+    :param folder_add: This adds a subfolder to the source path.
+    :type folder_add: bool, str
     :return: Resized image's file name.
     :rtype: str
     """
@@ -337,6 +339,8 @@ def image_resize(x, y, image, x_percent, y_percent, preserve_aspect=True):
     # print('target', tfn)
     if not file_exists(tfn):
         sp = base / Path('img/base')
+        if folder_add:
+            sp = base / Path('img/base/' + folder_add)
         sfn = sp / image
         # print('source', sfn)
         if file_exists(sfn):
