@@ -14,6 +14,8 @@ from matplotlib import rcParams
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from mpl_toolkits import mplot3d
 
+mplot = mplot3d
+
 
 def mesh_sorter(mesh):
     """

@@ -9,6 +9,8 @@ NOTE: Copy the .Xauthority file from root to pi.
 NOTE: THE X-SERVER MUST BE RUNNING!
 
 Good REf: https://stackoverflow.com/questions/7546050/switch-between-two-frames-in-tkinter
+
+TODO: NOTE!! Buttons and Labels are sized by the number of chars UNLESS they have an image!
 """
 import os
 import tkinter as tk
@@ -36,6 +38,13 @@ system_command(['/usr/bin/xhost', '+'])
 system_command(['echo', '$DISPLAY'])
 
 rt_data = dict()
+
+
+def get_spacer():
+    """
+    Returns a spacer image.
+    """
+    return PhotoImage(file='img/base/spacer.png')
 
 
 class Page(Frame):
@@ -308,7 +317,7 @@ class Writer(Frame):
         self.rehersal_button = self.full_button(
             self.left_panel_frame,
             'fullbuttonframe.png',
-            command='',
+            command=lambda: self.show_rehearsal(),
             text='rehersal'
         )
         self.rehersal_button.grid(row=2, columnspan=2)
@@ -365,7 +374,6 @@ class Writer(Frame):
         self.plotfile = StringVar()  # Set variable for plot file.
         self.plotfile_label = self.full_label(self.right_panel_frame, self.plotfile)  # Get plot file label.
         self.plotfile_label.grid(row=0, columnspan=2)  # Place plotfile label.
-
         weights = [
             'weightxmin',
             'weightxmax',
@@ -564,6 +572,220 @@ class Writer(Frame):
         self.temp['qr_data'] = str(qr_data)
         print(self.temp['qr_data'])
 
+    def show_rehearsal(self):
+        """
+        This will raise the audition frame.
+        """
+        self.controller.refresh('Rehearsal')
+        safe_raise(self.controller, 'Rehearsal', 'Writer')
+        self.controller.show_frame('CloseWidget')
+
+
+class Rehearsal(Frame):
+    """
+    This is the audition interface.
+
+    weightxmin',
+    weightxmax',
+    weightymin',
+    weightymax',
+    contact'
+    """
+    def __init__(self, parent, controller):
+        Frame.__init__(self, parent)
+        self.controller = controller
+        self.rt_data = controller.rt_data
+        self.temp = self.rt_data['temp']
+        self.stagedata = self.temp['stagedata']
+        self.stagetarget = self.temp['stagetarget']
+        self.stagename = StringVar()
+        self.stagename.set('')
+        self.details = StringVar()
+        self.stage_id = str()
+        self.stage_buttons = list()
+        self.base = Frame(
+            self,
+            bg='grey',
+            width=prx(70),
+            height=pry(90)
+        )
+        self.base.place(  # Place Base.
+            width=prx(70),
+            height=pry(90)
+        )
+        #  ##########
+        #  Left panel
+        #  ##########
+        self.stage_title_frame = Frame(  # Place title.
+            self.base,
+            width=prx(23),
+            height=pry(10),
+        )
+        self.stage_title_frame.grid(row=0, column=0)
+        Label(
+            self.stage_title_frame,
+            text='stage selection:',
+            bg=theme['main'],
+            fg=theme['buttontext'],
+            pady=pry(2)
+        ).pack()
+        self.stage_selector = Frame(  # Place scroll list.
+            self.base,
+            width=prx(25),
+            height=pry(70),
+        )
+        self.stage_selector.grid(row=1, column=0, sticky=N)
+        self.stage_list = VerticalScrolledFrame(self.stage_selector)
+        self.stage_list.pack()
+        self.selected_stage_frame = Frame(
+            self.base,
+            width=prx(23),
+            height=pry(10),
+        )
+        self.selected_stage_frame.grid(row=2, column=0, sticky="nsew")  # Place selected stage.
+        Label(
+            self.selected_stage_frame,
+            textvariable=self.stagename,
+            bg=theme['main'],
+            fg=theme['buttontext'],
+            pady=pry(2)
+        ).pack(side=TOP, expand=YES)
+
+        self.list_stages()
+
+        #  ###########
+        #  Right panel
+        #  ###########
+        self.right_panel_frame = Frame(  # Frame section.
+            self.base,
+            height=pry(90),
+            width=prx(20),
+            bg='red'
+        )
+        self.right_panel_frame.grid(row=0, rowspan=3, column=1, sticky=N)  # Frame right panel.
+        self.button_array(  # Make top buttons.
+            self.right_panel_frame,
+            ['save', 'open', 'rename', 'delete'],
+            ['', '', '', ''],
+            0
+        )
+        self.details_frame = Frame(  # Frame details.
+            self.right_panel_frame,
+            width=prx(50),
+            height=pry(67),
+            bg='blue'
+        )
+        self.details_frame.grid(row=1, columnspan=4)
+        Label(
+            self.details_frame,
+            textvariable=self.details,
+            image=get_spacer(),
+            height=pry(67),
+            width=prx(40),
+            compound='center',
+            bg=theme['main'],
+            fg=theme['buttontext'],
+            anchor=W
+        ).grid(row=0, column=0, sticky=W)
+
+        self.velocity = StringVar()
+        self.velocity.set('velocity: ' + str(settings.defaults['velocity']))
+        self.offset = StringVar()
+        self.offset.set('offset: 0')
+        self.button_array(  # Make bottom buttons.
+            self.right_panel_frame,
+            ['dry', 'live', self.offset, self.velocity],
+            ['', '', '', ''],
+            2
+        )
+
+    def assemble_details(self):
+        """
+        This assembles the audition details and updates the details string var.
+        """
+        text = 'Statitistics:\n'
+        if self.stagename.get():
+            text += '\n' + self.stagename.get() + '\n'
+        text += '\nweight x min: ' + self.rt_data[
+            'weightxmin'
+        ].get() + ', Weight x max: ' + self.rt_data[
+            'weightxmax'
+        ].get() + ',\n'
+        text += '\nweight y min: ' + self.rt_data[
+            'weightymin'
+        ].get() + ', Weight y max: ' + self.rt_data[
+            'weightymax'
+        ].get() + ',\n'
+        text += '\n ' + self.velocity.get() + ', ' + self.offset.get() + ',\n'
+
+        self.details.set(text)
+
+    @staticmethod
+    def button_array(parent, tils, coms, rw):
+        """
+        Creates a horizontal series of buttons.
+        """
+        bgm = PhotoImage(file=img('fullbuttonframe.png', 10, 10))
+        for idx, (title, command) in enumerate(zip(tils, coms)):
+            t_frame = Frame(
+                parent,
+                bg=theme['main'],
+                width=prx(20),
+                height=pry(10),
+            )
+            t_frame.grid(row=rw, column=idx)
+            t_button = config_button(
+                Button(
+                    t_frame,
+                    command=command,
+                    width=prx(10),
+                    height=pry(10),
+                    image=bgm
+                )
+            )
+            t_button.image = bgm
+            if isinstance(title, StringVar):
+                t_button.configure(textvariable=title)
+            else:
+                t_button.configure(text=title)
+            t_button.pack()
+
+    def list_stages(self):
+        """
+        This produces the list of stages that we have been paired with.
+        """
+        for stage_entry in settings.stages:
+            s_id = stage_entry
+            s_name = settings.stages[stage_entry]['name']
+            self.stage_buttons.append(
+                 config_stagelist_button(
+                     Button(
+                         self.stage_list.interior,
+                         text=s_name,
+                         command=lambda q=(s_id, s_name): self.select_stage(*q)
+                     )
+                 )
+            )
+            self.stage_buttons[-1].pack()
+
+    def select_stage(self, s_id, s_name):
+        """
+        This is the stage selection event.
+        """
+        self.stagename.set('selected stage: ' + s_name)
+        self.stage_id = s_id
+        self.stagetarget = self.stage_id
+        self.refresh()
+
+    def refresh(self):
+        """
+        This allows the controller to trigger a refresh of the stage listings.
+        """
+        for button in self.stage_buttons:
+            button.destroy()
+        self.assemble_details()
+        self.list_stages()
+
 
 class Audience(Frame):
     """
@@ -589,6 +811,8 @@ class MainView(tk.Tk):
         self.temp = self.rt_data['temp'] = dict()
         self.target = self.temp['targetframe'] = 'Writer'  # This is the page we will raise after a widget is closed.
         self.entertext = self.temp['entertext'] = 'enter'
+        self.stagedata = self.temp['stagedata'] = dict()
+        self.stagetarget = self.temp['stagetarget'] = str()
         self.rt_data['key_test'] = StringVar()  # TODO: This is just for testing the keyboard.
         self.rt_data['key_test'].set('')
         self.update()  # I wish I had thought of this sooner...
@@ -607,6 +831,7 @@ class MainView(tk.Tk):
                 Home,
                 Writer,
                 Audience,
+                Rehearsal,
                 Keyboard,
                 NumPad,
                 FileBrowser,
@@ -660,6 +885,15 @@ class MainView(tk.Tk):
                     height=prx(15),
                     width=pry(15),
                     bg=theme['main']
+                )
+                frame.grid(row=0, column=0)
+            elif page_name == 'Rehearsal':
+                frame.configure(
+                    height=pry(92),
+                    width=prx(71),
+                    bg=theme['main'],
+                    highlightthickness=pry(1),
+                    highlightcolor=theme['entrybackground']
                 )
                 frame.grid(row=0, column=0)
             else:
@@ -1063,27 +1297,25 @@ class VerticalScrolledFrame(Frame):
         Frame.__init__(self, parent)
 
         # create a canvas object and a vertical scrollbar for scrolling it
-
+        self.canvasheight = pry(70)
+        self.canvaswidth = pry(40)
         self.canvas = canvas = Canvas(
             self,
             bg=theme['main'],
-            height=pry(70)
-
+            height=self.canvasheight,
+            highlightthickness=0,  # This is the secret to getting rid of that nasty border!
         )
         canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
 
         # reset the view
         self.reset()
-        # canvas.xview_moveto(0)
-        # canvas.yview_moveto(0)
-
-        self.canvasheight = pry(70)
-        self.canvaswidth = pry(40)
 
         # create a frame inside the canvas which will be scrolled with it
         self.interior = interior = Frame(canvas, height=self.canvasheight, width=self.canvaswidth)
         self.interior.configure(
             bg=theme['main'],
+            highlightcolor='red',
+            bd=0
         )
         self.interior_id = canvas.create_window(0, 0, window=interior, anchor=NW)
 
@@ -1280,9 +1512,7 @@ class LoadingIcon(Frame):
         self.configure(
             width=prx(15),
             height=pry(15),
-            bg='red'
         )
-
 
 
 class LoadingAnimation(Frame):
@@ -1291,16 +1521,12 @@ class LoadingAnimation(Frame):
     """
     def __init__(self, parent):
         Frame.__init__(self, parent)
-        # images = '/home/pi/playercake/img/base/Leonardo/'
         self.total_frames = 51
         self.frames = list()
         for frame in range(self.total_frames):
             frame_file = 'Leonardo_' + f"{frame:05d}" + '.png'
-            # self.frames.append(PhotoImage(file=image + frame_file))
             frame_file = img(frame_file, 15, 15, folder_add='Leonardo/')
             self.frames.append(PhotoImage(file=frame_file))
-        # self.total_frames = int(system_command(['identify', '-format', '"%n\\n"', image]).split('\n')[0].replace('"', ''))
-        # self.frames = [PhotoImage(file=image, format='gif -index %i' % i) for i in range(self.total_frames)]
         self.label = Label(parent)
         self.label.configure(
             bg=theme['main']
@@ -1372,6 +1598,25 @@ def config_file_button(element, bad=False):
         font=(theme['font'], str(pointsy(5))),
         anchor=W,
         width=20,
+        pady=pry(2),
+        justify=LEFT
+    )
+    if bad:
+        el.configure(
+            fg=theme['badfiletext']
+        )
+    return element
+
+
+def config_stagelist_button(element, bad=False):
+    """
+        This styles the buttons on the file browser.
+        """
+    el = config_button(element)
+    el.configure(
+        font=(theme['font'], str(pointsy(5))),
+        anchor=W,
+        width=10,
         pady=pry(2),
         justify=LEFT
     )
@@ -1521,4 +1766,5 @@ app = MainView()
 app.geometry(
     str(scr_x) + 'x' + str(scr_y) + '+0+0'
 )
+
 app.mainloop()
