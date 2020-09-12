@@ -971,7 +971,6 @@ class Rehearsal(Frame):
         """
         Lifts the scaler selection frame.
         """
-        print('lifting scaler')
         self.rotate_label.gif.go = True
         self.sidestep_label.gif.go = True
         safe_raise(False, self.scalers, self.base)
