@@ -17,6 +17,7 @@ import tkinter as tk
 import uuid
 from tkinter import *
 from tkinter.filedialog import askopenfilename
+from PIL import Image as PilImage, ImageTk as PilImageTk
 
 import pyqrcode
 
@@ -607,6 +608,55 @@ class Rehearsal(Frame):
         self.script_type = self.temp['script_type'] = StringVar()
         self.stage_id = str()
         self.stage_buttons = list()
+        self.classes = Frame(
+            self,
+            bg=theme['main'],
+            highlightthickness=pry(1),
+            highlightcolor=theme['entrybackground']
+        )
+        self.classes.place(  # These use static values as we don't resize animations (yet).
+            width=494,
+            height=pry(75),
+            x=cp(prx(35), 494),
+            y=cp(pry(45), pry(75))
+        )
+        self.class_label = GifIcon(
+            self.classes,
+            '/home/pi/playercake/img/base/' + settings.theme + '_animal-gaits.gif'
+        )
+        # self.class_label.gif.go = True
+        self.class_label.configure(
+            bg='white',
+        )
+        self.class_label.grid(row=0, column=0)
+        self.class_selection_frame = Frame(
+            self.classes,
+            bg=theme['main']
+        )
+        self.class_selection_frame.grid(row=1, column=0)
+
+        self.button_array(
+            self.class_selection_frame,
+            ['walk', 'amble', 'pace'],
+            [
+                lambda: self.select_class('walk'),
+                lambda: self.select_class('amble'),
+                lambda: self.select_class('pace')
+            ],
+            0,
+            0
+        )
+        self.button_array(
+            self.class_selection_frame,
+            ['trot', 'canter', 'gallup'],
+            [
+                lambda: self.select_class('trot'),
+                lambda: self.select_class('canter'),
+                lambda: self.select_class('gallup')
+            ],
+            1,
+            0
+        )
         self.base = Frame(
             self,
             bg=theme['main'],
@@ -703,8 +753,13 @@ class Rehearsal(Frame):
         self.right_panel_buttons_frame.grid(row=0, column=1, sticky=E)
         self.button_array(
             self.right_panel_buttons_frame,
-            ['import', 'class', 'run', 'compound', 'custom'],
-            ['', '', '', '', ''],
+            ['import', 'class', 'run', 'compound', 'scaler', 'custom'],
+            [
+                '',
+                lambda: self.class_selector(),
+                '',
+                '',
+                ''],
             0,
             1,
             vert=True
@@ -827,6 +882,24 @@ class Rehearsal(Frame):
         self.stage_id = s_id
         self.stagetarget = self.stage_id
         self.refresh()
+
+    def class_selector(self):
+        """
+        Raises the class selector frame and starts the animation.
+        """
+        self.class_label.gif.go = True
+        self.classes.tkraise()
+
+    def select_class(self, c_name):
+        """
+        This sets the script class variable and raises self.
+        Stops the animation.
+        """
+        print(c_name)
+        self.script_class.set(c_name)
+        self.refresh()
+        self.base.tkraise()
+        self.class_label.gif.go = False
 
     def refresh(self):
         """
@@ -1573,6 +1646,7 @@ class LoadingAnimation(Frame):
     """
     def __init__(self, parent):
         Frame.__init__(self, parent)
+        self.go = False
         self.total_frames = 51
         self.frames = list()
         for frame in range(self.total_frames):
@@ -1591,10 +1665,100 @@ class LoadingAnimation(Frame):
         """
         This is just an update loop.
         """
-        maxx = self.total_frames - 1
-        frame = self.frames[ind]
+        if self.go:
+            maxx = self.total_frames - 1
+            frame = self.frames[ind]
+            self.label.configure(image=frame)
 
-        self.label.configure(image=frame)
+            if ind >= maxx:
+                ind = 0
+            else:
+                ind += 1
+            self.after(maxx, self.update, ind)
+        return self
+
+
+class GifIcon(Frame):
+    """
+    This is a cool animated loading icon.
+    """
+    def __init__(self, parent, file):
+        Frame.__init__(self, parent)
+        self.go = False
+        self.gif = GifAnimation(self, file)
+        self.configure(
+            width=prx(15),
+            height=pry(15),
+        )
+
+
+class GifAnimation(Frame):
+    """
+    Nifty gif animmated widget.
+
+    Ref: https://github.com/python-pillow/Pillow/issues/3660
+    """
+
+    def __init__(self, parent, file, optimize=False):
+        Frame.__init__(self, parent)
+        image = file
+        self.frames = list()
+        self.go = False
+        if optimize:
+            self.total_frames = int(
+                system_command(['identify', '-format', '"%n\\n"', image]).split('\n')[0].replace('"', ''))
+            self.frames = [PhotoImage(file=image, format='gif -index %i' % i) for i in range(self.total_frames)]
+        else:
+            image = PilImage.open(image)
+            self.framedesposal(image)
+        self.label = Label(
+            parent,
+            bd=0,
+            highlightthickness=0
+        )
+        self.label.pack()
+        self.label.after(0, self.update, 0)
+
+    def appendtoframes(self, im):
+        """
+        Working on cleaning up the output.
+        """
+        im_copy = im.copy()
+        im_copy.dispose_extent = im.dispose_extent
+        im_copy.disposal_method = im.disposal_method
+        im_copy.global_palette = im.global_palette
+        self.frames.append(im_copy)
+
+    def framedesposal(self, im):
+        """
+        Update frame disposals.
+        """
+        for i in range(1, im.n_frames):
+            # Instead of combining the deltas into a single image as Pillow normally would
+            # This clears the image data already loaded, giving us just the data from the new frame
+            im.im = None
+            im.dispose = None
+
+            im.seek(i)
+
+            self.appendtoframes(
+                im
+            )
+        seq = list()
+        for i in self.frames:
+            seq.append(PilImageTk.PhotoImage(i))
+        self.frames = seq
+
+    # noinspection PyMethodOverriding
+    def update(self, ind):
+        """
+        This is just an update loop.
+        """
+        # maxx = self.total_frames - 1
+        maxx = len(self.frames) - 1
+        frame = self.frames[ind]
+        if self.go:
+            self.label.configure(image=frame)
 
         if ind >= maxx:
             ind = 0
