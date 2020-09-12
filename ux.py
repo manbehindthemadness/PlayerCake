@@ -17,9 +17,9 @@ import tkinter as tk
 import uuid
 from tkinter import *
 from tkinter.filedialog import askopenfilename
-from PIL import Image as PilImage, ImageTk as PilImageTk
 
 import pyqrcode
+from PIL import Image as PilImage, ImageTk as PilImageTk
 
 # import settings
 from settings import settings
@@ -246,7 +246,8 @@ class Writer(Frame):
             'secret': settings.secret,
             'enc': 'WPA',
             'directorid': settings.director_id,
-            'stageid': str(uuid.uuid4())
+            'stageid': str(uuid.uuid4()),
+            'rsa_pub': 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCQV2BjlfjrMtVieIJ5IrJyar9zjaL8XvWKyDgoc5rwvvkWimd+m4rbhgeyAAvCQLzL8xINhP88zqWA3sswvEgUGrZzqocM0AaCrVc2AwDsWFLEAtxFu+7rsKWcFlg9jZX2NvmE+FFnqoCIcPQK+vEDa6dv40xmFWankAXTvq2gYQIDAQAB'
         })
 
         self.controller = controller
@@ -1656,20 +1657,22 @@ class CloseWidget(Frame):
 class QRCodeLabel(Label):
     """
     Cute little QR code maker.
+    TODO: We need to stop this from cycling on startup
     """
 
     def __init__(self, parent, qr_data, scale=8):
         Label.__init__(self, parent)
-        tmp_img = os.getcwd() + '/img/tmp/'
+        tmp_img = os.getcwd() + 'qr.png'
         url = pyqrcode.create(qr_data)
-        url.png(tmp_img + 'qr.png', scale=scale)
-        self.image = PhotoImage(file=tmp_img + 'qr.png')
+        url.png(tmp_img, scale=scale)
+        tmr = image_resize(scr_y, scr_y, 'qr.png', 90, 90, folder_add='img/tmp/', raw=True)
+        self.image = PhotoImage(file=tmr)
         self.x = self.image.width()
         self.y = self.image.height()
         self.configure(
             image=self.image
         )
-        os.remove(tmp_img + 'qr.png')
+        os.remove(tmp_img)
 
 
 class QRCodeWidget(Frame):

@@ -306,7 +306,7 @@ def file_exists(file):
     return path.exists(file)
 
 
-def image_resize(x, y, image, x_percent, y_percent, preserve_aspect=True, folder_add=False):
+def image_resize(x, y, image, x_percent, y_percent, preserve_aspect=True, folder_add=False, raw=False):
     """
     This resizes images to a percentage of x and y and saves it to the /img folder
     This skips the action if the resized file already exists.
@@ -328,6 +328,9 @@ def image_resize(x, y, image, x_percent, y_percent, preserve_aspect=True, folder
     :type preserve_aspect: bool
     :param folder_add: This adds a subfolder to the source path.
     :type folder_add: bool, str
+    :param raw: Override folder locations.
+    :type raw: bool
+
     :return: Resized image's file name.
     :rtype: str
     """
@@ -335,12 +338,17 @@ def image_resize(x, y, image, x_percent, y_percent, preserve_aspect=True, folder
     x_pix = percent_of(x, x_percent)
     y_pix = percent_of(y, y_percent)
     tp = base / Path('img/resize')
+
     tfn = tp / file_rename(str(x_pix) + '_' + str(y_pix), image)
     # print('target', tfn)
-    if not file_exists(tfn):
+    if not file_exists(tfn) or raw:
         sp = base / Path('img/base')
         if folder_add:
             sp = base / Path('img/base/' + folder_add)
+            if raw:
+                sp = Path(folder_add)
+                tfn = Path(image)
+
         sfn = sp / image
         # print('source', sfn)
         if file_exists(sfn):
@@ -351,6 +359,6 @@ def image_resize(x, y, image, x_percent, y_percent, preserve_aspect=True, folder
                 img = resizeimage.resize_cover(img, [x_pix, y_pix], validate=False)
             img.save(tfn, img.format)
         else:
-            print(sfn)
             raise FileNotFoundError
+        print(sfn, tfn)
     return tfn.as_posix()
