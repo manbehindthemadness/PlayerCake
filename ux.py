@@ -524,6 +524,8 @@ class Writer(Frame):
                                      self.rt_data)  # TODO: This will need to be revised for simulations.
             self.plot.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH)  # Fetch canvas widget.
         self.controller.show_frame('Writer')  # Hide loading icon.
+        if self.plot:
+            self.controller.has_plot = True
         return self.plot
 
     def show_numpad(self, varname):
@@ -601,11 +603,13 @@ class Rehearsal(Frame):
         self.stagename = StringVar()
         self.stagename.set('')
         self.details = StringVar()
+        self.script_class = self.temp['script_class'] = StringVar()
+        self.script_type = self.temp['script_type'] = StringVar()
         self.stage_id = str()
         self.stage_buttons = list()
         self.base = Frame(
             self,
-            bg='grey',
+            bg=theme['main'],
             width=prx(70),
             height=pry(90)
         )
@@ -641,6 +645,7 @@ class Rehearsal(Frame):
             self.base,
             width=prx(23),
             height=pry(10),
+            bg=theme['main'],
         )
         self.selected_stage_frame.grid(row=2, column=0, sticky="nsew")  # Place selected stage.
         Label(
@@ -660,20 +665,21 @@ class Rehearsal(Frame):
             self.base,
             height=pry(90),
             width=prx(20),
-            bg='red'
+            bg=theme['main'],
         )
         self.right_panel_frame.grid(row=0, rowspan=3, column=1, sticky=N)  # Frame right panel.
         self.button_array(  # Make top buttons.
             self.right_panel_frame,
             ['save', 'open', 'rename', 'delete'],
             ['', '', '', ''],
+            0,
             0
         )
         self.details_frame = Frame(  # Frame details.
             self.right_panel_frame,
-            width=prx(50),
+            width=prx(40),
             height=pry(67),
-            bg='blue'
+            bg=theme['main'],
         )
         self.details_frame.grid(row=1, columnspan=4)
         Label(
@@ -681,12 +687,28 @@ class Rehearsal(Frame):
             textvariable=self.details,
             image=get_spacer(),
             height=pry(67),
-            width=prx(40),
+            width=prx(33),
             compound='center',
             bg=theme['main'],
             fg=theme['buttontext'],
-            anchor=W
-        ).grid(row=0, column=0, sticky=W)
+            padx=prx(2),
+            anchor=W,
+            justify=LEFT
+        ).grid(row=0, column=0, sticky=E)
+        self.right_panel_buttons_frame = Frame(
+            self.details_frame,
+            height=pry(67),
+            width=prx(15)
+        )
+        self.right_panel_buttons_frame.grid(row=0, column=1, sticky=E)
+        self.button_array(
+            self.right_panel_buttons_frame,
+            ['import', 'class', 'run', 'compound', 'custom'],
+            ['', '', '', '', ''],
+            0,
+            1,
+            vert=True
+        )
 
         self.velocity = StringVar()
         self.velocity.set('velocity: ' + str(settings.defaults['velocity']))
@@ -695,35 +717,61 @@ class Rehearsal(Frame):
         self.button_array(  # Make bottom buttons.
             self.right_panel_frame,
             ['dry', 'live', self.offset, self.velocity],
-            ['', '', '', ''],
-            2
+            [
+                lambda: self.textvar_button_event('dry', self.script_type),
+                lambda: self.textvar_button_event('live', self.script_type),
+                '',
+                ''
+            ],
+            2,
+            0
         )
 
     def assemble_details(self):
         """
         This assembles the audition details and updates the details string var.
         """
-        text = 'Statitistics:\n'
-        if self.stagename.get():
-            text += '\n' + self.stagename.get() + '\n'
-        text += '\nweight x min: ' + self.rt_data[
-            'weightxmin'
-        ].get() + ', Weight x max: ' + self.rt_data[
-            'weightxmax'
-        ].get() + ',\n'
-        text += '\nweight y min: ' + self.rt_data[
-            'weightymin'
-        ].get() + ', Weight y max: ' + self.rt_data[
-            'weightymax'
-        ].get() + ',\n'
-        text += '\n ' + self.velocity.get() + ', ' + self.offset.get() + ',\n'
+        if self.controller.has_plot:
+            text = 'Statitistics:\n'
+            if self.stagename.get():
+                text += '\n' + self.stagename.get() + '\n'
+            else:
+                text += '\nPlease select a stage**\n'
+            text += '\nweight x min: ' + self.rt_data[
+                'weightxmin'
+            ].get() + ', \tweight x max: ' + self.rt_data[
+                'weightxmax'
+            ].get() + ',\n'
+            text += '\nweight y min: ' + self.rt_data[
+                'weightymin'
+            ].get() + ', \tweight y max: ' + self.rt_data[
+                'weightymax'
+            ].get() + ',\n'
+            text += '\n' + self.velocity.get() + ', \t' + self.offset.get() + ',\n'
+            if self.script_class.get():
+                text += '\nclassification: ' + self.script_class.get() + ',\n'
+            else:
+                text += '\nPlease specify classification**\n'
+            if self.script_type.get():
+                text += '\ntype: ' + self.script_type.get() + ',\n'
+            else:
+                text += '\nPlease specify type**'
+        else:
+            text = 'Please create audition, or load rehearsal**'
 
         self.details.set(text)
 
-    @staticmethod
-    def button_array(parent, tils, coms, rw):
+    def textvar_button_event(self, text, var):
         """
-        Creates a horizontal series of buttons.
+        This just sets a text variable and refreshed the data.
+        """
+        var.set(text)
+        self.refresh()
+
+    @staticmethod
+    def button_array(parent, tils, coms, rw, col, vert=False):
+        """
+        Creates a horizontal or vertical series of buttons.
         """
         bgm = PhotoImage(file=img('fullbuttonframe.png', 10, 10))
         for idx, (title, command) in enumerate(zip(tils, coms)):
@@ -733,7 +781,10 @@ class Rehearsal(Frame):
                 width=prx(20),
                 height=pry(10),
             )
-            t_frame.grid(row=rw, column=idx)
+            if not vert:
+                t_frame.grid(row=rw, column=idx)
+            else:
+                t_frame.grid(row=idx, column=col)
             t_button = config_button(
                 Button(
                     t_frame,
@@ -813,6 +864,7 @@ class MainView(tk.Tk):
         self.entertext = self.temp['entertext'] = 'enter'
         self.stagedata = self.temp['stagedata'] = dict()
         self.stagetarget = self.temp['stagetarget'] = str()
+        self.has_plot = False
         self.rt_data['key_test'] = StringVar()  # TODO: This is just for testing the keyboard.
         self.rt_data['key_test'].set('')
         self.update()  # I wish I had thought of this sooner...
