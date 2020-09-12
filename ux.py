@@ -606,8 +606,12 @@ class Rehearsal(Frame):
         self.details = StringVar()
         self.script_class = self.temp['script_class'] = StringVar()
         self.script_type = self.temp['script_type'] = StringVar()
+        self.script_scaler = self.temp['script_scaler'] = StringVar()
         self.stage_id = str()
         self.stage_buttons = list()
+        #  ##############
+        #  class selector
+        #  ##############
         self.classes = Frame(
             self,
             bg=theme['main'],
@@ -624,7 +628,6 @@ class Rehearsal(Frame):
             self.classes,
             '/home/pi/playercake/img/base/' + settings.theme + '_animal-gaits.gif'
         )
-        # self.class_label.gif.go = True
         self.class_label.configure(
             bg='white',
         )
@@ -657,6 +660,9 @@ class Rehearsal(Frame):
             1,
             0
         )
+        #  ##############
+        #  configure base
+        #  ##############
         self.base = Frame(
             self,
             bg=theme['main'],
@@ -807,6 +813,9 @@ class Rehearsal(Frame):
                 text += '\nclassification: ' + self.script_class.get() + ',\n'
             else:
                 text += '\nPlease specify classification**\n'
+            if not self.script_scaler.get():
+                self.script_scaler.set('none')
+            text += '\nscaler: ' + self.script_scaler.get() + ',\n'
             if self.script_type.get():
                 text += '\ntype: ' + self.script_type.get() + ',\n'
             else:
@@ -888,14 +897,13 @@ class Rehearsal(Frame):
         Raises the class selector frame and starts the animation.
         """
         self.class_label.gif.go = True
-        self.classes.tkraise()
+        safe_raise(False, self.classes, self.base)
 
     def select_class(self, c_name):
         """
         This sets the script class variable and raises self.
         Stops the animation.
         """
-        print(c_name)
         self.script_class.set(c_name)
         self.refresh()
         self.base.tkraise()
@@ -1880,8 +1888,12 @@ def safe_raise(controller, fraise, fsource):
     """
     This safly rases widgets so they don't stack.
     """
-    controller.show_frame(fsource)
-    controller.show_frame(fraise)
+    if controller:
+        controller.show_frame(fsource)
+        controller.show_frame(fraise)
+    else:
+        fsource.tkraise()
+        fraise.tkraise()
 
 
 def open_window(parent):
