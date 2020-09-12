@@ -616,7 +616,7 @@ class Rehearsal(Frame):
             self,
             bg=theme['main'],
             highlightthickness=pry(1),
-            highlightcolor=theme['entrybackground']
+            highlightbackground=theme['entrybackground']
         )
         self.classes.place(  # These use static values as we don't resize animations (yet).
             width=494,
@@ -626,7 +626,7 @@ class Rehearsal(Frame):
         )
         self.class_label = GifIcon(
             self.classes,
-            '/home/pi/playercake/img/base/' + settings.theme + '_animal-gaits.gif'
+            self.locate_image('animal-gaits.gif')
         )
         self.class_label.configure(
             bg='white',
@@ -660,6 +660,63 @@ class Rehearsal(Frame):
             1,
             0
         )
+        #  ###############
+        #  scaler selector
+        #  ###############
+        self.scalers = Frame(
+            self,
+            bg=theme['main'],
+            highlightthickness=pry(1),
+            highlightbackground=theme['entrybackground']
+        )
+        self.scalers.place(
+            width=360,
+            height=pry(45),
+            x=cp(prx(35), 350),
+            y=cp(pry(45), pry(50))
+        )
+        self.scalers.grid_rowconfigure(0, weight=1)
+        self.scalers.grid_columnconfigure(0, weight=1)
+        self.scaler_icon_frame = Frame(
+            self.scalers,
+            bg=theme['main'],
+            width=355
+        )
+        self.scaler_icon_frame.grid(row=0, column=0)
+        self.scaler_icon_frame.grid_columnconfigure(0, weight=1)
+        self.rotate_label = GifIcon(
+            self.scaler_icon_frame,
+            self.locate_image('rotate.gif')
+        )
+        self.rotate_label.grid(row=0, column=0)
+        self.sidestep_label = GifIcon(
+            self.scaler_icon_frame,
+            self.locate_image('sidestep.gif')
+        )
+        self.sidestep_label.grid(row=0, column=1)
+        self.button_array(
+            self.scaler_icon_frame,
+            ['rotate', 'sidestep'],
+            [
+                lambda: self.select_scaler('rotate'),
+                lambda: self.select_scaler('sidestep')
+            ],
+            1,
+            0
+        )
+        self.scaler_cancel_frame = Frame(
+            self.scaler_icon_frame,
+            width=355
+        )
+        self.scaler_cancel_frame.grid(row=2, columnspan=2)
+        self.button_array(
+            self.scaler_cancel_frame,
+            ['cancel'],
+            [lambda: self.select_scaler('none')],
+            2,
+            0
+        )
+
         #  ##############
         #  configure base
         #  ##############
@@ -759,13 +816,14 @@ class Rehearsal(Frame):
         self.right_panel_buttons_frame.grid(row=0, column=1, sticky=E)
         self.button_array(
             self.right_panel_buttons_frame,
-            ['import', 'class', 'run', 'compound', 'scaler', 'custom'],
+            ['import', 'class', 'run', 'compound', 'scaler'],
             [
                 '',
                 lambda: self.class_selector(),
                 '',
                 '',
-                ''],
+                lambda: self.scaler_selector()
+            ],
             0,
             1,
             vert=True
@@ -909,6 +967,25 @@ class Rehearsal(Frame):
         self.base.tkraise()
         self.class_label.gif.go = False
 
+    def scaler_selector(self):
+        """
+        Lifts the scaler selection frame.
+        """
+        print('lifting scaler')
+        self.rotate_label.gif.go = True
+        self.sidestep_label.gif.go = True
+        safe_raise(False, self.scalers, self.base)
+
+    def select_scaler(self, s_name):
+        """
+        Selects the script scaler and lifts base.
+        """
+        self.script_scaler.set(s_name)
+        self.refresh()
+        self.base.tkraise()
+        self.rotate_label.gif.go = False
+        self.sidestep_label.gif.go = False
+
     def refresh(self):
         """
         This allows the controller to trigger a refresh of the stage listings.
@@ -917,6 +994,13 @@ class Rehearsal(Frame):
             button.destroy()
         self.assemble_details()
         self.list_stages()
+
+    @staticmethod
+    def locate_image(image):
+        """
+        This lets us pull images without post processing.
+        """
+        return 'img/base/' + file_rename(settings.theme + '_', image, reverse=True)
 
 
 class Audience(Frame):
@@ -1026,7 +1110,7 @@ class MainView(tk.Tk):
                     width=prx(71),
                     bg=theme['main'],
                     highlightthickness=pry(1),
-                    highlightcolor=theme['entrybackground']
+                    highlightbackground=theme['entrybackground']
                 )
                 frame.grid(row=0, column=0)
             else:
