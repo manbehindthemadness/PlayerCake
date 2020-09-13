@@ -542,6 +542,7 @@ class Writer(Frame):
         :type varname: str
         """
         # print(varname, self.rt_data[varname].get())
+        self.controller.target = 'Writer'
         self.temp['number'].set(varname)
         safe_raise(self.controller, 'NumPad', 'Writer')
         self.controller.show_frame('CloseWidget')
@@ -550,9 +551,9 @@ class Writer(Frame):
         """
         Lifts the keyboard page.
         """
+        self.controller.target = 'Writer'
         self.temp['word'].set(varname)
         safe_raise(self.controller, 'Keyboard', 'Writer')
-
         self.controller.show_frame('CloseWidget')
 
     def show_file_browser(self, varname):
@@ -835,19 +836,29 @@ class Rehearsal(Frame):
         self.velocity = StringVar()
         self.velocity.set('velocity: ' + str(settings.defaults['velocity']))
         self.offset = StringVar()
-        self.offset.set('offset: 0')
+        self.offset.set('offset: ' + str(settings.defaults['offset']))
         self.button_array(  # Make bottom buttons.
             self.right_panel_frame,
             ['dry', 'live', self.offset, self.velocity],
             [
                 lambda: self.textvar_button_event('dry', self.script_type),
                 lambda: self.textvar_button_event('live', self.script_type),
-                '',
-                ''
+                lambda: self.show_numpad('offset'),
+                lambda: self.show_numpad('velocity')
             ],
             2,
             0
         )
+
+    def show_numpad(self, varname):
+        """
+        Presents the num pad.
+        """
+        self.controller.target = self.temp['targetframe'] = 'Rehearsal'
+        self.controller.command = self.refresh
+        self.temp['number'].set(varname)
+        safe_raise(self.controller, 'NumPad', 'Rehearsal')
+        self.controller.show_frame('CloseWidget')
 
     def assemble_details(self):
         """
@@ -992,8 +1003,11 @@ class Rehearsal(Frame):
         """
         This allows the controller to trigger a refresh of the stage listings.
         """
+        print('refreshing!')
         for button in self.stage_buttons:
             button.destroy()
+        self.velocity.set('velocity: ' + str(self.rt_data['velocity'].get()))
+        self.offset.set('offset: ' + str(self.rt_data['offset'].get()))
         self.assemble_details()
         self.list_stages()
 
@@ -1032,8 +1046,10 @@ class MainView(tk.Tk):
         self.stagedata = self.temp['stagedata'] = dict()
         self.stagetarget = self.temp['stagetarget'] = str()
         self.rehersals = rt_data['rehearsals'] = settings.rehearsals
+        self.num_max = 100  # Maximum default number for the num pad.
         self.scripts = rt_data['scripts'] = settings.scripts
         self.has_plot = False
+        self.command = None
         self.rt_data['key_test'] = StringVar()  # TODO: This is just for testing the keyboard.
         self.rt_data['key_test'].set('')
         self.update()  # I wish I had thought of this sooner...
@@ -1166,6 +1182,7 @@ class NumPad(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         global rt_data
+        self.controller = controller
         self.rt_data = rt_data
         self.target = controller.target
         self.temp = self.rt_data['temp']
@@ -1175,6 +1192,7 @@ class NumPad(Frame):
         self.numvar = StringVar()
         self.numvar.set('')
         # print(self.numvar.get())
+        self.get_num()
         self.number = None
         self.numpad_create()
         self.b = None
@@ -1205,11 +1223,16 @@ class NumPad(Frame):
         """
         # print(self.numvar.get())
         if self.numvar.get():  # Prevent returning nulls.
-            self.get_num().set(self.numvar.get())
+            num = int(self.numvar.get())
+            if num > self.controller.num_max:
+                num = str(self.controller.num_max)
+            self.get_num().set(num)
             self.temp['number'].set('0')
-        self.controller.show_frame(self.target)
+        self.controller.show_frame(self.controller.target)
         self.numvar.set('')
         self.number = None
+        if self.controller.command:
+            self.controller.command()  # Execute optional command.
 
     def delete_nums(self):
         """
@@ -1262,8 +1285,9 @@ class Keyboard(Frame):
         Frame.__init__(self, parent)
         global rt_data
         self.rt_data = rt_data
+        self.controller = controller
         self.temp = self.rt_data['temp']
-        self.target = controller.target
+        self.target = self.controller.target
         self.wordvar = StringVar()
         self.wordvar.set('')
         self.word = ''
@@ -1396,6 +1420,9 @@ class Keyboard(Frame):
         self.controller.show_frame(self.target)
         self.wordvar.set('')
         self.word = ''
+        if self.controller.command:
+            self.controller.command()
+            self.controller.command = None
 
 
 class FileBrowser(Frame):
