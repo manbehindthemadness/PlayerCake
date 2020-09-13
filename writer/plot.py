@@ -97,6 +97,8 @@ def pymesh_stl(obj_file, parent, theme, config, target, rt_data):
 
         minimum = diffa.index(max(diffa))
         maximum = diffb.index(max(diffb))
+        if maximum == minimum:  # Prevent collisions.
+            minimum += 1
         result = (maximum, minimum)
         return result
 
@@ -105,27 +107,46 @@ def pymesh_stl(obj_file, parent, theme, config, target, rt_data):
         This simple tool allows us to locate the implied weights (where the trajectory meets the ground).
         Note that this is estimated based on the resolution of the curve.
 
-        TODO: We can use this to determine the order of points so we can normalize the start point.
+        TODO: Ok, we now have zero division problems after we normalize.
 
         """
+        def a_bit(axx):
+            """
+            This adds a tiny amount to a value to prevent zero division problems.
+            """
+            if axx == 0.0:
+                axx += 0.00001
+            return axx
+
         tr = list(zip(*trajectory))
         diffa = list()
         diffb = list()
         for axis1, axis2 in tr:
-            diffa.append(
-                abs(axis1 - -maxx) * -1 / axis2
-            )
-            diffb.append(
-                abs(axis1 - maxx) / axis2
-            )
+            try:
+                axis1 = a_bit(axis1)
+                axis2 = a_bit(axis2)
+                diffa.append(
+                    abs(axis1 - -maxx) * -1 / axis2
+                )
+                diffb.append(
+                    abs(axis1 - maxx) / axis2
+                )
+            except ZeroDivisionError:
+                print(axis1, axis2, maxx)
+                raise ZeroDivisionError
+
         maximum = diffa.index(max(diffa))
         minimum = diffb.index(min(diffb))
+        if maximum == minimum:  # Prevent collisions.
+            minimum = 0
         result = (maximum, minimum)
         return result
 
     def normalize(tra):
         """
         This re-orders the trajectory so the start point is at the implied minimum.
+
+        TODO: We really need to take this and use it to lift the whole trajectory so the start is at 0.0 on Z.
         """
         xt, yt, zt = tra
         min_maxxz = find_implied_weights((xt, zt))
@@ -140,12 +161,21 @@ def pymesh_stl(obj_file, parent, theme, config, target, rt_data):
                 point_val = p_var
                 start_point = idx
             coords.append(point_val)
+
         roll = minmax[start_point] * -1
         xout = deque(xt)
         yout = deque(yt)
         zout = deque(zt)
-        for out in [xout, yout, zout]:
+        for out in [xout, yout, zout]:  # Rotate trajectories.
             out.rotate(roll)
+
+        # z_offset = zout[0]
+        # if z_offset != 0.0:  # See if startpoint falls at z 0.0.
+        #     z_offset = z_offset * -1
+        #     print(z_offset)
+        #     for idx, ztt in enumerate(zout):  # adjust path to start at z 0.
+        #         zout[idx] = (ztt + z_offset)
+
         return xout, yout, zout
 
     def process_weights(trajectory, weights, implied_weights):
