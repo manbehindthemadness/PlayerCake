@@ -9,6 +9,7 @@ import pymesh
 import numpy as np
 # mport math
 from warehouse.utils import to_color, percent_of
+from collections import deque
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -107,7 +108,6 @@ def pymesh_stl(obj_file, parent, theme, config, target, rt_data):
         TODO: We can use this to determine the order of points so we can normalize the start point.
 
         """
-
         tr = list(zip(*trajectory))
         diffa = list()
         diffb = list()
@@ -122,6 +122,31 @@ def pymesh_stl(obj_file, parent, theme, config, target, rt_data):
         minimum = diffb.index(min(diffb))
         result = (maximum, minimum)
         return result
+
+    def normalize(tra):
+        """
+        This re-orders the trajectory so the start point is at the implied minimum.
+        """
+        xt, yt, zt = tra
+        min_maxxz = find_implied_weights((xt, zt))
+        min_maxyz = find_implied_weights((yt, zt))
+        minmax = list(min_maxxz) + list(min_maxyz)
+        coords = list()
+        point_val = 9999999999  # Insanely high number to subtract from
+        start_point = 0
+        for idx, point in enumerate(minmax):  # Find absolute minimum.
+            p_var = xt[point] + yt[point]
+            if p_var < point_val:
+                point_val = p_var
+                start_point = idx
+            coords.append(point_val)
+        roll = minmax[start_point] * -1
+        xout = deque(xt)
+        yout = deque(yt)
+        zout = deque(zt)
+        for out in [xout, yout, zout]:
+            out.rotate(roll)
+        return xout, yout, zout
 
     def process_weights(trajectory, weights, implied_weights):
         """
@@ -415,7 +440,7 @@ def pymesh_stl(obj_file, parent, theme, config, target, rt_data):
     ax.set_xlabel('(front) x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
-    ax.set_xlim(minn, maxx)  # TODO: These will need to be set to leg_len*2 in the future.
+    ax.set_xlim(minn, maxx)
     ax.set_ylim(minn, maxx)
     ax.set_zlim(minn, maxx)
     ax.set_zticks(xyzticks)
@@ -425,13 +450,15 @@ def pymesh_stl(obj_file, parent, theme, config, target, rt_data):
     z_line = list()
     x_line = list()
     y_line = list()
-    for x, y, z in cv:  # TODO: Prolly should use zip here...
+    for x, y, z in cv:
         z_line.append(z)
         x_line.append(x)
         y_line.append(y)
 
-    # TODO: We are probably going to have to create a normalizer to translate the trajectory with a predictable start.
-    if z_line[1] > 0:  # TODO: We have to transform the order into a counter-clockwise sequence.
+    # Normalize the trajectory with a predictable start.
+    x_line, y_line, z_line = normalize((x_line, y_line, z_line))
+
+    if z_line[1] > 0:  # Transform the order into a counter-clockwise sequence.
         z_line.reverse()
         x_line.reverse()
         y_line.reverse()
