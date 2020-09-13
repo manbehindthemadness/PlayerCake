@@ -19,57 +19,20 @@ display = system_command(['echo', '$DISPLAY'])
 root = Tk()
 
 
-class Animation(Frame):
-    """
-    Nifty gif animmated widget.
-    """
-    def __init__(self, parent):
-        Frame.__init__(self, parent)
-        image = '/home/pi/playercake/img/base/Leonardo/'
-        self.total_frames = 51
-        self.frames = list()
-        for frame in range(self.total_frames):
-            frame_file = 'Leonardo_' + f"{frame:05d}" + '.png'
-            self.frames.append(PhotoImage(file=image + frame_file))
-        # self.total_frames = int(system_command(['identify', '-format', '"%n\\n"', image]).split('\n')[0].replace('"', ''))
-        # self.frames = [PhotoImage(file=image, format='gif -index %i' % i) for i in range(self.total_frames)]
-        self.label = Label(parent)
-        self.label.pack()
-        self.label.after(0, self.update, 0)
-
-    # noinspection PyMethodOverriding
-    def update(self, ind):
-        """
-        This is just an update loop.
-        """
-        maxx = self.total_frames - 1
-        frame = self.frames[ind]
-
-        self.label.configure(image=frame)
-
-        if ind >= maxx:
-            ind = 0
-        else:
-            ind += 1
-        self.after(maxx, self.update, ind)
-        return self
-
-
-label = Animation(root)
-root.mainloop()
-
-# root = Tk()
-#
-#
 # class Animation(Frame):
 #     """
 #     Nifty gif animmated widget.
 #     """
 #     def __init__(self, parent):
 #         Frame.__init__(self, parent)
-#         image = '/home/pi/playercake/img/base/Hover.gif'
-#         self.total_frames = int(system_command(['identify', '-format', '"%n\\n"', image]).split('\n')[0].replace('"', ''))
-#         self.frames = [PhotoImage(file=image, format='gif -index %i' % i) for i in range(self.total_frames)]
+#         image = '/home/pi/playercake/img/base/Leonardo/'
+#         self.total_frames = 51
+#         self.frames = list()
+#         for frame in range(self.total_frames):
+#             frame_file = 'Leonardo_' + f"{frame:05d}" + '.png'
+#             self.frames.append(PhotoImage(file=image + frame_file))
+#         # self.total_frames = int(system_command(['identify', '-format', '"%n\\n"', image]).split('\n')[0].replace('"', ''))
+#         # self.frames = [PhotoImage(file=image, format='gif -index %i' % i) for i in range(self.total_frames)]
 #         self.label = Label(parent)
 #         self.label.pack()
 #         self.label.after(0, self.update, 0)
@@ -94,6 +57,43 @@ root.mainloop()
 #
 # label = Animation(root)
 # root.mainloop()
+
+root = Tk()
+
+
+class Animation(Frame):
+    """
+    Nifty gif animmated widget.
+    """
+    def __init__(self, parent):
+        Frame.__init__(self, parent)
+        image = '/home/pi/playercake/img/base/Hover.gif'
+        self.total_frames = int(system_command(['identify', '-format', '"%n\\n"', image]).split('\n')[0].replace('"', ''))
+        self.frames = [PhotoImage(file=image, format='gif -index %i' % i) for i in range(self.total_frames)]
+        self.label = Label(parent)
+        self.label.pack()
+        self.label.after(0, self.update, 0)
+
+    # noinspection PyMethodOverriding
+    def update(self, ind):
+        """
+        This is just an update loop.
+        """
+        maxx = self.total_frames - 1
+        frame = self.frames[ind]
+
+        self.label.configure(image=frame)
+
+        if ind >= maxx:
+            ind = 0
+        else:
+            ind += 1
+        self.after(maxx, self.update, ind)
+        return self
+
+
+label = Animation(root)
+root.mainloop()
 
 
 # class MyLabel(Label):
