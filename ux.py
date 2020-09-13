@@ -11,6 +11,8 @@ NOTE: THE X-SERVER MUST BE RUNNING!
 Good REf: https://stackoverflow.com/questions/7546050/switch-between-two-frames-in-tkinter
 
 TODO: NOTE!! Buttons and Labels are sized by the number of chars UNLESS they have an image!
+
+TODO: We seriously need to break these inits down into classes...
 """
 import os
 import tkinter as tk
@@ -1029,6 +1031,8 @@ class MainView(tk.Tk):
         self.entertext = self.temp['entertext'] = 'enter'
         self.stagedata = self.temp['stagedata'] = dict()
         self.stagetarget = self.temp['stagetarget'] = str()
+        self.rehersals = rt_data['rehearsals'] = settings.rehearsals
+        self.scripts = rt_data['scripts'] = settings.scripts
         self.has_plot = False
         self.rt_data['key_test'] = StringVar()  # TODO: This is just for testing the keyboard.
         self.rt_data['key_test'].set('')
@@ -1689,7 +1693,6 @@ class QRCodeWidget(Frame):
         self.qr_data = self.temp['qr_data']
         self.qr_label = None
         self.refresh = self.build_qr
-        self.refresh()
 
     def build_qr(self):
         """
