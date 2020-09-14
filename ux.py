@@ -642,7 +642,7 @@ class Rehearsal(Frame):
         )
         self.class_selection_frame.grid(row=1, column=0)
 
-        self.button_array(
+        button_array(
             self.class_selection_frame,
             ['walk', 'amble', 'pace'],
             [
@@ -653,7 +653,7 @@ class Rehearsal(Frame):
             0,
             0
         )
-        self.button_array(
+        button_array(
             self.class_selection_frame,
             ['trot', 'canter', 'gallup'],
             [
@@ -698,7 +698,7 @@ class Rehearsal(Frame):
             self.locate_image('sidestep.gif')
         )
         self.sidestep_label.grid(row=0, column=1)
-        self.button_array(
+        button_array(
             self.scaler_icon_frame,
             ['rotate', 'sidestep'],
             [
@@ -713,7 +713,7 @@ class Rehearsal(Frame):
             width=355
         )
         self.scaler_cancel_frame.grid(row=2, columnspan=2)
-        self.button_array(
+        button_array(
             self.scaler_cancel_frame,
             ['cancel'],
             [lambda: self.select_scaler('none')],
@@ -785,7 +785,7 @@ class Rehearsal(Frame):
             bg=theme['main'],
         )
         self.right_panel_frame.grid(row=0, rowspan=3, column=1, sticky=N)  # Frame right panel.
-        self.button_array(  # Make top buttons.
+        button_array(  # Make top buttons.
             self.right_panel_frame,
             ['save', 'open', 'rename', 'delete'],
             ['', '', '', ''],
@@ -818,13 +818,13 @@ class Rehearsal(Frame):
             width=prx(15)
         )
         self.right_panel_buttons_frame.grid(row=0, column=1, sticky=E)
-        self.button_array(
+        button_array(
             self.right_panel_buttons_frame,
             ['import', 'class', 'run', 'compound', 'scaler'],
             [
-                '',
+                lambda: self.show_confirmation('test', ''),
                 lambda: self.class_selector(),
-                '',
+                lambda: self.error_event('Error: Shits on fire yo.'),
                 '',
                 lambda: self.scaler_selector()
             ],
@@ -837,7 +837,7 @@ class Rehearsal(Frame):
         self.velocity.set('velocity: ' + str(settings.defaults['velocity']))
         self.offset = StringVar()
         self.offset.set('offset: ' + str(settings.defaults['offset']))
-        self.button_array(  # Make bottom buttons.
+        button_array(  # Make bottom buttons.
             self.right_panel_frame,
             ['dry', 'live', self.offset, self.velocity],
             [
@@ -904,39 +904,6 @@ class Rehearsal(Frame):
         var.set(text)
         self.refresh()
 
-    @staticmethod
-    def button_array(parent, tils, coms, rw, col, vert=False):
-        """
-        Creates a horizontal or vertical series of buttons.
-        """
-        bgm = PhotoImage(file=img('fullbuttonframe.png', 10, 10))
-        for idx, (title, command) in enumerate(zip(tils, coms)):
-            t_frame = Frame(
-                parent,
-                bg=theme['main'],
-                width=prx(20),
-                height=pry(10),
-            )
-            if not vert:
-                t_frame.grid(row=rw, column=idx)
-            else:
-                t_frame.grid(row=idx, column=col)
-            t_button = config_button(
-                Button(
-                    t_frame,
-                    command=command,
-                    width=prx(10),
-                    height=pry(10),
-                    image=bgm
-                )
-            )
-            t_button.image = bgm
-            if isinstance(title, StringVar):
-                t_button.configure(textvariable=title)
-            else:
-                t_button.configure(text=title)
-            t_button.pack()
-
     def list_stages(self):
         """
         This produces the list of stages that we have been paired with.
@@ -998,6 +965,23 @@ class Rehearsal(Frame):
         self.base.tkraise()
         self.rotate_label.gif.go = False
         self.sidestep_label.gif.go = False
+
+    def show_confirmation(self, message, command):
+        """
+        This shows the confirmation widget and passes a command event.
+        """
+        self.controller.target = 'Rehearsal'
+        self.controller.command = command
+        self.temp['confirmation_message'].set(message)
+        safe_raise(self.controller, 'ConfirmationWidget', 'Rehearsal')
+
+    def error_event(self, message):
+        """
+        This creates an error dialog showing the self.error string var.
+        """
+        self.controller.target = 'Rehearsal'
+        self.temp['error_message'].set(message)
+        safe_raise(self.controller, 'ErrorWidget', 'Rehearsal')
 
     def refresh(self):
         """
@@ -1065,16 +1049,18 @@ class MainView(tk.Tk):
         container.grid_columnconfigure(0, weight=1)
         self.frames = dict()
         for F in (  # Ensure the primary classes are passed before the widgets.
-                Home,
-                Writer,
-                Audience,
-                Rehearsal,
-                Keyboard,
-                NumPad,
-                FileBrowser,
-                CloseWidget,
-                QRCodeWidget,
-                LoadingIcon
+            Home,
+            Writer,
+            Audience,
+            Rehearsal,
+            Keyboard,
+            NumPad,
+            FileBrowser,
+            CloseWidget,
+            QRCodeWidget,
+            LoadingIcon,
+            ConfirmationWidget,
+            ErrorWidget
         ):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
@@ -1129,6 +1115,14 @@ class MainView(tk.Tk):
                     height=pry(92),
                     width=prx(71),
                     bg=theme['main'],
+                    highlightthickness=pry(1),
+                    highlightbackground=theme['entrybackground']
+                )
+                frame.grid(row=0, column=0)
+            elif page_name == 'ConfirmationWidget' or page_name == 'ErrorWidget':
+                frame.configure(
+                    width=prx(30),
+                    height=pry(30),
                     highlightthickness=pry(1),
                     highlightbackground=theme['entrybackground']
                 )
@@ -1685,6 +1679,142 @@ class CloseWidget(Frame):
         self.tkraise()
 
 
+class ConfirmationWidget(Frame):
+    """
+    This presents a confirmation dialog sporting a confirm or cancel.
+    """
+    def __init__(self, parent, controller):
+        Frame.__init__(self, parent)
+        self.controller = controller
+        self.rt_data = self.controller.rt_data
+        self.temp = self.controller.temp
+        self.confirmation_message = self.temp['confirmation_message'] = StringVar()
+        self.confirmation_message.set('No Message loooooong test')
+        self.base = Frame(
+            self,
+            bg=theme['main'],
+            width=prx(30),
+            height=pry(30)
+        )
+        self.base.grid(row=0, column=0)
+        self.confirmation_message_frame = Frame(
+            self.base,
+            width=prx(30),
+            height=pry(15),
+            # bg='red'
+        )
+        self.confirmation_message_frame.grid(row=0, columnspan=2)
+        self.confirmation_message_label = Label(
+            self.confirmation_message_frame,
+            textvariable=self.confirmation_message,
+            width=prx(30),
+            height=pry(15),
+            image=get_spacer(),
+            bg=theme['main'],
+            fg=theme['buttontext'],
+            compound=CENTER,
+            font=(theme['font'], str(pointsy(3))),
+            wraplength=pry(29)
+        )
+        self.confirmation_message_label.pack()
+        button_array(
+            self.base,
+            ['confirm', 'cancel'],
+            [
+                self.confirm_event,
+                self.cancel_event
+            ],
+            1,
+            0
+        )
+
+    def confirm_event(self):
+        """
+        This is our confirmation event that will execute the global command and raise the global target frame.
+        """
+        if self.controller.command:
+            self.controller.command()
+        self.clear()
+
+    def cancel_event(self):
+        """
+        This cancels the operation and returns us to origin.
+        """
+        self.clear()
+
+    def clear(self):
+        """
+        This clears the global variables and raises the target frame.
+        """
+        self.controller.show_frame(self.controller.target)
+        self.controller.target = None
+        self.controller.command = None
+
+
+class ErrorWidget(Frame):
+    """
+    This presents a confirmation dialog sporting a confirm or cancel.
+    """
+
+    def __init__(self, parent, controller):
+        Frame.__init__(self, parent)
+        self.controller = controller
+        self.rt_data = self.controller.rt_data
+        self.temp = self.controller.temp
+        self.error_message = self.temp['error_message'] = StringVar()
+        self.error_message.set('No Message loooooong test')
+        self.base = Frame(
+            self,
+            bg=theme['main'],
+            width=prx(30),
+            height=pry(30)
+        )
+        self.base.grid(row=0, column=0)
+        self.error_message_frame = Frame(
+            self.base,
+            width=prx(30),
+            height=pry(15),
+            # bg='red'
+        )
+        self.error_message_frame.grid(row=0, column=0)
+        self.error_message_label = Label(
+            self.error_message_frame,
+            textvariable=self.error_message,
+            width=prx(30),
+            height=pry(15),
+            image=get_spacer(),
+            bg=theme['main'],
+            fg=theme['buttontext'],
+            compound=CENTER,
+            font=(theme['font'], str(pointsy(3))),
+            wraplength=pry(29)
+        )
+        self.error_message_label.pack()
+        button_array(
+            self.base,
+            ['ok'],
+            [
+                self.ok_event
+            ],
+            1,
+            0
+        )
+
+    def ok_event(self):
+        """
+        This cancels the operation and returns us to origin.
+        """
+        self.clear()
+
+    def clear(self):
+        """
+        This clears the global variables and raises the target frame.
+        """
+        self.controller.show_frame(self.controller.target)
+        self.controller.target = None
+        self.controller.command = None
+
+
 class QRCodeLabel(Label):
     """
     Cute little QR code maker.
@@ -1890,6 +2020,39 @@ class GifAnimation(Frame):
             ind += 1
         self.after(maxx, self.update, ind)
         return self
+
+
+def button_array(parent, tils, coms, rw, col, vert=False):
+    """
+    Creates a horizontal or vertical series of buttons.
+    """
+    bgm = PhotoImage(file=img('fullbuttonframe.png', 10, 10))
+    for idx, (title, command) in enumerate(zip(tils, coms)):
+        t_frame = Frame(
+            parent,
+            bg=theme['main'],
+            width=prx(20),
+            height=pry(10),
+        )
+        if not vert:
+            t_frame.grid(row=rw, column=idx)
+        else:
+            t_frame.grid(row=idx, column=col)
+        t_button = config_button(
+            Button(
+                t_frame,
+                command=command,
+                width=prx(10),
+                height=pry(10),
+                image=bgm
+            )
+        )
+        t_button.image = bgm
+        if isinstance(title, StringVar):
+            t_button.configure(textvariable=title)
+        else:
+            t_button.configure(text=title)
+        t_button.pack()
 
 
 def config_button(element):
