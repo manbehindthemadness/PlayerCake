@@ -123,20 +123,23 @@ def update_setting(filename, section, setting, value, merge=False):
         rename(file + ".new", file)
         remove(file + "~")
 
-    if not os.path.exists(filename):
+    if not os.path.exists(filename):  # Create settings file if it doesn't exist.
         os.mknod(filename)
-    config = configparser.ConfigParser()
-    config.read(filename, encoding='utf-8-sig')
+    config = configparser.ConfigParser()  # Load config parser.
+    config.read(filename, encoding='utf-8-sig')  # Read settings file.
     try:
         if merge:
             try:
-                config.get(section, setting)
-            except configparser.NoOptionError:  # Check for missing setting.
-                config.set(section, setting, value)
+                sett = eval(config.get(section, setting))
+                # print(type(sett))
+                if isinstance(sett, dict) or isinstance(sett, list):
+                    config.set(section, setting, value)  # Save setting value.
+            except configparser.NoOptionError:  # Check for missing setting, add if needed.
+                config.set(section, setting, value)  # Save setting value.
         else:
-            config.set(section, setting, value)
+            config.set(section, setting, value)  # Save setting value.
         fileswap(filename)
-    except configparser.NoSectionError:  # Check for missing section.
+    except configparser.NoSectionError:  # Check for missing section, add if needed.
         config.add_section(section)
         fileswap(filename)
         config = update_setting(filename, section, setting, value)  # Loop to go back and add settings to the newly added section.
@@ -179,10 +182,36 @@ class BuildSettings:
         """
         Saves the current settings model to file.
         """
-        store = self.settings
         if upgrade:
+            self.load()
+            store_old = self.settings
+            # print(store_old)
             store = self.default_settings
+        else:
+            store_old = None
+            store = self.settings
         for key in store:
+            if upgrade:
+                # print(type(eval(store[key])))
+                if key in store_old.keys():
+                    storeset = eval(store[key])
+                    oldstoreset = eval(store_old[key])
+                    if isinstance(storeset, dict):  # Update dicts.
+                        try:
+                            # print('updating dict')
+                            storeset = update_dict(oldstoreset, storeset)
+                            # print(storeset)
+                        except KeyError:
+                            # print('key error')
+                            pass
+                    elif isinstance(storeset, list):  # Update lists.
+                        for item in storeset:
+                            if item not in oldstoreset:
+                                oldstoreset.append(item)
+                        storeset = oldstoreset
+                    store[key] = str(storeset)
+                else:
+                    print(key, 'not in settings')
             update_setting(
                 self.filename,
                 'settings',
