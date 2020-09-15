@@ -29,6 +29,7 @@ from warehouse.system import system_command
 from warehouse.utils import percent_of, percent_in, file_rename, image_resize
 from writer.plot import pymesh_stl
 
+
 scr_x, scr_y = settings.screensize
 
 theme = settings.themes[settings.theme]
@@ -606,6 +607,7 @@ class Rehearsal(Frame):
         self.rehearsaldata = self.temp['rehearsaldata'] = None
         self.rehearsalname = self.temp['rehearsalname'] = StringVar()
         self.rehearsal_buttons = list()
+        self.rehearsal_rename = str()
         self.stagedata = self.temp['stagedata']
         self.stagetarget = self.temp['stagetarget']
         self.stagename = StringVar()
@@ -831,10 +833,10 @@ class Rehearsal(Frame):
             self.right_panel_frame,
             ['save', 'open', 'rename', 'delete'],
             [
-                '',
+                lambda: self.save_rehearsal(),
                 lambda: self.list_rehearsals(),
-                '',
-                ''
+                lambda: self.save_rehearsal(rename=str(self.rehearsalname.get())),
+                lambda: self.delete_rehearsal()
             ],
             0,
             0
@@ -869,9 +871,9 @@ class Rehearsal(Frame):
             self.right_panel_buttons_frame,
             ['import', 'class', 'run', 'compound', 'scaler'],
             [
-                lambda: self.show_confirmation('test', ''),
+                lambda: self.import_rehearsals(),
                 lambda: self.class_selector(),
-                lambda: self.error_event('Error: Shits on fire yo.'),
+                lambda: self.run_rehearsal(),
                 '',
                 lambda: self.scaler_selector()
             ],
@@ -1048,6 +1050,78 @@ class Rehearsal(Frame):
         """
         self.base.tkraise()
         self.refresh()
+
+    def import_rehearsals(self):
+        """
+        This is where we will import external rehearsals.
+        """
+        print('Importing rehearsal!')
+        self.cancel_rehearsal()
+
+    def run_rehearsal(self):
+        """
+        This is where we will send the rehearsal to the downstream stage and acquire the results.
+        """
+        print('running rehearsal')
+        self.cancel_rehearsal()
+
+    def save_rehearsal(self, rename=''):
+        """
+        This will allow us to save the existing rehearsal.
+
+        TODO: We need to add an overwrite confirmation and a cancel feature.
+        """
+        self.rehearsal_rename = rename
+        if not self.rehearsaldata:
+            self.temp['error_message'].set('error: no rehearsal data available to save.')
+            self.controller.target = 'Rehearsal'
+            self.controller.show_frame('ErrorWidget')
+        else:
+            self.rt_data['rehearsalname'] = self.rehearsalname
+            self.temp['word'].set('rehearsalname')
+            if self.rehearsalname.get():
+                self.temp['default_keyboard_text'] = self.rehearsalname
+            self.controller.command = self.save_rehearsal_event
+            self.controller.target = 'Rehearsal'
+            self.controller.refresh('Keyboard')
+            self.controller.show_frame('Keyboard')
+
+    def save_rehearsal_event(self):
+        """
+        This commits the rehearsal data to disk and drops the keyboard
+        """
+        self.rehearsalname = self.rt_data['rehearsalname']
+        if self.rehearsal_rename:
+            del settings.rehearsals[self.rehearsal_rename]
+            self.rehearsal_rename = ''
+        settings.rehearsals[self.rehearsalname.get()] = self.rehearsaldata  # Revise temp settings model.
+        settings.set('rehearsals')  # Revise permanent model.
+        settings.save()  # Save permanent settings model to disk.
+        self.refresh()  # Refresh data.
+        safe_drop(self.controller, ['Writer', 'Rehearsal'])
+
+    def delete_rehearsal(self):
+        """
+        Removes a rehearsal.
+        """
+        self.controller.target = 'Rehearsal'
+        if not self.rehearsaldata:
+            self.temp['error_message'].set('error: no rehearsal data available to delete.')
+            self.controller.show_frame('ErrorWidget')
+        else:
+            self.temp['confirmation_message'].set('delete:' + self.rehearsalname.get() + '?')
+            self.controller.command = self.delete_event()
+            self.controller.show_frame('ConfirmationWidget')
+
+    def delete_event(self):
+        """
+        Actual delete action.
+        """
+        print('deleting')
+        del settings.rehearsals[self.rehearsalname.get()]
+        settings.set('rehearsals')  # Revise permanent model.
+        settings.save()  # Save permanent settings model to disk.
+        self.refresh()  # Refresh data.
 
     def show_confirmation(self, message, command):
         """
@@ -1368,6 +1442,7 @@ class Keyboard(Frame):
         self.rt_data = rt_data
         self.controller = controller
         self.temp = self.rt_data['temp']
+        self.temp['default_keyboard_text'] = StringVar()
         self.target = self.controller.target
         self.wordvar = StringVar()
         self.wordvar.set('')
@@ -1435,9 +1510,6 @@ class Keyboard(Frame):
                             store_button = Button(store_key_frame, textvariable=txt, height=2)
                         if " " in k:
                             store_button['state'] = 'disable'
-                        # flat, groove, raised, ridge, solid, or sunken
-                        # store_button['relief'] = "sunken"
-                        # store_button['bg'] = "powderblue"
                         config_word_button(store_button)
                         store_button['command'] = lambda q=txt: self.button_command(q)
                         store_button.pack(side='left', fill='both', expand='yes')
@@ -1467,7 +1539,6 @@ class Keyboard(Frame):
             self.word += ' '
         elif ename == 'enter':
             print('enter command!', self.word)
-            self.word = ''
             self.pass_word()
         else:
             self.word += event.get()
@@ -1498,12 +1569,20 @@ class Keyboard(Frame):
         if self.wordvar.get():  # Prevent returning nulls.
             self.get_word().set(self.wordvar.get())
             self.temp['number'].set('0')
-        self.controller.show_frame(self.target)
+        self.controller.show_frame(self.controller.target)
         self.wordvar.set('')
         self.word = ''
         if self.controller.command:
             self.controller.command()
             self.controller.command = None
+
+    def refresh(self):
+        """
+        Acquires a default text value.
+        """
+        if self.temp['default_keyboard_text'].get():
+            self.word = self.temp['default_keyboard_text'].get()
+            self.wordvar.set(self.word)
 
 
 class FileBrowser(Frame):
@@ -2282,16 +2361,39 @@ def config_button_text(element, text):
     return element
 
 
-def safe_raise(controller, fraise, fsource):
+def safe_raise(controller, fraise, fsource, chain=None):
     """
     This safly rases widgets so they don't stack.
+
+    :param controller: Passed instance of the master controller.
+    :param fraise: The name of the frame to raise.
+    :param fsource: THe name of the frame to fall back on.
+    :param chain: Optional list of frames to rais in order for more complex situations.
+    :type chain: NoneType, list
     """
     if controller:
+        if chain:
+            for f in chain:
+                controller.show_frame(f)
         controller.show_frame(fsource)
         controller.show_frame(fraise)
     else:
+        if chain:
+            for f in chain:
+                f.tkraise()
         fsource.tkraise()
         fraise.tkraise()
+
+
+def safe_drop(controller, chain):
+    """
+    This raises a chain of frames so we can properly drop frames from the background.
+    """
+    for f in chain:
+        if controller:
+            controller.show_frame(f)
+        else:
+            f.tkraise()
 
 
 def open_window(parent):
