@@ -560,7 +560,7 @@ class Writer(Frame):
         """
         Lifts the file browser page.
         """
-        self.temp[varname] = settings.plot_dir
+        self.temp[varname] = os.getcwd() + '/' + settings.plot_dir
         self.controller.clear('FileBrowser')
         safe_raise(self.controller, 'FileBrowser', 'Writer')
         self.controller.show_frame('CloseWidget')
@@ -603,6 +603,9 @@ class Rehearsal(Frame):
         self.controller = controller
         self.rt_data = controller.rt_data
         self.temp = self.rt_data['temp']
+        self.rehearsaldata = self.temp['rehearsaldata'] = None
+        self.rehearsalname = self.temp['rehearsalname'] = StringVar()
+        self.rehearsal_buttons = list()
         self.stagedata = self.temp['stagedata']
         self.stagetarget = self.temp['stagetarget']
         self.stagename = StringVar()
@@ -676,7 +679,7 @@ class Rehearsal(Frame):
         self.scalers.place(
             width=360,
             height=pry(45),
-            x=cp(prx(35), 350),
+            x=cp(prx(35), 360),
             y=cp(pry(45), pry(50))
         )
         self.scalers.grid_rowconfigure(0, weight=1)
@@ -718,6 +721,45 @@ class Rehearsal(Frame):
             ['cancel'],
             [lambda: self.select_scaler('none')],
             2,
+            0
+        )
+        #  ##############
+        #  open rehearsal
+        #  ##############
+        self.open_frame = Frame(
+            self,
+            bg=theme['main'],
+            highlightthickness=pry(1),
+            highlightbackground=theme['entrybackground']
+        )
+        self.open_frame.place(
+            width=prx(50),
+            height=pry(80),
+            x=cp(prx(35), prx(50)),
+            y=cp(pry(45), pry(80))
+        )
+        self.rehearsal_selector_frame = Frame(
+            self.open_frame,
+            width=prx(48),
+            height=pry(60),
+            bg=theme['main']
+        )
+        self.rehearsal_selector_frame.grid(row=0, column=0)
+        self.rehearsal_selector_frame.grid_columnconfigure(0, weight=1)
+        self.rehearsal_selector = VerticalScrolledFrame(self.rehearsal_selector_frame, prx(48), pry(65))
+        self.rehearsal_selector.pack()
+        self.cancel_rehearsal_open = Frame(
+            self.open_frame,
+            width=prx(50),
+            height=pry(10),
+            bg=theme['main']
+        )
+        self.cancel_rehearsal_open.grid(row=1, column=0)
+        button_array(
+            self.cancel_rehearsal_open,
+            ['cancel'],
+            [lambda: self.cancel_rehearsal()],
+            0,
             0
         )
 
@@ -788,7 +830,12 @@ class Rehearsal(Frame):
         button_array(  # Make top buttons.
             self.right_panel_frame,
             ['save', 'open', 'rename', 'delete'],
-            ['', '', '', ''],
+            [
+                '',
+                lambda: self.list_rehearsals(),
+                '',
+                ''
+            ],
             0,
             0
         )
@@ -864,10 +911,12 @@ class Rehearsal(Frame):
         """
         This assembles the audition details and updates the details string var.
         """
-        if self.controller.has_plot:
+        if self.controller.has_plot or self.rehearsalname:
             text = 'Statitistics:\n'
+            if self.rehearsalname.get():
+                text += '\nrehearsal: ' + self.rehearsalname.get() + ',\n'
             if self.stagename.get():
-                text += '\n' + self.stagename.get() + '\n'
+                text += '\n' + self.stagename.get() + ',\n'
             else:
                 text += '\nPlease select a stage**\n'
             text += '\nweight x min: ' + self.rt_data[
@@ -966,6 +1015,40 @@ class Rehearsal(Frame):
         self.rotate_label.gif.go = False
         self.sidestep_label.gif.go = False
 
+    def list_rehearsals(self):
+        """
+        Creates a list of saved rehearsals.
+        """
+        for rh in settings.rehearsals:
+            rname = rh,
+            rdata = settings.rehearsals[rh]
+            self.rehearsal_buttons.append(
+                config_rehearsallist_button(
+                    Button(
+                        self.rehearsal_selector.interior,
+                        text=rname,
+                        command=lambda q=(rh, rdata): self.open_rehearsal(*q),
+                    )
+                )
+            )
+            self.rehearsal_buttons[-1].pack()
+            safe_raise(False, self.open_frame, self.base)
+
+    def open_rehearsal(self, rname, rdata):
+        """
+        This will open one of our saved rehearsals.
+        """
+        self.rehearsalname.set(rname)
+        self.rehearsaldata = rdata
+        self.cancel_rehearsal()
+
+    def cancel_rehearsal(self):
+        """
+        This cancels out of the open rehearsal dialog.
+        """
+        self.base.tkraise()
+        self.refresh()
+
     def show_confirmation(self, message, command):
         """
         This shows the confirmation widget and passes a command event.
@@ -987,9 +1070,13 @@ class Rehearsal(Frame):
         """
         This allows the controller to trigger a refresh of the stage listings.
         """
-        print('refreshing!')
-        for button in self.stage_buttons:
-            button.destroy()
+        for buttons in [
+            self.stage_buttons,
+            self.rehearsal_buttons
+        ]:
+            for button in buttons:
+                button.destroy()
+
         self.velocity.set('velocity: ' + str(self.rt_data['velocity'].get()))
         self.offset.set('offset: ' + str(self.rt_data['offset'].get()))
         self.assemble_details()
@@ -1535,18 +1622,28 @@ class VerticalScrolledFrame(Frame):
 
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent, width=None, height=None):
         Frame.__init__(self, parent)
 
         # create a canvas object and a vertical scrollbar for scrolling it
         self.canvasheight = pry(70)
         self.canvaswidth = pry(40)
-        self.canvas = canvas = Canvas(
-            self,
-            bg=theme['main'],
-            height=self.canvasheight,
-            highlightthickness=0,  # This is the secret to getting rid of that nasty border!
-        )
+
+        if width and height:
+            self.canvas = canvas = Canvas(
+                self,
+                bg=theme['main'],
+                height=height,
+                width=width,
+                highlightthickness=0,  # This is the secret to getting rid of that nasty border!
+            )
+        else:
+            self.canvas = canvas = Canvas(
+                self,
+                bg=theme['main'],
+                height=self.canvasheight,
+                highlightthickness=0,  # This is the secret to getting rid of that nasty border!
+            )
         canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
 
         # reset the view
@@ -1556,7 +1653,6 @@ class VerticalScrolledFrame(Frame):
         self.interior = interior = Frame(canvas, height=self.canvasheight, width=self.canvaswidth)
         self.interior.configure(
             bg=theme['main'],
-            highlightcolor='red',
             bd=0
         )
         self.interior_id = canvas.create_window(0, 0, window=interior, anchor=NW)
@@ -1568,15 +1664,16 @@ class VerticalScrolledFrame(Frame):
             self.event = event
             size = (interior.winfo_reqwidth(), interior.winfo_reqheight())
             canvas.config(scrollregion="0 0 %s %s" % size)
-            if interior.winfo_reqwidth() != canvas.winfo_width():
+            if interior.winfo_reqwidth() > canvas.winfo_width():  # Changed from neq to less than.
                 # update the canvas's width to fit the inner frame
                 canvas.config(width=interior.winfo_reqwidth())
-
+            elif interior.winfo_reqwidth() > canvas.winfo_width():
+                interior.configure(width=canvas.winfo_width())
         interior.bind('<Configure>', _configure_interior)
 
         def _configure_canvas(event):
             self.event = event
-            if interior.winfo_reqwidth() != canvas.winfo_width():
+            if interior.winfo_reqwidth() < canvas.winfo_width():  # Changes from neq to less than.
                 # update the inner frame's width to fill the canvas
                 canvas.itemconfigure(self.interior_id, width=canvas.winfo_width())
 
@@ -2123,6 +2220,28 @@ def config_stagelist_button(element, bad=False):
         pady=pry(2),
         justify=LEFT
     )
+    if bad:
+        el.configure(
+            fg=theme['badfiletext']
+        )
+    return element
+
+
+def config_rehearsallist_button(element, bad=False):
+    """
+        This styles the buttons on the rehearsal list.
+        """
+    spacer = get_spacer()
+    el = config_button(element)
+    el.configure(
+        font=(theme['font'], str(pointsy(5))),
+        anchor=W,
+        width=prx(45),
+        pady=pry(2),
+        justify=LEFT,
+        image=spacer,
+    )
+    el.image = spacer
     if bad:
         el.configure(
             fg=theme['badfiletext']
