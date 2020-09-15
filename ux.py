@@ -1071,6 +1071,8 @@ class Rehearsal(Frame):
         """
         print('running rehearsal')
         self.cancel_rehearsal()
+        self.controller.show_frame('Writer')
+        self.controller.target = 'Writer'
 
     def save_rehearsal(self, rename=''):
         """
