@@ -30,17 +30,18 @@ def mesh_sorter(mesh):
     return mesh
 
 
-def pymesh_stl(obj_file, parent, theme, config, target, rt_data):
+def pymesh_stl(controller, parent, theme, obj_file, target):
     """
     Method using pymesh.
 
     :param obj_file: This is the file we will operate on.
     :param parent: This is the passed frame instance in the UX.
     :param theme: This is the theme passed from the UX.
-    :param config: This is the calibration data we will use to frame the plot.
+    :param controller: This is the calibration data we will use to frame the plot.
     :param target: This is the specific leg (1-4) that we will run against.
-    :param rt_data: This is the passed real-time model so we can populate data to the UX app.
     """
+    rt_data = controller.rt_data
+    config = controller.defaults
     target = str(target)
     leglength = config['zlength' + target]
     contact = 100 - config['contact']
@@ -288,6 +289,8 @@ def pymesh_stl(obj_file, parent, theme, config, target, rt_data):
 
         yz_max_weight = config['weightymax']
         yz_min_weight = config['weightymin']
+
+        print(yz_min_weight)
 
         tlen = len(trajectory[0])
         xz_max, xz_min = weights[0]  # Gather indexes.

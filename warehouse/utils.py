@@ -241,11 +241,14 @@ class BuildSettings:
         self.save(upgrade=True)
         return self
 
-    def set(self, setting, value):
+    def set(self, setting, value=''):
         """
         This changes a specific setting value.
         """
-        self.settings[setting] = value
+        if not value:
+            exec('self.settings[setting] = str(self.' + setting + ')')
+        else:
+            self.settings[setting] = str(value)
         return self
 
 
