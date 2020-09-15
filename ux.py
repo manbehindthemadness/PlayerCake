@@ -1048,6 +1048,7 @@ class Rehearsal(Frame):
         self.rehearsalname.set(rname)
         self.rehearsaldata = rdata
         self.cancel_rehearsal()
+        self.controller.target = ['Writer', 'Rehearsal', 'CloseWidget']
 
     def cancel_rehearsal(self):
         """
@@ -1055,6 +1056,7 @@ class Rehearsal(Frame):
         """
         self.base.tkraise()
         self.refresh()
+        self.controller.target = 'Writer'
 
     def import_rehearsals(self):
         """
@@ -1077,9 +1079,9 @@ class Rehearsal(Frame):
         TODO: We need to add an overwrite confirmation and a cancel feature.
         """
         self.rehearsal_rename = rename
+        self.controller.target = ['Writer', 'Rehearsal', 'CloseWidget']
         if not self.rehearsaldata:
             self.temp['error_message'].set('error: no rehearsal data available to save.')
-            self.controller.target = 'Rehearsal'
             self.controller.show_frame('ErrorWidget')
         else:
             self.rt_data['rehearsalname'] = self.rehearsalname
@@ -1087,7 +1089,6 @@ class Rehearsal(Frame):
             if self.rehearsalname.get():
                 self.temp['default_keyboard_text'] = self.rehearsalname
             self.controller.command = self.save_rehearsal_event
-            self.controller.target = 'Rehearsal'
             self.controller.refresh('Keyboard')
             self.controller.show_frame('Keyboard')
 
@@ -1104,6 +1105,7 @@ class Rehearsal(Frame):
         settings.save()  # Save permanent settings model to disk.
         self.refresh()  # Refresh data.
         safe_drop(self.controller, ['Writer', 'Rehearsal', 'CloseWidget'])
+        self.controller.target = 'Writer'
 
     def delete_rehearsal(self):
         """
@@ -1115,7 +1117,7 @@ class Rehearsal(Frame):
             self.controller.show_frame('ErrorWidget')
         else:
             self.temp['confirmation_message'].set('delete:' + self.rehearsalname.get() + '?')
-            self.controller.command = self.delete_event()
+            self.controller.command = self.delete_event
             self.controller.show_frame('ConfirmationWidget')
 
     def delete_event(self):
@@ -1160,6 +1162,7 @@ class Rehearsal(Frame):
         self.offset.set('offset: ' + str(self.rt_data['offset'].get()))
         self.assemble_details()
         self.list_stages()
+        self.controller.target = 'Writer'
 
     @staticmethod
     def locate_image(image):
@@ -1313,8 +1316,12 @@ class MainView(tk.Tk):
         """
         Shows a frame...
         """
-        frame = self.get_frame(page_name)
-        frame.tkraise()
+        if isinstance(page_name, list):
+            for f in page_name:
+                self.get_frame(f).tkraise()
+        else:
+            frame = self.get_frame(page_name)
+            frame.tkraise()
 
     def refresh(self, page_name):
         """
@@ -1827,10 +1834,9 @@ class CloseWidget(Frame):
 
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
-        global rt_data
         self.controller = controller
-        self.target = controller.target
-        self.temp = rt_data['temp']
+        self.rt_data = self.controller.rt_data
+        self.temp = self.controller.temp
         x = pry(20)
         y = pry(18)
         image = PhotoImage(file=img('close.png', 10, 10))
@@ -1855,7 +1861,7 @@ class CloseWidget(Frame):
         """
         This will raise the target frame hiding whatever widget is currently in focus.
         """
-        self.controller.show_frame(self.target)
+        self.controller.show_frame(self.controller.target)
 
     def show(self):
         """

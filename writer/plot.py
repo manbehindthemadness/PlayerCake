@@ -290,8 +290,6 @@ def pymesh_stl(controller, parent, theme, obj_file, target):
         yz_max_weight = config['weightymax']
         yz_min_weight = config['weightymin']
 
-        print(yz_min_weight)
-
         tlen = len(trajectory[0])
         xz_max, xz_min = weights[0]  # Gather indexes.
         yz_max, yz_min = weights[1]
