@@ -33,7 +33,7 @@ from writer.plot import pymesh_stl
 scr_x, scr_y = settings.screensize
 
 theme = settings.themes[settings.theme]
-defaults = settings.defaults
+# defaults = settings.defaults
 
 # This crap is for tunneling the app over ssh
 os.environ['DISPLAY'] = settings.display
@@ -222,12 +222,13 @@ class Writer(Frame):
     # noinspection PyShadowingNames
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
-        global rt_data
-        self.rt_data = rt_data
-        self.defaults = defaults
-        for sett in self.defaults:  # Populate defaults
-            self.rt_data[sett] = StringVar()
-            self.rt_data[sett].set(str(defaults[sett]))
+        self.controller = controller
+        self.rt_data = self.controller.rt_data
+        self.defaults = self.controller.defaults
+        # self.defaults = defaults
+        # for sett in self.defaults:  # Populate defaults
+        #     self.rt_data[sett] = StringVar()
+        #     self.rt_data[sett].set(str(defaults[sett]))
         self.rt_data['plotfile'] = str()
         self.folder = None
         self.ext = None
@@ -252,8 +253,6 @@ class Writer(Frame):
             'stageid': str(uuid.uuid4()),
             'rsa_pub': 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCQV2BjlfjrMtVieIJ5IrJyar9zjaL8XvWKyDgoc5rwvvkWimd+m4rbhgeyAAvCQLzL8xINhP88zqWA3sswvEgUGrZzqocM0AaCrVc2AwDsWFLEAtxFu+7rsKWcFlg9jZX2NvmE+FFnqoCIcPQK+vEDa6dv40xmFWankAXTvq2gYQIDAQAB'
         })
-
-        self.controller = controller
         self.numpad = NumPad(self, self.controller)
         self.plotter = pymesh_stl
         self.number = None  # Temp space for passing numbers.
@@ -490,12 +489,13 @@ class Writer(Frame):
         """
         This updates the default values we pass to the trajectory plotter.
         """
-        for setting in self.rt_data:
-            if setting in self.defaults.keys():
-                u_set = self.rt_data[setting].get()
+        for setting in self.controller.rt_data:
+            if setting in self.controller.defaults.keys():
+                u_set = self.controller.rt_data[setting].get()
                 if u_set.lstrip("-").isdigit():  # Confirm we have a number.
                     u_set = eval(u_set)  # Eval the setting back into a literal.
-                self.defaults[setting] = u_set
+                self.controller.defaults[setting] = u_set
+        self.defaults = self.controller.defaults
 
     def get_plotfile(self):
         """
@@ -525,8 +525,13 @@ class Writer(Frame):
         if plotfile:
             if self.plot:  # Clear if needed.
                 self.plot.get_tk_widget().pack_forget()  # Clear old plot.
-            self.plot = self.plotter(plotfile, self.plot_frame, theme, settings.defaults, 1,
-                                     self.rt_data)  # TODO: This will need to be revised for simulations.
+            self.plot = self.plotter(
+                self.controller,
+                self.plot_frame,
+                theme,
+                plotfile,
+                1,
+            )  # TODO: This will need to be revised for simulations.
             self.plot.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH)  # Fetch canvas widget.
         self.controller.show_frame('Writer')  # Hide loading icon.
         if self.plot:
@@ -1098,7 +1103,7 @@ class Rehearsal(Frame):
         settings.set('rehearsals')  # Revise permanent model.
         settings.save()  # Save permanent settings model to disk.
         self.refresh()  # Refresh data.
-        safe_drop(self.controller, ['Writer', 'Rehearsal'])
+        safe_drop(self.controller, ['Writer', 'Rehearsal', 'CloseWidget'])
 
     def delete_rehearsal(self):
         """
@@ -1186,6 +1191,10 @@ class MainView(tk.Tk):
         global rt_data
         self.rt_data = rt_data
         self.temp = self.rt_data['temp'] = dict()
+        self.defaults = settings.defaults
+        for sett in self.defaults:  # Populate defaults
+            self.rt_data[sett] = StringVar()
+            self.rt_data[sett].set(str(self.defaults[sett]))
         self.target = self.temp['targetframe'] = 'Writer'  # This is the page we will raise after a widget is closed.
         self.entertext = self.temp['entertext'] = 'enter'
         self.stagedata = self.temp['stagedata'] = dict()
