@@ -687,7 +687,7 @@ class Rehearsal(Frame):
             width=360,
             height=pry(45),
             x=cp(prx(35), 360),
-            y=cp(pry(45), pry(50))
+            y=cp(pry(45), pry(45))
         )
         self.scalers.grid_rowconfigure(0, weight=1)
         self.scalers.grid_columnconfigure(0, weight=1)
@@ -769,7 +769,107 @@ class Rehearsal(Frame):
             0,
             0
         )
-
+        #  ##################
+        #  configure compound
+        #  ##################
+        self.compound_frame = Frame(
+            self,
+            bg=theme['main'],
+            highlightthickness=pry(1),
+            highlightbackground=theme['entrybackground']
+        )
+        self.compound_frame.place(
+            width=prx(51),
+            height=pry(90),
+            x=cp(prx(35), prx(51)),
+            y=cp(pry(45), pry(90))
+        )
+        self.compound_frame.grid_columnconfigure(0, weight=1)
+        self.compound_left = Frame(
+            self.compound_frame,
+            bg=theme['main']
+            # width=prx(21.6),
+            # height=pry(70)
+        )
+        # TODO: Stuff the compound widgets into a loop.
+        self.compound_left.grid(row=0, column=0)
+        self.comp4_rev = IntVar()
+        self.comp4_mir = IntVar()
+        self.comp4_txt = StringVar()
+        self.comp4_txt.set('open')
+        self.compound_4 = self.compound_open(
+            self.compound_left,
+            'leg 4',
+            self.comp4_txt,
+            self.comp4_rev,
+            self.comp4_mir,
+            None
+        )
+        self.compound_4.grid(row=0, column=0)
+        self.comp2_rev = IntVar()
+        self.comp2_mir = IntVar()
+        self.comp2_txt = StringVar()
+        self.comp2_txt.set('open')
+        self.compound_2 = self.compound_open(
+            self.compound_left,
+            'leg 2',
+            self.comp2_txt,
+            self.comp2_rev,
+            self.comp2_mir,
+            None
+        )
+        self.compound_2.grid(row=1, column=0)
+        self.compound_graphic_frame = Frame(
+            self.compound_frame,
+            width=prx(25),
+            height=pry(70),
+            bg='red'
+        )
+        self.compound_graphic_frame.grid(row=0, column=1)  # Set to rowspan=2 in the future.
+        self.compound_graphic_frame.grid_columnconfigure(0, weight=1)
+        self.compound_graphic = PhotoImage(file=img('quad_front.png', 25, 70))
+        self.compound_graphic_label = Label(
+            self.compound_graphic_frame,
+            image=self.compound_graphic,
+            bg=theme['main'],
+            width=prx(25),
+            height=pry(70)
+        )
+        self.compound_graphic_label.image = self.compound_graphic
+        self.compound_graphic_label.pack()
+        self.compound_right = Frame(
+            self.compound_frame,
+            bg=theme['main']
+            # width=prx(21.6),
+            # height=pry(70)
+        )
+        self.compound_right.grid(row=0, column=2)
+        self.comp3_rev = IntVar()
+        self.comp3_mir = IntVar()
+        self.comp3_txt = StringVar()
+        self.comp3_txt.set('open')
+        self.compound_3 = self.compound_open(
+            self.compound_right,
+            'leg 3',
+            self.comp3_txt,
+            self.comp3_rev,
+            self.comp3_mir,
+            None
+        )
+        self.compound_3.grid(row=0, column=0)
+        self.comp1_rev = IntVar()
+        self.comp1_mir = IntVar()
+        self.comp1_txt = StringVar()
+        self.comp1_txt.set('open')
+        self.compound_1 = self.compound_open(
+            self.compound_right,
+            'leg 1',
+            self.comp1_txt,
+            self.comp1_rev,
+            self.comp1_mir,
+            None
+        )
+        self.compound_1.grid(row=1, column=0)
         #  ##############
         #  configure base
         #  ##############
@@ -879,7 +979,7 @@ class Rehearsal(Frame):
                 lambda: self.import_rehearsals(),
                 lambda: self.class_selector(),
                 lambda: self.run_rehearsal(),
-                '',
+                lambda: self.compound_selector(),
                 lambda: self.scaler_selector()
             ],
             0,
@@ -1131,6 +1231,82 @@ class Rehearsal(Frame):
         settings.set('rehearsals')  # Revise permanent model.
         settings.save()  # Save permanent settings model to disk.
         self.refresh()  # Refresh data.
+
+    def compound_selector(self):
+        """
+        This shows the compound editor frame
+        """
+        self.controller.target = 'Rehearsal'
+        self.compound_frame.tkraise()
+
+    @staticmethod
+    def compound_open(parent, title, tvar, revvar, mirvar, command):
+        """
+        This is the widget we will use for selecting a compound rehersal.
+        """
+        container = Frame(
+            parent,
+            width=prx(21.6),
+            height=pry(40),
+            bg=theme['main']
+        )
+        container.grid_columnconfigure(0, weight=1)
+        ti_frame = Frame(
+            container,
+            width=prx(21.6),
+            height=pry(10),
+        )
+        ti_frame.grid(row=0, column=0)
+        til = config_text(
+            Label(
+                ti_frame
+            ),
+            title,
+            4
+        )
+        til.pack()
+        btn_frame = Frame(
+            container,
+            width=prx(21.6),
+            height=pry(10)
+        )
+        btn_frame.grid(row=1, column=0)
+        config_single_button(
+            btn_frame,
+            tvar,
+            command
+        )
+        chk_frame = Frame(
+            container,
+            width=prx(10),
+            height=pry(10),
+        )
+        chk_frame.grid(row=2, column=0)
+        config_checkbox(
+            chk_frame,
+            '',
+            revvar
+        )
+        config_checkbox(
+            chk_frame,
+            '',
+            mirvar
+        )
+        lbl_frame = Frame(
+            container,
+            width=prx(21.6),
+            height=pry(10)
+        )
+        lbl_frame.grid(row=3, column=0)
+
+        lbl = config_text(
+            Label(
+                lbl_frame,
+            ),
+            'reverse   mirror'
+        )
+        lbl.pack()
+        return container
 
     def show_confirmation(self, message, command):
         """
@@ -1864,6 +2040,7 @@ class CloseWidget(Frame):
         This will raise the target frame hiding whatever widget is currently in focus.
         """
         self.controller.show_frame(self.controller.target)
+        print('raising:', self.controller.target)
 
     def show(self):
         """
@@ -2215,11 +2392,35 @@ class GifAnimation(Frame):
         return self
 
 
+def config_checkbox(parent, text, intvar, command=None):
+    """
+    This creates a checkbox.
+    """
+    chk = Checkbutton(
+        parent,
+        command=command,
+        width=prx(0.25),
+        height=pry(2),
+        bg=theme['main'],
+        fg=theme['buttontext'],
+        highlightcolor=theme['main'],
+        highlightthickness=0,
+        activeforeground=theme['main'],
+        text=text,
+        variable=intvar,
+        image=get_spacer(),
+        relief=FLAT,
+        bd=0
+    )
+    chk.pack(side=LEFT)
+    return chk
+
+
 def button_array(parent, tils, coms, rw, col, vert=False):
     """
     Creates a horizontal or vertical series of buttons.
     """
-    bgm = PhotoImage(file=img('fullbuttonframe.png', 10, 10))
+    # bgm = PhotoImage(file=img('fullbuttonframe.png', 10, 10))
     for idx, (title, command) in enumerate(zip(tils, coms)):
         t_frame = Frame(
             parent,
@@ -2231,21 +2432,49 @@ def button_array(parent, tils, coms, rw, col, vert=False):
             t_frame.grid(row=rw, column=idx)
         else:
             t_frame.grid(row=idx, column=col)
-        t_button = config_button(
-            Button(
-                t_frame,
-                command=command,
-                width=prx(10),
-                height=pry(10),
-                image=bgm
-            )
+        config_single_button(
+            t_frame,
+            title,
+            command
         )
-        t_button.image = bgm
-        if isinstance(title, StringVar):
-            t_button.configure(textvariable=title)
-        else:
-            t_button.configure(text=title)
-        t_button.pack()
+        # t_button = config_button(
+        #     Button(
+        #         t_frame,
+        #         command=command,
+        #         width=prx(10),
+        #         height=pry(10),
+        #         image=bgm
+        #     )
+        # )
+        # t_button.image = bgm
+        # if isinstance(title, StringVar):
+        #     t_button.configure(textvariable=title)
+        # else:
+        #     t_button.configure(text=title)
+        # t_button.pack()
+
+
+def config_single_button(parent, text, command):
+    """
+    This creates a single button.
+    """
+    bgm = PhotoImage(file=img('fullbuttonframe.png', 10, 10))
+    btn = config_button(
+        Button(
+            parent,
+            command=command,
+            width=prx(10),
+            height=pry(10),
+            image=bgm
+        )
+    )
+    btn.image = bgm
+    if isinstance(text, StringVar):
+        btn.configure(textvariable=text)
+    else:
+        btn.configure(text=text)
+    btn.pack()
+    return btn
 
 
 def config_button(element):
@@ -2345,12 +2574,12 @@ def config_rehearsallist_button(element, bad=False):
     return element
 
 
-def config_text(element, text):
+def config_text(element, text='', size=2):
     """
     This takes an element and configures the text properties
     """
     element.configure(
-        font=(theme['font'], pointsy(2)),
+        font=(theme['font'], pointsy(size)),
         pady=pry(2),
         fg=theme['text'],
         bg=theme['main'],
