@@ -1287,6 +1287,12 @@ class Rehearsal(Frame):
             '',
             revvar
         )
+        Label(
+            chk_frame,
+            width=prx(3),
+            image=get_spacer(),
+            bg=theme['main']
+        ).pack(side=LEFT)
         config_checkbox(
             chk_frame,
             '',
