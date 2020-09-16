@@ -130,7 +130,8 @@ def update_setting(filename, section, setting, value, merge=False):
     try:
         if merge:
             try:
-                sett = eval(config.get(section, setting))
+                # sett = eval(config.get(section, setting))
+                sett = config.get(section, setting)
                 # print(type(sett))
                 if isinstance(sett, dict) or isinstance(sett, list):
                     config.set(section, setting, value)  # Save setting value.
@@ -174,8 +175,9 @@ class BuildSettings:
                 val = val.replace('\n', '')
                 try:
                     exec('self.' + key + ' = eval("' + val + '")')
-                except NameError:
+                except (NameError, SyntaxError):
                     exec('self.' + key + ' = "' + val + '"')
+                # exec('print(self.' + key + ', type(self.' + key + '))')
         return self
 
     def save(self, upgrade=False):
@@ -192,10 +194,14 @@ class BuildSettings:
             store = self.settings
         for key in store:
             if upgrade:
-                # print(type(eval(store[key])))
+                # print(store_old.keys())
                 if key in store_old.keys():
-                    storeset = eval(store[key])
-                    oldstoreset = eval(store_old[key])
+                    try:
+                        storeset = eval(store[key])
+                        oldstoreset = eval(store_old[key])
+                    except (NameError, SyntaxError):
+                        storeset = store[key]
+                        oldstoreset = store_old[key]
                     if isinstance(storeset, dict):  # Update dicts.
                         try:
                             # print('updating dict')
