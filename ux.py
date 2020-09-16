@@ -29,7 +29,6 @@ from warehouse.system import system_command
 from warehouse.utils import percent_of, percent_in, file_rename, image_resize
 from writer.plot import pymesh_stl
 
-
 scr_x, scr_y = settings.screensize
 
 theme = settings.themes[settings.theme]
@@ -604,6 +603,7 @@ class Rehearsal(Frame):
     weightymax',
     contact'
     """
+
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         self.controller = controller
@@ -775,6 +775,7 @@ class Rehearsal(Frame):
         self.compound_frame = Frame(
             self,
             bg=theme['main'],
+            # bg='green',
             highlightthickness=pry(1),
             highlightbackground=theme['entrybackground']
         )
@@ -823,7 +824,6 @@ class Rehearsal(Frame):
             self.compound_frame,
             width=prx(25),
             height=pry(70),
-            bg='red'
         )
         self.compound_graphic_frame.grid(row=0, column=1)  # Set to rowspan=2 in the future.
         self.compound_graphic_frame.grid_columnconfigure(0, weight=1)
@@ -833,7 +833,7 @@ class Rehearsal(Frame):
             image=self.compound_graphic,
             bg=theme['main'],
             width=prx(25),
-            height=pry(70)
+            height=pry(59)
         )
         self.compound_graphic_label.image = self.compound_graphic
         self.compound_graphic_label.pack()
@@ -870,6 +870,21 @@ class Rehearsal(Frame):
             None
         )
         self.compound_1.grid(row=1, column=0)
+        self.timing1 = self.timing2 = self.timing3 = self.timing4 = Scale()
+
+        self.t1 = IntVar()
+        self.t2 = IntVar()
+        self.t3 = IntVar()
+        self.t4 = IntVar()
+        self.timing_frame = self.timing_slider(
+            self.compound_frame,
+            self.t1,
+            self.t2,
+            self.t3,
+            self.t4,
+            # ['1', '2', '3', '4']
+        )
+        self.timing_frame.grid(row=1, columnspan=3)
         #  ##############
         #  configure base
         #  ##############
@@ -1029,13 +1044,13 @@ class Rehearsal(Frame):
             text += '\nweight x min: ' + self.rt_data[
                 'weightxmin'
             ].get() + ', \tweight x max: ' + self.rt_data[
-                'weightxmax'
-            ].get() + ',\n'
+                        'weightxmax'
+                    ].get() + ',\n'
             text += '\nweight y min: ' + self.rt_data[
                 'weightymin'
             ].get() + ', \tweight y max: ' + self.rt_data[
-                'weightymax'
-            ].get() + ',\n'
+                        'weightymax'
+                    ].get() + ',\n'
             text += '\n' + self.velocity.get() + ', \t' + self.offset.get() + ',\n'
             if self.script_class.get():
                 text += '\nclassification: ' + self.script_class.get() + ',\n'
@@ -1068,13 +1083,13 @@ class Rehearsal(Frame):
             s_id = stage_entry
             s_name = settings.stages[stage_entry]['name']
             self.stage_buttons.append(
-                 config_stagelist_button(
-                     Button(
-                         self.stage_list.interior,
-                         text=s_name,
-                         command=lambda q=(s_id, s_name): self.select_stage(*q)
-                     )
-                 )
+                config_stagelist_button(
+                    Button(
+                        self.stage_list.interior,
+                        text=s_name,
+                        command=lambda q=(s_id, s_name): self.select_stage(*q)
+                    )
+                )
             )
             self.stage_buttons[-1].pack()
 
@@ -1236,7 +1251,7 @@ class Rehearsal(Frame):
         """
         This shows the compound editor frame
         """
-        self.controller.target = 'Rehearsal'
+        # self.controller.target = 'Rehearsal'
         self.compound_frame.tkraise()
 
     @staticmethod
@@ -1313,6 +1328,96 @@ class Rehearsal(Frame):
         )
         lbl.pack()
         return container
+
+    # noinspection PyMethodMayBeStatic
+    def timing_slider(self, parent, t1, t2, t3, t4, names=None):
+        """
+        Creates four slider widgets for timing adjustment.
+
+        TODO: This needs to be cleaned up.
+        """
+        if not names:
+            names = ['', '', '', '']
+        slider_frame = Frame(
+            parent,
+            width=prx(51),
+            height=pry(35),
+            bg=theme['main']
+        )
+        btn_frame = Frame(
+            slider_frame,
+            width=prx(51),
+            bg=theme['main'],
+        )
+        btn_frame.pack(side=TOP)
+        bmg = PhotoImage(file=img('fullbuttonframe.png', 8, 3, aspect=False))
+        s_button = Button(
+            btn_frame,
+            width=prx(8),
+            height=pry(3),
+            text='submit',
+            image=bmg,
+            compound=CENTER,
+            activebackground=theme['main'],
+            activeforeground=theme['buttontext'],
+            foreground=theme['buttontext'],
+            background=theme['main'],
+            borderwidth=0,
+            highlightthickness=0,
+        )
+        s_button.image = bmg
+        s_button.pack(side=LEFT)
+        Label(
+            btn_frame,
+            width=prx(16),
+            height=pry(2),
+            pady=pry(1),
+            image=get_spacer(),
+            compound='center',
+            text='timing adjustment',
+            bg=theme['main'],
+            fg=theme['buttontext'],
+        ).pack(side=LEFT)
+        c_button = Button(
+            btn_frame,
+            width=prx(8),
+            height=pry(3),
+            text='cancel',
+            image=bmg,
+            compound='center',
+            activebackground=theme['main'],
+            activeforeground=theme['buttontext'],
+            foreground=theme['buttontext'],
+            background=theme['main'],
+            borderwidth=0,
+            highlightthickness=0,
+        )
+        c_button.pack(side=LEFT)
+        for idx, (name, slider) in enumerate(zip(
+                names,
+                [
+                    t1,
+                    t2,
+                    t3,
+                    t4
+                ])):
+            sc = Scale(
+                slider_frame,
+                width=pry(2),
+                length=prx(45),
+                variable=slider,
+                label=name,
+                orient=HORIZONTAL,
+                bg=theme['main'],
+                fg=theme['buttontext'],
+                bd=0,
+                troughcolor=theme['slidecolor'],
+                highlightthickness=0,
+                bigincrement=5,
+            )
+            sc.pack()
+            exec('self.timing' + str(idx + 1) + ' = sc')
+        return slider_frame
 
     def show_confirmation(self, message, command):
         """
@@ -1393,6 +1498,7 @@ class MainView(tk.Tk):
         self.command = None
         self.rt_data['key_test'] = StringVar()  # TODO: This is just for testing the keyboard.
         self.rt_data['key_test'].set('')
+        self.spacer = get_spacer()
         self.update()  # I wish I had thought of this sooner...
 
         container = tk.Frame(self)
@@ -1406,18 +1512,18 @@ class MainView(tk.Tk):
         container.grid_columnconfigure(0, weight=1)
         self.frames = dict()
         for F in (  # Ensure the primary classes are passed before the widgets.
-            Home,
-            Writer,
-            Audience,
-            Rehearsal,
-            Keyboard,
-            NumPad,
-            FileBrowser,
-            CloseWidget,
-            QRCodeWidget,
-            LoadingIcon,
-            ConfirmationWidget,
-            ErrorWidget
+                Home,
+                Writer,
+                Audience,
+                Rehearsal,
+                Keyboard,
+                NumPad,
+                FileBrowser,
+                CloseWidget,
+                QRCodeWidget,
+                LoadingIcon,
+                ConfirmationWidget,
+                ErrorWidget
         ):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
@@ -1948,6 +2054,7 @@ class VerticalScrolledFrame(Frame):
                 canvas.config(width=interior.winfo_reqwidth())
             elif interior.winfo_reqwidth() > canvas.winfo_width():
                 interior.configure(width=canvas.winfo_width())
+
         interior.bind('<Configure>', _configure_interior)
 
         def _configure_canvas(event):
@@ -2059,6 +2166,7 @@ class ConfirmationWidget(Frame):
     """
     This presents a confirmation dialog sporting a confirm or cancel.
     """
+
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         self.controller = controller
@@ -2259,6 +2367,7 @@ class LoadingIcon(Frame):
     """
     This is a cool animated loading icon.
     """
+
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         self.controller = controller
@@ -2274,6 +2383,7 @@ class LoadingAnimation(Frame):
     """
     Nifty gif animmated widget.
     """
+
     def __init__(self, parent):
         Frame.__init__(self, parent)
         self.go = False
@@ -2312,6 +2422,7 @@ class GifIcon(Frame):
     """
     This is a cool animated loading icon.
     """
+
     def __init__(self, parent, file):
         Frame.__init__(self, parent)
         self.go = False
@@ -2460,11 +2571,13 @@ def button_array(parent, tils, coms, rw, col, vert=False):
         # t_button.pack()
 
 
-def config_single_button(parent, text, command):
+def config_single_button(parent, text, command, size=None):
     """
     This creates a single button.
     """
-    bgm = PhotoImage(file=img('fullbuttonframe.png', 10, 10))
+    if not size:
+        size = (10, 10)
+    bgm = PhotoImage(file=img('fullbuttonframe.png', *size))
     btn = config_button(
         Button(
             parent,
