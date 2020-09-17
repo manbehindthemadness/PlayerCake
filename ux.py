@@ -772,10 +772,30 @@ class Rehearsal(Frame):
         #  ##################
         #  configure compound
         #  ##################
+        self.compound = self.temp['compound'] = dict()  # Init compound data.
+        """
+        Note that these values will be string and int variables.
+        {
+            '1': {
+                'rehearsal': 'test_leg_1_path',
+                'timing': 1,
+                'reverse': True,
+                'mirror': False
+            },
+            '2': {}.....
+        }
+        """
+        for idx in range(1, 5):  # Define compound data variables.
+            idx = str(idx)
+            cpi = self.compound[idx] = dict()
+            cpi['rehearsal'] = StringVar()
+            cpi['timing'] = IntVar()
+            cpi['reverse'] = IntVar()
+            cpi['mirror'] = IntVar()
+
         self.compound_frame = Frame(
             self,
             bg=theme['main'],
-            # bg='green',
             highlightthickness=pry(1),
             highlightbackground=theme['entrybackground']
         )
@@ -789,8 +809,6 @@ class Rehearsal(Frame):
         self.compound_left = Frame(
             self.compound_frame,
             bg=theme['main']
-            # width=prx(21.6),
-            # height=pry(70)
         )
         # TODO: Stuff the compound widgets into a loop.
         self.compound_left.grid(row=0, column=0)
@@ -1109,15 +1127,32 @@ class Rehearsal(Frame):
         self.class_label.gif.go = True
         safe_raise(False, self.classes, self.base)
 
-    def select_class(self, c_name):
+    def select_class(self, c_name='custom'):
         """
         This sets the script class variable and raises self.
         Stops the animation.
         """
         self.script_class.set(c_name)
-        self.refresh()
-        self.base.tkraise()
-        self.class_label.gif.go = False
+        if c_name != 'custom':
+            tmg = self.controller.defaults['timings'][c_name]
+            self.refresh()
+            self.base.tkraise()
+            self.class_label.gif.go = False
+            for tm in range(4):
+                exec("self.timing" + str(tm + 1) + '.set(' + str(tmg[tm]) + ')')
+                # print("self.timing" + str(tm + 1) + '.set(' + str(tmg[tm]) + ')')
+            for idx, md in enumerate(range(3, 7)):
+                dm = idx + 1
+                tg = tmg[md + 1]
+                exe = [
+                    "self.comp" + str(dm) + '_rev.set(' + str(tg[0]) + ')',
+                    "self.comp" + str(dm) + '_mir.set(' + str(tg[1]) + ')'
+                ]
+                for ex in exe:
+                    exec(ex)
+        else:
+            print(c_name)
+            print('populate custom class timings and jazz here')
 
     def scaler_selector(self):
         """
@@ -1329,6 +1364,21 @@ class Rehearsal(Frame):
         lbl.pack()
         return container
 
+    def compound_cancel_event(self):
+        """
+        This cancels out of the compound dialog.
+        """
+        self.controller.target = 'Writer'
+        self.base.tkraise()
+
+    def compound_submit_event(self):
+        """
+        This submits the changes made in the compound window.
+        """
+        self.controller.target = 'Writer'
+        self.refresh()
+        self.base.tkraise()
+
     # noinspection PyMethodMayBeStatic
     def timing_slider(self, parent, t1, t2, t3, t4, names=None):
         """
@@ -1364,6 +1414,7 @@ class Rehearsal(Frame):
             background=theme['main'],
             borderwidth=0,
             highlightthickness=0,
+            command=lambda: self.compound_submit_event(),
         )
         s_button.image = bmg
         s_button.pack(side=LEFT)
@@ -1391,6 +1442,7 @@ class Rehearsal(Frame):
             background=theme['main'],
             borderwidth=0,
             highlightthickness=0,
+            command=lambda: self.compound_cancel_event(),
         )
         c_button.pack(side=LEFT)
         for idx, (name, slider) in enumerate(zip(
@@ -1414,10 +1466,33 @@ class Rehearsal(Frame):
                 troughcolor=theme['slidecolor'],
                 highlightthickness=0,
                 bigincrement=5,
+                command=lambda q: self.select_class()  # TODO: This is odd...
             )
             sc.pack()
             exec('self.timing' + str(idx + 1) + ' = sc')
         return slider_frame
+
+    def update_compound(self):
+        """
+        This refreshes the compound data model.
+        """
+        reh = StringVar()
+        for idx in range(4):
+            idx = str(idx + 1)
+            dt = self.compound[idx]
+
+            exe = [  # Update leg properties.
+                "dt['timing'] = self.timing" + idx,
+                "dt['reverse'] = self.comp" + idx + '_rev',
+                "dt['mirror'] = self.comp" + idx + '_mir'
+            ]
+            for ex in exe:
+                # print(ex)
+                exec(ex)
+            exec('reh = self.comp' + idx + '_txt')
+            if reh.get() != 'open':  # Set string vars for button text.
+                dt['rehearsal'] = reh.get()
+        # print(self.compound)
 
     def show_confirmation(self, message, command):
         """
@@ -1450,6 +1525,7 @@ class Rehearsal(Frame):
         self.velocity.set('velocity: ' + str(self.rt_data['velocity'].get()))
         self.offset.set('offset: ' + str(self.rt_data['offset'].get()))
         self.assemble_details()
+        self.update_compound()
         self.list_stages()
         self.controller.target = 'Writer'
 
