@@ -1168,11 +1168,35 @@ class Rehearsal(Frame):
         """
         Selects the script scaler and lifts base.
         """
+        def update_mir_rev(inh, mirs, revs):
+            """
+            This updates the mirror and reverse variables depending on what kind of scaler we are using.
+            """
+            mirvars = [
+                inh.comp1_mir,
+                inh.comp2_mir,
+                inh.comp3_mir,
+                inh.comp4_mir
+            ]
+            revvars = [
+                inh.comp1_rev,
+                inh.comp2_rev,
+                inh.comp3_rev,
+                inh.comp4_rev
+            ]
+            for idx, (mir, rev) in enumerate(zip(mirs, revs)):
+                mirvars[idx].set(mir)
+                revvars[idx].set(rev)
+
         self.script_scaler.set(s_name)
         self.refresh()
         self.base.tkraise()
         self.rotate_label.gif.go = False
         self.sidestep_label.gif.go = False
+        if s_name == 'rotate':
+            update_mir_rev(self, [0, 0, 0, 0], [0, 0, 1, 1])
+        elif s_name == 'sidestep':
+            update_mir_rev(self, [0, 0, 0, 0], [0, 0, 0, 0])
 
     def list_rehearsals(self):
         """
