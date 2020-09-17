@@ -1194,7 +1194,7 @@ class Rehearsal(Frame):
         self.rotate_label.gif.go = False
         self.sidestep_label.gif.go = False
         if s_name == 'rotate':
-            update_mir_rev(self, [0, 0, 0, 0], [0, 0, 1, 1])
+            update_mir_rev(self, [0, 1, 0, 0], [0, 0, 1, 1])
         elif s_name == 'sidestep':
             update_mir_rev(self, [0, 0, 0, 0], [0, 0, 0, 0])
 
@@ -1458,7 +1458,7 @@ class Rehearsal(Frame):
         c_button = Button(
             btn_frame,
             width=prx(8),
-            height=pry(3),
+            height=pry(1),
             text='cancel',
             image=bmg,
             compound='center',
@@ -1471,6 +1471,18 @@ class Rehearsal(Frame):
             command=lambda: self.compound_cancel_event(),
         )
         c_button.pack(side=LEFT)
+        sf_label = Label(
+            slider_frame,
+            height=pry(22),
+            width=prx(2),
+            bg=theme['main'],
+            fg=theme['buttontext'],
+            image=self.controller.spacer,
+            text='1\n\n2\n\n3\n\n4',
+            compound='center',
+            justify=LEFT
+        )
+        sf_label.pack(side=LEFT)
         for idx, (name, slider) in enumerate(zip(
                 names,
                 [
