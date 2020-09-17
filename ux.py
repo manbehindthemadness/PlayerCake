@@ -1151,8 +1151,10 @@ class Rehearsal(Frame):
                 for ex in exe:
                     exec(ex)
         else:
-            print(c_name)
-            print('populate custom class timings and jazz here')
+            # TODO: We are going to move this to the custom submit event.
+            # print(c_name)
+            # print('populate custom class timings and jazz here')
+            pass
 
     def scaler_selector(self):
         """
