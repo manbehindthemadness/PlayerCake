@@ -321,7 +321,7 @@ class Writer(Frame):
             self.left_panel_frame,
             'fullbuttonframe.png',
             command=lambda: self.show_rehearsal(),
-            text='rehersal'
+            text='rehearsal'
         )
         self.rehersal_button.grid(row=2, columnspan=2)
         self.publish_button = self.full_button(
@@ -621,6 +621,7 @@ class Rehearsal(Frame):
         self.script_class = self.temp['script_class'] = StringVar()
         self.script_type = self.temp['script_type'] = StringVar()
         self.script_scaler = self.temp['script_scaler'] = StringVar()
+        self.script = dict()
         self.stage_id = str()
         self.stage_buttons = list()
         #  ##############
@@ -822,7 +823,7 @@ class Rehearsal(Frame):
             self.comp4_txt,
             self.comp4_rev,
             self.comp4_mir,
-            None
+            lambda: self.list_rehearsals(self.compound_frame, 4)
         )
         self.compound_4.grid(row=0, column=0)
         self.comp2_rev = IntVar()
@@ -835,7 +836,7 @@ class Rehearsal(Frame):
             self.comp2_txt,
             self.comp2_rev,
             self.comp2_mir,
-            None
+            lambda: self.list_rehearsals(self.compound_frame, 2)
         )
         self.compound_2.grid(row=1, column=0)
         self.compound_graphic_frame = Frame(
@@ -843,7 +844,7 @@ class Rehearsal(Frame):
             width=prx(25),
             height=pry(70),
         )
-        self.compound_graphic_frame.grid(row=0, column=1)  # Set to rowspan=2 in the future.
+        self.compound_graphic_frame.grid(row=0, column=1)
         self.compound_graphic_frame.grid_columnconfigure(0, weight=1)
         self.compound_graphic = PhotoImage(file=img('quad_front.png', 25, 70))
         self.compound_graphic_label = Label(
@@ -872,7 +873,7 @@ class Rehearsal(Frame):
             self.comp3_txt,
             self.comp3_rev,
             self.comp3_mir,
-            None
+            lambda: self.list_rehearsals(self.compound_frame, 3)
         )
         self.compound_3.grid(row=0, column=0)
         self.comp1_rev = IntVar()
@@ -885,7 +886,7 @@ class Rehearsal(Frame):
             self.comp1_txt,
             self.comp1_rev,
             self.comp1_mir,
-            None
+            lambda: self.list_rehearsals(self.compound_frame, 1)
         )
         self.compound_1.grid(row=1, column=0)
         self.timing1 = self.timing2 = self.timing3 = self.timing4 = Scale()
@@ -1134,6 +1135,7 @@ class Rehearsal(Frame):
         """
         self.script_class.set(c_name)
         if c_name != 'custom':
+            print(c_name, self.controller.defaults['timings'][c_name])
             tmg = self.controller.defaults['timings'][c_name]
             self.refresh()
             self.base.tkraise()
@@ -1168,6 +1170,7 @@ class Rehearsal(Frame):
         """
         Selects the script scaler and lifts base.
         """
+
         def update_mir_rev(inh, mirs, revs):
             """
             This updates the mirror and reverse variables depending on what kind of scaler we are using.
@@ -1198,7 +1201,7 @@ class Rehearsal(Frame):
         elif s_name == 'sidestep':
             update_mir_rev(self, [0, 0, 0, 0], [0, 0, 0, 0])
 
-    def list_rehearsals(self):
+    def list_rehearsals(self, target=None, add=0):
         """
         Creates a list of saved rehearsals.
         """
@@ -1210,21 +1213,26 @@ class Rehearsal(Frame):
                     Button(
                         self.rehearsal_selector.interior,
                         text=rname,
-                        command=lambda q=(rh, rdata): self.open_rehearsal(*q),
+                        command=lambda q=(rh, rdata, target, add): self.open_rehearsal(*q),
                     )
                 )
             )
             self.rehearsal_buttons[-1].pack()
             safe_raise(False, self.open_frame, self.base)
 
-    def open_rehearsal(self, rname, rdata):
+    def open_rehearsal(self, rname, rdata, target=None, add=0):
         """
         This will open one of our saved rehearsals.
         """
-        self.rehearsalname.set(rname)
+        if add:
+            exec('self.comp' + str(add) + "_txt.set('" + rname + "')")
+            # TODO: Here is where we will need to add individual compound plots to the rehearsal data
+        self.rehearsalname.set(rname)  # TODO: we need to figure out how we are going to lay out the rehearsal data model.
         self.rehearsaldata = rdata
         self.cancel_rehearsal()
         self.controller.target = ['Writer', 'Rehearsal', 'CloseWidget']
+        if target:
+            target.tkraise()
 
     def cancel_rehearsal(self):
         """
