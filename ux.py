@@ -1135,7 +1135,6 @@ class Rehearsal(Frame):
         """
         self.script_class.set(c_name)
         if c_name != 'custom':
-            print(c_name, self.controller.defaults['timings'][c_name])
             tmg = self.controller.defaults['timings'][c_name]
             self.refresh()
             self.base.tkraise()
