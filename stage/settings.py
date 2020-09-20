@@ -118,7 +118,7 @@ System_Cycle = 5  # Time in seconds for updating system information.
 
 # Calibrations
 
-ADC_Num_Channels = 8  # Number of ADC channels.
+ADC_Num_Channels = 16  # Number of ADC channels.
 ADC_Noise = 0.0  # 0.002471  # We can use this in the event that the acd chan is not balanced to ground.
 ADC_Ungrounded_Channels = []
 

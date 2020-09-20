@@ -8,6 +8,7 @@ from stage import settings
 from stage.commands import Command
 from stage.improvisors.berryimu import ReadIMU, ReadAlt
 from stage.improvisors.gps_lkp import ReadGPS
+from stage.improvisors.adc import MCP3008
 # from stage.improvisors.bmp280 import alt
 from ADCPi import ADCPi, TimeoutError as ADCTimeout
 import RPi.GPIO as GPIO
@@ -338,16 +339,17 @@ class Start:
         Here is where we read the ADC inputs in real-time.
         """
         self.rt_data['ADC'] = dict()
-        while not self.term:
-            try:
-                for num in range(1, settings.ADC_Num_Channels):
-                    comp = 0
-                    if num in settings.ADC_Ungrounded_Channels:
-                        comp = settings.ADC_Noise
-                    self.rt_data['ADC']['ADCPort' + str(num)] = adc.read_voltage(num - comp)
-            except ADCTimeout:
-                dprint(settings, ('ADC timeout',))
-                pass
+        MCP3008(self)
+        # while not self.term:
+        #     try:
+        #         for num in range(1, settings.ADC_Num_Channels):
+        #             comp = 0
+        #             if num in settings.ADC_Ungrounded_Channels:
+        #                 comp = settings.ADC_Noise
+        #             self.rt_data['ADC']['ADCPort' + str(num)] = adc.read_voltage(num - comp)
+        #     except ADCTimeout:
+        #         dprint(settings, ('ADC timeout',))
+        #         pass
 
     def read_imu(self):
         """
