@@ -47,12 +47,12 @@ class NetCom:
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
 
-        if self.settings.Environment == 'mixed':
+        if self.settings.environment == 'mixed':
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         else:
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        self.server_address = (self.bindaddr, self.settings.TCPBindPort)  # Create connection string.
+        self.server_address = (self.bindaddr, self.settings.tcpbindport)  # Create connection string.
         dprint(self.settings, ('starting up on %s port %s' % self.server_address,))
         self.sock.bind(self.server_address)  # Bind connection string to socket.
         self.sock.listen(1)  # Listen for incoming connections.
@@ -100,20 +100,20 @@ class NetCom:
         :return: Nothing.
         """
         self.udpsock = server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # Create UDP transmission socket.
-        if self.settings.Environment == 'pure':
+        if self.settings.environment == 'pure':
             server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        elif self.settings.Environment == 'mixed':  # This is a windows thing...
+        elif self.settings.environment == 'mixed':  # This is a windows thing...
             server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            server.bind((self.bindaddr, self.settings.UDPBroadcastPort))
+            server.bind((self.bindaddr, self.settings.udpbroadcastport))
 
         server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcasting mode.
 
         server.settimeout(0.2)  # Define server timeout.
-        statement = self.settings.Role + ':' + socket.gethostname() + ':' + self.settings.DirectorID + ':' + self.bindaddr + ':' + str(self.settings.TCPBindPort)  # Define data package.
+        statement = self.settings.role + ':' + socket.gethostname() + ':' + self.settings.directorid + ':' + self.bindaddr + ':' + str(self.settings.tcpbindport)  # Define data package.
         # TODO: Encode the above information.
         message = self.encode(statement).message
         while not self.term:  # Broadcast until termination signal is recieved.
-            server.sendto(message, ("<broadcast>", self.settings.UDPBroadcastPort))  # Send message.
+            server.sendto(message, ("<broadcast>", self.settings.udpbroadcastport))  # Send message.
             # print('sending udp message:', message)
             time.sleep(1)
 
@@ -151,19 +151,19 @@ class NetCom:
         :rtype: list
         """
         client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # Create UDP client socket.
-        if self.settings.Environment == 'pure':
+        if self.settings.environment == 'pure':
             client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)  # Specify socket options.
-            client.bind(("", self.settings.UDPBindPort))  # Bind the socket to all adaptors and the target port.
-        elif self.settings.Environment == 'mixed':
+            client.bind(("", self.settings.udpbindport))  # Bind the socket to all adaptors and the target port.
+        elif self.settings.environment == 'mixed':
             client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Windows compatable version.
-            client.bind(("", self.settings.UDPBindPort))  # Bind the socket to all adaptors and the target port.
+            client.bind(("", self.settings.udpbindport))  # Bind the socket to all adaptors and the target port.
         client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcasting mode.
 
         search = True
         while search:  # Listen for upstream server to identify itself.
             data, addr = client.recvfrom(1024)
             self.data = self.decode(data).message.split(':')
-            if self.data[0] == self.settings.Target and self.data[2] == self.settings.DirectorID:  # TODO: revise for cross-application compatibility.
+            if self.data[0] == self.settings.target and self.data[2] == self.settings.directorid:  # TODO: revise for cross-application compatibility.
                 search = False
         return self.data  # Return upstream server TCP connection information.
 
@@ -189,7 +189,7 @@ class NetCom:
         # dprint(self.settings, ('connection found:', server_info))
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
         # sock.bind(self.server_address)
-        sock.settimeout(self.settings.NetworkTimeout)
+        sock.settimeout(self.settings.networktimeout)
         if address:
             server_address = server_info[0], int(server_info[1])
         else:
@@ -219,7 +219,7 @@ class NetCom:
         :return: Nothing.
         """
         message = {
-            'SENDER': self.settings.StageID,
+            'SENDER': self.settings.stageid,
             # 'DATA': bytes(open_file("stage/tests/transmit.log"), "utf8")
             'DATA': bytes('Some data here 2', "utf8")
         }
@@ -268,7 +268,7 @@ class GetIP:
         :param adaptor: Optional string value of adaptor.
         """
         if settings:
-            self.adaptor = settings.BindAdaptor
+            self.adaptor = settings.bindadaptor
         if adaptor:
             self.adaptor = adaptor
         self.data = psutil.net_if_addrs()[self.adaptor]

@@ -153,7 +153,7 @@ class BuildSettings:
     """
     def __init__(self, filename, defaults=None):
         self.config = configparser.ConfigParser()
-        self.filename = filename
+        self.filename = os.getcwd() + '/' + filename
         self.settings = dict()
         self.defaults = defaults
         self.default_settings = dict()
@@ -171,6 +171,7 @@ class BuildSettings:
         self.config.read(file, encoding='utf-8-sig')
         for section in self.config.sections():
             for (key, val) in self.config.items(section):
+                # print(key, val)
                 store[key] = val
                 val = val.replace('\n', '')
                 try:

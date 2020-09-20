@@ -29,6 +29,6 @@ class MCP3008:
     def __init__(self, controller):
         for idx, chan in enumerate(channels):
             comp = 0
-            if idx in controller.settings.ADC_Ungrounded_Channels:
-                comp = controller.settings.ADC_Noise
+            if idx in controller.settings.adc_ungrounded_channels:
+                comp = controller.settings.adc_noise
             controller.rt_data['ADC']['ADCPort' + str(idx)] = (chan.value - comp)  # We might need to change this to voltage.

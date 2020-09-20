@@ -13,7 +13,7 @@ def dprint(settings, err):
     :type err: tuple
     :return: Nothing.
     """
-    if settings.Debug:
+    if settings.debug:
         print(*err)
 
 
@@ -21,5 +21,5 @@ def tprint(settings, err):
     """
     Just like above, but for threads
     """
-    if settings.Debug_Threads:
+    if settings.debug_threads:
         dprint(settings, err)

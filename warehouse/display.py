@@ -1,5 +1,7 @@
 """
 This is where we will keep the code used to update various displays used across the platforms.
+
+https://stackoverflow.com/questions/50288467/how-to-set-up-the-baud-rate-for-i2c-bus-in-linux  # recompile device tree for new i2c clock speed
 """
 
 from collections import OrderedDict

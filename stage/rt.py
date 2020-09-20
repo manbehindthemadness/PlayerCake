@@ -4,13 +4,14 @@ This file contains the realtime sensor loop.
 TODO: Enhance debudder to use on-board reporting screen.
 """
 
-from stage import settings
+# from stage import settings
+from stage.settings import settings
 from stage.commands import Command
 from stage.improvisors.berryimu import ReadIMU, ReadAlt
 from stage.improvisors.gps_lkp import ReadGPS
 from stage.improvisors.adc import MCP3008
 # from stage.improvisors.bmp280 import alt
-from ADCPi import ADCPi, TimeoutError as ADCTimeout
+# from ADCPi import ADCPi, TimeoutError as ADCTimeout
 import RPi.GPIO as GPIO
 from threading import Thread
 import time
@@ -26,24 +27,24 @@ from warehouse.loggers import dprint, tprint
 
 
 # noinspection PyArgumentEqualDefault,PyArgumentEqualDefault,PyArgumentEqualDefault
-adc = ADCPi(*settings.ADC_I2C)  # Init ADC.
-adc.set_pga(1)  # Set gain
-adc.set_bit_rate(12)  # Adjust timing (lower is faster)
-adc.set_conversion_mode(1)  # Set continuous conversion
+# adc = ADCPi(*settings.ADC_I2C)  # Init ADC.
+# adc.set_pga(1)  # Set gain
+# adc.set_bit_rate(12)  # Adjust timing (lower is faster)
+# adc.set_conversion_mode(1)  # Set continuous conversion
 
 rt_data = dict()
 term = False
 
 
-if settings.Debug:
+if settings.debug:
     GPIO.setwarnings(False)
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(settings.Cooling_Fan, GPIO.OUT)  # Init cooling fan.
-GPIO.output(settings.Cooling_Fan, 0)
-GPIO.setup(settings.Gps_Sync, GPIO.IN)  # Setup GPS sync.
-GPIO.setup(settings.Gps_Enable, GPIO.OUT)  # Setup GPS enable.
-GPIO.output(settings.Gps_Enable, 1)  # Init GPS to acquire initial fix.
+GPIO.setup(settings.cooling_fan, GPIO.OUT)  # Init cooling fan.
+GPIO.output(settings.cooling_fan, 0)
+GPIO.setup(settings.gps_sync, GPIO.IN)  # Setup GPS sync.
+GPIO.setup(settings.gps_enable, GPIO.OUT)  # Setup GPS enable.
+GPIO.output(settings.gps_enable, 1)  # Init GPS to acquire initial fix.
 
 
 # noinspection DuplicatedCode
@@ -126,8 +127,8 @@ class Start:
         self.rt_data = rt_data  # Pass realtime data.
         self.execute = Command(self).execute
         listener = self.rt_data['LISTENER'] = dict()
-        listener[settings.DirectorID] = dict()
-        listener[settings.StageID] = dict()
+        listener[settings.directorid] = dict()
+        listener[settings.stageid] = dict()
         self.display = SSD1306
         self.term = term  # Pass termination.
         self.gac = ReadIMU  # Init IMU.
@@ -135,10 +136,10 @@ class Start:
         self.alt = ReadAlt  # Init altimiter.
         self.temp = get_cpu_temperature  # Pull CPU temps.
         self.stats = get_system_stats  # Read system info.
-        self.adc = ADCPi(*settings.ADC_I2C)  # Init ADC.
-        self.adc.set_pga(1)  # Set gain.
-        self.adc.set_bit_rate(12)  # Adjust timing (lower is faster).
-        self.adc.set_conversion_mode(1)  # Set continuous conversion.
+        # self.adc = ADCPi(*settings.ADC_I2C)  # Init ADC.
+        # self.adc.set_pga(1)  # Set gain.
+        # self.adc.set_bit_rate(12)  # Adjust timing (lower is faster).
+        # self.adc.set_conversion_mode(1)  # Set continuous conversion.
         self.netscan = NetScan
         self.netcom = NetCom(self.settings)
         self.netclient = self.netcom.tcpclient  # Get client,
@@ -161,7 +162,7 @@ class Start:
             Thread(target=self.send_ready_state, args=()),
             Thread(target=self.command_parser, args=()),
         ]
-        if settings.Debug:
+        if settings.debug:
             self.threads.append(Thread(target=self.debug, args=()))
 
         for thread in self.threads:  # Launch threads.
@@ -184,7 +185,7 @@ class Start:
 
                 self.sender = self.received_data['SENDER']
                 # print('receiving data:', self.received_data)
-                if self.sender in self.settings.DirectorID:  # Identify incoming connection.
+                if self.sender in self.settings.directorid:  # Identify incoming connection.
                     # listener[self.sender] = self.received_data['DATA']  # Send received data to real time model.
                     if self.sender not in listener.keys():
                         listener[self.sender] = dict()
@@ -206,13 +207,13 @@ class Start:
         """
         This transmits a data package to the specified client id.
         """
-        destination_id = self.settings.DirectorID
+        destination_id = self.settings.directorid
         addresses = self.rt_data['ADDRESSES']
         try:
             if destination_id in addresses.keys():
                 # print('Address detected, using:', self.rt_data['ADDRESSES'][destination_id][0])
                 address = self.rt_data['ADDRESSES'][destination_id][0]
-                self.netclient(message, address + ':' + str(self.settings.TCPBindPort))
+                self.netclient(message, address + ':' + str(self.settings.tcpbindport))
             else:
                 address = self.netclient(message).address
                 self.addresses[destination_id] = address
@@ -227,9 +228,9 @@ class Start:
         ready = {'STATUS': 'ready'}
         while not self.term:  # Start loop.
             if not self.connected:
-                self.rt_data['LISTENER'][self.settings.StageID] = ready
+                self.rt_data['LISTENER'][self.settings.stageid] = ready
                 try:
-                    self.send({'SENDER': self.settings.StageID, 'DATA': ready})  # Transmit ready state to director.
+                    self.send({'SENDER': self.settings.stageid, 'DATA': ready})  # Transmit ready state to director.
                     time.sleep(1)
                     if self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] == 'confirmed':  # TODO: This guy likes to give up problems when the server malfunctions...
                         print('Handshake with director confirmed, starting heartbeat')
@@ -239,21 +240,21 @@ class Start:
                         while self.connected and not self.term:  # Start loop.
                             try:
                                 # print('sending heartbeat')
-                                self.send({'SENDER': self.settings.StageID, 'DATA': {'HEARTBEAT': str(datetime.datetime.utcnow())}})  # Transmit ready state to director.
+                                self.send({'SENDER': self.settings.stageid, 'DATA': {'HEARTBEAT': str(datetime.datetime.utcnow())}})  # Transmit ready state to director.
                                 failures = 0
                             except (TimeoutError, socket.timeout):  # Retry on timeout.
                                 failures += 1  # Up failure count.
                                 pass
-                            if failures >= settings.NetworkTimeout:
+                            if failures >= settings.networktimeout:
                                 print('connection failure, attempting to reacquire director.')
                                 self.connected = False
-                                self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] = 'disconnected'
-                                del self.rt_data['ADDRESSES'][self.settings.DirectorID]
+                                self.rt_data['LISTENER'][self.settings.directorid]['STATUS'] = 'disconnected'
+                                del self.rt_data['ADDRESSES'][self.settings.directorid]
                             time.sleep(1)
                 except (TimeoutError, socket.timeout) as err:  # Retry on timeout.
                     dprint(self.settings, ('Connection failure', err))
                     pass
-            elif self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] == 'ready':  # This will allow us to re-confirm after connection dropouts.
+            elif self.rt_data['LISTENER'][self.settings.directorid]['STATUS'] == 'ready':  # This will allow us to re-confirm after connection dropouts.
                 self.connected = False
             time.sleep(1)
 
@@ -263,7 +264,7 @@ class Start:
         """
 
         while not self.term:
-            commands = self.rt_data['LISTENER'][settings.DirectorID]
+            commands = self.rt_data['LISTENER'][settings.directorid]
             check_dict(commands, 'COMMAND')  # Confirm the key exists.
             self.command = commands['COMMAND']
             if self.command:  # Check for command.
@@ -289,13 +290,13 @@ class Start:
         time.sleep(5)  # Wait for rt_data to populate.
         debug_model = dict()
         for reading in self.rt_data:  # Build debug model.
-            if reading in settings.Debug_Filter:
+            if reading in settings.debug_filter:
                 debug_model[reading] = self.rt_data[reading]
         while not self.term:  # Start loop.
             skip_report = False
-            if not settings.Debug_To_Screen:
+            if not settings.debug_to_screen:
                 try:
-                    if settings.Debug_Update_Only:  # Log update only.
+                    if settings.debug_update_only:  # Log update only.
                         for reading in debug_model:
                             old = debug_model[reading]
                             new = self.rt_data[reading]
@@ -307,15 +308,15 @@ class Start:
                     else:  # Log direct.
                         debug_model = self.rt_data
                     if not skip_report:
-                        if settings.Debug_Pretty:
+                        if settings.debug_pretty:
                             pprint.PrettyPrinter(indent=4).pprint(debug_model)
                         else:
                             for reading in debug_model:
-                                if reading in settings.Debug_Filter:
+                                if reading in settings.debug_filter:
                                     print(reading, debug_model[reading], '\n')
                 except RuntimeError:
                     pass
-            elif settings.Screen_template == 'improv':
+            elif settings.screen_template == 'improv':
                 sys = self.rt_data['SYS']
                 stats = self.rt_data['SYS']['STATS']
                 imu = self.rt_data['IMU']
@@ -331,7 +332,7 @@ class Start:
                     '8': {'message': 'Pressure: ' + str(round(gps['PRESS'], 1))},
                 }
                 display.text_draw(template)
-            time.sleep(settings.Debug_Cycle)
+            time.sleep(settings.debug_cycle)
         self.display().clear()
 
     def read_adc(self):
@@ -371,7 +372,7 @@ class Start:
         while not self.term:
             sys['CPU_TEMP'] = self.temp()
             sys['STATS'] = self.stats()
-            time.sleep(settings.System_Cycle)
+            time.sleep(settings.system_cycle)
 
     def read_networks(self):
         """
@@ -381,7 +382,7 @@ class Start:
         sys = check_dict(self.rt_data, 'SYS')
         while not self.term:
             sys['NETWORKS'] = self.netscan().data
-            time.sleep(settings.NetScan_Cycle)
+            time.sleep(settings.netscan_cycle)
 
     def read_gps(self):
         """
@@ -392,13 +393,13 @@ class Start:
         lat_vals = list()
         long_vals = list()
         while not self.term:
-            if GPIO.input(settings.Gps_Sync):
+            if GPIO.input(settings.gps_sync):
                 try:
                     gps_dat = self.gps().getpositiondata()
-                    lats = Fade(settings.GPS_Fade, lat_vals, gps_dat.lat)
+                    lats = Fade(settings.gps_fade, lat_vals, gps_dat.lat)
                     gps['LAT'] = lats[0]
                     lat_vals = lats[1]
-                    longs = Fade(settings.GPS_Fade, long_vals, gps_dat.long)
+                    longs = Fade(settings.gps_fade, long_vals, gps_dat.long)
                     gps['LONG'] = longs[0]
                     long_vals = longs[1]
                     alt_data = alt.get_temperature_and_pressure_and_altitude()

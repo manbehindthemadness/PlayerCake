@@ -28,6 +28,8 @@ importlib-metadata
 ipython
 keyring
 keyrings.alt
+luma.oled
+luma.core
 matplotlib
 numpy
 numpy-stl

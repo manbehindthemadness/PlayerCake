@@ -24,7 +24,7 @@ class Command:
         self.imports.append('import')  # Prevent commands from importing modules (for saftey).
         self.rt_self = rt_self
         self.settings = self.rt_self.settings
-        self.exceptions = self.settings.Command_exceptions
+        self.exceptions = self.settings.command_exceptions
         self.command = ''
         self.output = None
 

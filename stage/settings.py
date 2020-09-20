@@ -1,6 +1,11 @@
 """
-This is the software configuration settings file. These values are general defaults and should be modified in the logal_settings file not here!
+This is our master settings file.
+
+Note: We are moving this out into our new BuildSettings logic for flexibility.
 """
+from warehouse.utils import BuildSettings
+settings = BuildSettings('stage/settings.ini', 'stage/defaults.ini')
+
 Debug = True  # Enables debugging
 Debug_Pretty = False  # Pprint the debug info instead of print. - Disables Debug_filter.
 Debug_To_Screen = True  # Report debugging data to the on-board screen.
