@@ -1,29 +1,36 @@
 """
 Test file for the Raspi ADC module
 """
+import busio
+import digitalio
+import board
+import adafruit_mcp3xxx.mcp3008 as MCP
+from adafruit_mcp3xxx.analog_in import AnalogIn
 
-from ADCPi import ADCPi
+# create the spi bus
+spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
 
-# noinspection PyArgumentEqualDefault,PyArgumentEqualDefault,PyArgumentEqualDefault
-adc = ADCPi(0x68, 0x69, 18)
-adc.set_pga(1)  # Set gain
-adc.set_bit_rate(12)  # Adjust timing (lower is faster)
-adc.set_conversion_mode(1)  # Set continuous conversion
+# create the cs (chip select)
+cs = digitalio.DigitalInOut(board.D5)
+css = digitalio.DigitalInOut(board.D4)
+# create the mcp object
+mcp = MCP.MCP3008(spi, cs)
+mcpp = MCP.MCP3008(spi, css)
 
 while True:
-    output = list()
-    values = [
-        adc.read_voltage(1),
-        adc.read_voltage(2),
-        adc.read_voltage(3),
-        adc.read_voltage(4),
-        adc.read_voltage(5),
-        adc.read_voltage(6),
-        adc.read_voltage(7),
-        adc.read_voltage(8),
-    ]
-    for value in values:
-        if value == 0.0:  # 0.002471:  # Clamp noise
-            value = 0.0
-        output.append(value)
-    print(output)
+    ch = 0
+    output1 = []
+    output2 = []
+    for adc in range(8):
+        chan = AnalogIn(mcp, eval('MCP.P' + str(adc)))
+        chann = AnalogIn(mcpp, eval('MCP.P' + str(adc)))
+        # print(adc)
+        # print('Raw ADC Value: ', chan.value)
+        # print('ADC Voltage: ' + str(chan.voltage) + 'V')
+        #
+        # print('Raw ADC Value: ', chann.value)
+        # print('ADC Voltage: ' + str(chann.voltage) + 'V')
+        output1.append((chan.value, round(chan.voltage, 2)))
+        output2.append((chann.value, round(chann.voltage, 2)))
+        ch += 1
+    print(output1, output2)
