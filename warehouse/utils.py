@@ -130,7 +130,6 @@ def update_setting(filename, section, setting, value, merge=False):
     try:
         if merge:
             try:
-                # sett = eval(config.get(section, setting))
                 sett = config.get(section, setting)
                 # print(type(sett))
                 if isinstance(sett, dict) or isinstance(sett, list):
