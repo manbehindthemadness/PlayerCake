@@ -5,6 +5,7 @@ https://stackoverflow.com/questions/50288467/how-to-set-up-the-baud-rate-for-i2c
 """
 from luma.core.render import canvas
 from PIL import ImageFont
+import time
 import sys
 import logging
 from luma.core import cmdline, error
@@ -59,7 +60,7 @@ def get_device(actual_args=None):
         config = cmdline.load_config(args.config)
         args = parser.parse_args(config + actual_args)
 
-    print(display_settings(args))
+    # print(display_settings(args))
 
     # create device
     try:
@@ -149,3 +150,27 @@ class Display:
                 text = template[str(idx + 1)]['message']
                 draw.text((0, inc), str(text), font=self.font2, fill="white")
                 inc += 7
+
+    def adc(self):
+        """
+        This will draw all the ADC inputs on the screen allowing us to test wiring and configuration.
+        """
+        try:
+            a_inputs = self.controller.rt_data['ADC']
+            col_1 = list()
+            col_2 = list()
+            for port in range(16):
+                text = str(port) + ': ' + str(a_inputs['ADCPort' + str(port)])
+                if port < 8:
+                    col_1.append(text)
+                else:
+                    col_2.append(text)
+            inc = 0
+            with canvas(self.device) as draw:
+                for l, r in zip(col_1, col_2):
+                    draw.text((0, inc), str(l), font=self.font2, fill="white")
+                    draw.text((64, inc), str(r), font=self.font2, fill="white")
+                    inc += 7
+        except KeyError:
+            print('realtime model incomplete, waiting')
+            time.sleep(1)
