@@ -2,7 +2,7 @@
 # Copyright (c) 2017 Adafruit Industries
 # Author: Tony DiCola & James DeVito
 """
-from collections import OrderedDict
+# from collections import OrderedDict
 # from luma.core.render import canvas
 # from PIL import ImageFont
 # import sys

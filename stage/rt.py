@@ -144,14 +144,14 @@ class Start:
         self.addresses = self.rt_data['ADDRESSES'] = check_dict(self.rt_data, 'ADDRESSES')
 
         self.threads = [  # Create threads.
-            Thread(target=self.read_adc, args=()),
+            Thread(target=self.read_adc, args=(), daemon=True),
             Thread(target=self.read_imu, args=()),
             Thread(target=self.read_system, args=()),
             Thread(target=self.read_networks, args=()),
             Thread(target=self.read_gps, args=()),
             Thread(target=self.listen, args=()),
             Thread(target=self.send_ready_state, args=()),
-            Thread(target=self.command_parser, args=()),
+            Thread(target=self.command_parser, args=(), daemon=True),
         ]
         if settings.debug:
             self.threads.append(Thread(target=self.debug, args=()))
@@ -195,7 +195,7 @@ class Start:
                 dprint(self.settings, ('Malformed client connection:', self.sender, err))  # Send to debug log.
                 dprint(self.settings, (self.received_data,))
                 self.lines.append('listener malformed')
-                pass
+                time.sleep(0.1)
             # print(self.rt_data['ADDRESSES'])
         self.netcom.close()  # Release network sockets.
 
@@ -274,6 +274,7 @@ class Start:
             if self.command:  # Check for command.
                 Thread(target=self.execute, args=(self.command,)).start()
                 commands['COMMAND'] = ''  # Clear command after execution.
+            time.sleep(0.1)
 
     def dump(self):
         """This just dumps the real time model to console"""
@@ -324,6 +325,7 @@ class Start:
                     pass
             else:
                 display.update()
+            time.sleep(settings.debug_cycle)
 
     def read_adc(self):
         """
@@ -331,8 +333,9 @@ class Start:
         """
         self.lines.append('launching adc thread')
         self.rt_data['ADC'] = dict()
-        MCP3008(self)
-        # while not self.term:
+        mcp = MCP3008(self)
+        while not self.term:
+            mcp.scan()
         #     try:
         #         for num in range(1, settings.ADC_Num_Channels):
         #             comp = 0
@@ -351,10 +354,16 @@ class Start:
         # noinspection PyUnusedLocal
         imud = check_dict(self.rt_data, 'IMU')
         gac = self.gac()
+
         while not self.term:
+            dbg = str()
             for rt_value in gac.rt_values:
                 eval_str = "imud['" + rt_value + "'] = gac.getvalues()." + rt_value
                 exec(eval_str)
+                if self.settings.debug_imu:
+                    dbg += str(rt_value) + ':' + str(imud[str(rt_value)]) + '  '
+            if self.settings.debug_imu:
+                print(dbg)
 
     def read_system(self):
         """
@@ -403,4 +412,4 @@ class Start:
                     gps['TEMP'] = alt_data.temperature / 100
                 except ValueError:
                     dprint(settings, ('GPS telemetry error, invalid data',))
-        time.sleep(0.1)
+        time.sleep(self.settings.gps_delay)

@@ -2,4 +2,5 @@
 Stage init
 """
 from stage.rt import Start
-Start()
+if __name__ == '__main__':
+    Start()

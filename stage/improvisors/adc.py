@@ -1,25 +1,9 @@
 """
 This is our ADC code.
 """
-import busio
-import digitalio
-import board
-import adafruit_mcp3xxx.mcp3008 as MCP
-from adafruit_mcp3xxx.analog_in import AnalogIn
-
-spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
-
-chip_1 = digitalio.DigitalInOut(board.D5)
-chip_2 = digitalio.DigitalInOut(board.D4)
-
-mcp_1 = MCP.MCP3008(spi, chip_1)
-mcp_2 = MCP.MCP3008(spi, chip_2)
-
-channels = []
-for mcp in [mcp_1, mcp_2]:
-    for channelnum in range(8):
-        channel = AnalogIn(mcp, eval('MCP.P' + str(channelnum)))
-        channels.append(channel)
+import time
+import Adafruit_GPIO.SPI as SPI
+import Adafruit_MCP3008
 
 
 class MCP3008:
@@ -27,8 +11,23 @@ class MCP3008:
     This is where we will read the ADC data and update the real time data model.
     """
     def __init__(self, controller):
-        for idx, chan in enumerate(channels):
-            comp = 0
-            if idx in controller.settings.adc_ungrounded_channels:
-                comp = controller.settings.adc_noise
-            controller.rt_data['ADC']['ADCPort' + str(idx)] = (chan.value - comp)  # We might need to change this to voltage.
+        self.controller = controller
+
+        self.mcp_1 = Adafruit_MCP3008.MCP3008(spi=SPI.SpiDev(0, 0))
+        self.mcp_2 = Adafruit_MCP3008.MCP3008(spi=SPI.SpiDev(0, 1))
+
+    def scan(self):
+        """
+        Scans the adc inputs.
+        """
+        idx = 0
+        for value in range(2):
+            if not value:
+                for reading in range(8):
+                    self.controller.rt_data['ADC']['ADCPort' + str(idx)] = self.mcp_1.read_adc(reading)
+                    idx += 1
+            else:
+                for reading in range(8):
+                    self.controller.rt_data['ADC']['ADCPort' + str(idx)] = self.mcp_2.read_adc(reading)
+                    idx += 1
+            time.sleep(self.controller.settings.adc_cycle)

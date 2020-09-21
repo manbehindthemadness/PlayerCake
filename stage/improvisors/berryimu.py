@@ -1,5 +1,7 @@
 """
 Here we have our class for reading and filtering the BerryIMU module.
+
+TODO: This is waaaaaaay too slow to actualy use for rt measurement, so we will add a second IMU and use this one for reset fallback.
 """
 
 import math
@@ -17,7 +19,7 @@ class ReadIMU(object):
         IMU.detectIMU()  # Detect if BerryIMUv1 or BerryIMUv2 is connected.
         IMU.initIMU()  # Initialise the accelerometer, gyroscope and compass
         self.cycle_start_time = datetime.datetime.now()
-        self.cycle_time = 0.0
+        self.cycle_time = 0.1
         self.LP = None
         self.ACCy = None
         self.ACCx = None
