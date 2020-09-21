@@ -4,7 +4,6 @@ Here we have our class for reading and filtering the BerryIMU module.
 
 import math
 import datetime
-import time
 import smbus2 as smbus
 from stage import settings
 from stage.improvisors import IMU
@@ -337,7 +336,6 @@ class ReadAlt(object):
             if u8RegData & BMP388_REG_VAL_CMD_RDY:
                 self._write_byte(BMP388_REG_ADD_CMD,
                                  BMP388_REG_VAL_SOFT_RESET)
-                time.sleep(0.01)
         else:
             print("Pressure sersor NULL!\r\n")
         self._write_byte(BMP388_REG_ADD_PWR_CTRL,
