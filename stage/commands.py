@@ -25,6 +25,7 @@ class Command:
         self.rt_self = rt_self
         self.settings = self.rt_self.settings
         self.exceptions = self.settings.command_exceptions
+        self.lines = self.rt_self.lines
         self.command = ''
         self.output = None
 
@@ -33,6 +34,7 @@ class Command:
         This is used to detect dangerous or unauthorized commands.
         """
         valid = True
+        self.lines.append('CMD:'+ self.command)
         command_digest = split_string(self.command)
         for digest in command_digest:
             if digest not in self.exceptions:
@@ -40,6 +42,8 @@ class Command:
                     for item in Import.split('.'):
                         if digest == item:
                             dprint(self.settings, ('Invalid command detected:', self.command, 'blocked by', Import))
+                            self.lines.append('CMD: invalid')
+                            self.lines.append('CMD: aborting')
                             valid = False
         return valid
 

@@ -150,9 +150,13 @@ class BuildSettings:
     """
     This constructs a reloadable settings module.
     """
-    def __init__(self, filename, defaults=None):
+    def __init__(self, filename, defaults=None, pth=''):
         self.config = configparser.ConfigParser()
-        self.filename = os.getcwd() + '/' + filename
+        self.path = pth
+        self.filename = self.path + '/' + filename
+        # if not os.path.exists(self.filename):
+        #     self.filename = file_rename(defaults, self.filename)
+        print(self.filename)
         self.settings = dict()
         self.defaults = defaults
         self.default_settings = dict()
@@ -163,6 +167,7 @@ class BuildSettings:
         Loads or reloads the settings file.
         """
         file = self.filename
+        # print(file)
         store = self.settings
         if defaults:
             file = defaults

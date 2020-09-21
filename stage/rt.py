@@ -19,11 +19,13 @@ import time
 import datetime
 import pprint
 import socket
-from warehouse.display import SSD1306
+from warehouse.display import Display
 from warehouse.utils import check_dict, Fade, update_dict
 from warehouse.system import get_cpu_temperature, get_system_stats
 from warehouse.communication import NetScan, NetCom
 from warehouse.loggers import dprint, tprint
+
+# from stage.tests.ssd1306 import Display
 
 
 # noinspection PyArgumentEqualDefault,PyArgumentEqualDefault,PyArgumentEqualDefault
@@ -123,13 +125,15 @@ class Start:
     def __init__(self):
         global rt_data
         global term
+        self.lines = ['system init']
         self.settings = settings
         self.rt_data = rt_data  # Pass realtime data.
         self.execute = Command(self).execute
         listener = self.rt_data['LISTENER'] = dict()
         listener[settings.directorid] = dict()
         listener[settings.stageid] = dict()
-        self.display = SSD1306
+        self.screen_mode = 'test'
+        self.display = Display(self)
         self.term = term  # Pass termination.
         self.gac = ReadIMU  # Init IMU.
         self.gps = ReadGPS  # Init GPS.
@@ -168,10 +172,13 @@ class Start:
         for thread in self.threads:  # Launch threads.
             thread.start()
 
+        self.lines.append('system init complete')
+
     def listen(self):
         """
         This starts the tcp server, listens for incoming connections and transports the data into the real time model.
         """
+        self.lines.append('launching listener thread')
         listener = self.rt_data['LISTENER'] = check_dict(self.rt_data, 'LISTENER')
         addresses = self.addresses
 
@@ -195,10 +202,12 @@ class Start:
                         addresses[self.sender] = address  # Store client address for future connections.
                 else:
                     dprint(self.settings, ('Unknown client connection:', self.sender))  # Send to debug log.
+                    self.lines.append('client unknown')
 
             except (KeyError, TypeError) as err:
                 dprint(self.settings, ('Malformed client connection:', self.sender, err))  # Send to debug log.
                 dprint(self.settings, (self.received_data,))
+                self.lines.append('listener malformed')
                 pass
             # print(self.rt_data['ADDRESSES'])
         self.netcom.close()  # Release network sockets.
@@ -209,6 +218,7 @@ class Start:
         """
         destination_id = self.settings.directorid
         addresses = self.rt_data['ADDRESSES']
+        self.lines.append('transmitting data')
         try:
             if destination_id in addresses.keys():
                 # print('Address detected, using:', self.rt_data['ADDRESSES'][destination_id][0])
@@ -219,11 +229,13 @@ class Start:
                 self.addresses[destination_id] = address
         except ConnectionResetError as err:
             dprint(self.settings, ('Connection dropout, retrying', err))
+            self.lines.append('connection reset')
             self.send(message)
         return self.netclient
 
     def send_ready_state(self):
         """This tells the director we are online and ready"""
+        self.lines.append('launching state thread')
         self.connected = False
         ready = {'STATUS': 'ready'}
         while not self.term:  # Start loop.
@@ -234,6 +246,8 @@ class Start:
                     time.sleep(1)
                     if self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] == 'confirmed':  # TODO: This guy likes to give up problems when the server malfunctions...
                         print('Handshake with director confirmed, starting heartbeat')
+                        self.lines.append('handshake confirmed')
+                        self.lines.append('starting heartbeat')
                         self.connected = True
                         # TODO: We should nest another while loop here to autometically send keepalive and determine connection stability.
                         failures = 0
@@ -247,12 +261,15 @@ class Start:
                                 pass
                             if failures >= settings.networktimeout:
                                 print('connection failure, attempting to reacquire director.')
+                                self.lines.append('connection failure')
+                                self.lines.append('reconnecting')
                                 self.connected = False
                                 self.rt_data['LISTENER'][self.settings.directorid]['STATUS'] = 'disconnected'
                                 del self.rt_data['ADDRESSES'][self.settings.directorid]
                             time.sleep(1)
                 except (TimeoutError, socket.timeout) as err:  # Retry on timeout.
-                    dprint(self.settings, ('Connection failure', err))
+                    dprint(self.settings, ('Connection timeout', err))
+                    self.lines.append('connection timeout')
                     pass
             elif self.rt_data['LISTENER'][self.settings.directorid]['STATUS'] == 'ready':  # This will allow us to re-confirm after connection dropouts.
                 self.connected = False
@@ -262,7 +279,7 @@ class Start:
         """
         This is where we check for commands that are issued be the director.
         """
-
+        self.lines.append('launching command thread')
         while not self.term:
             commands = self.rt_data['LISTENER'][settings.directorid]
             check_dict(commands, 'COMMAND')  # Confirm the key exists.
@@ -273,6 +290,7 @@ class Start:
 
     def dump(self):
         """This just dumps the real time model to console"""
+        self.lines.append('dumping rt model')
         pprint.PrettyPrinter(indent=4).pprint(self.rt_data)
 
     def close(self):
@@ -286,7 +304,8 @@ class Start:
         """
         This dumps the rt_data information to console.
         """
-        display = self.display()
+        self.lines.append('launching debug thread')
+        display = self.display
         time.sleep(5)  # Wait for rt_data to populate.
         debug_model = dict()
         for reading in self.rt_data:  # Build debug model.
@@ -316,29 +335,14 @@ class Start:
                                     print(reading, debug_model[reading], '\n')
                 except RuntimeError:
                     pass
-            elif settings.screen_template == 'improv':
-                sys = self.rt_data['SYS']
-                stats = self.rt_data['SYS']['STATS']
-                imu = self.rt_data['IMU']
-                gps = self.rt_data['GPS']
-                template = {
-                    '1': {'message': 'CPU%:' + str(stats['CPU_LOAD']) + ' ' + 'CPU_T:' + str(sys['CPU_TEMP']) + 'C'},
-                    '2': {'message': 'Mem%:' + str(stats['VIRTUAL_MEMORY'].percent) + ' disk%:' + str(stats['DISK_IO'].percent)},
-                    '3': {'message': 'Gyro: X ' + str(round(imu['kalmanX'], 1)) + ' Y ' + str(round(imu['kalmanY'], 1))},
-                    '4': {'message': 'Heading: ' + str(round(imu['tiltCompensatedHeading'], 5))},
-                    '5': {'message': 'Lat: ' + str(round(gps['LAT'], 5))},
-                    '6': {'message': 'Long: ' + str(round(gps['LONG'], 5))},
-                    '7': {'message': 'Altitude: ' + str(round(gps['ALT'], 5))},
-                    '8': {'message': 'Pressure: ' + str(round(gps['PRESS'], 1))},
-                }
-                display.text_draw(template)
-            time.sleep(settings.debug_cycle)
-        self.display().clear()
+            else:
+                display.update()
 
     def read_adc(self):
         """
         Here is where we read the ADC inputs in real-time.
         """
+        self.lines.append('launching adc thread')
         self.rt_data['ADC'] = dict()
         MCP3008(self)
         # while not self.term:
@@ -356,6 +360,7 @@ class Start:
         """
         Here is where we read the accel/mag/gyro/alt/temp.
         """
+        self.lines.append('launching imu thread')
         # noinspection PyUnusedLocal
         imud = check_dict(self.rt_data, 'IMU')
         gac = self.gac()
@@ -368,6 +373,7 @@ class Start:
         """
         This is where we read values in relation to the running system itself.
         """
+        self.lines.append('launching system thread')
         sys = check_dict(self.rt_data, 'SYS')
         while not self.term:
             sys['CPU_TEMP'] = self.temp()
@@ -379,6 +385,7 @@ class Start:
         This is where we perform out wireless network scans. This is placed here because it takes longer to run depending
         on the amount of information that neads to be read.
         """
+        self.lines.append('launching network thread')
         sys = check_dict(self.rt_data, 'SYS')
         while not self.term:
             sys['NETWORKS'] = self.netscan().data
@@ -388,6 +395,7 @@ class Start:
         """
         Here is where we gather GPS location data.
         """
+        self.lines.append('launching gps thread')
         gps = check_dict(self.rt_data, 'GPS')
         alt = self.alt()
         lat_vals = list()

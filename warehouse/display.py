@@ -3,55 +3,103 @@ This is where we will keep the code used to update various displays used across 
 
 https://stackoverflow.com/questions/50288467/how-to-set-up-the-baud-rate-for-i2c-bus-in-linux  # recompile device tree for new i2c clock speed
 """
+from luma.core.render import canvas
+from PIL import ImageFont
+import sys
+import logging
+from luma.core import cmdline, error
+import os
 
-from collections import OrderedDict
-from board import SCL, SDA
-import busio
-from PIL import Image, ImageDraw, ImageFont
-import adafruit_ssd1306
+
+# logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)-15s - %(message)s'
+)
+# ignore PIL debug messages
+logging.getLogger('PIL').setLevel(logging.ERROR)
 
 
-class SSD1306:
+def display_settings(args):
     """
-    Display driver for the SSD1306 OLED display.
+    Display a short summary of the settings.
+    :rtype: str
     """
-    def __init__(self):
-        self.i2c = busio.I2C(SCL, SDA)
-        self.disp = adafruit_ssd1306.SSD1306_I2C(128, 64, self.i2c)
-        # Clear display
-        self.disp.fill(0)
-        self.disp.show()
-        # Init display.
-        self.width = self.disp.width
-        self.height = self.disp.height
-        self.image = Image.new("1", (self.width, self.height))
-        self.image_draw = ImageDraw.Draw(self.image)
-        # self.image_draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)  # clear
-        self.clear()
-        # Set x padding.
-        self.x = 0
-        self.fill = 255
-        self.padding = -2
-        self.top = self.padding
-        self.bottom = self.height - self.padding
-        self.font = ImageFont.load_default()
-        self.defaults = {
-            'x_pos': 'self.x',
-            'y_pos': 'self.top',
-            'message': 'missing text...',
-            'font': 'self.font',
-            'fill': 'self.fill,'
-        }
+    iface = ''
+    display_types = cmdline.get_display_types()
+    if args.display not in display_types['emulator']:
+        iface = 'Interface: {}\n'.format(args.interface)
 
-    def clear(self):
-        """
-        Clears the OLED screen.
-        """
-        self.image_draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+    lib_name = cmdline.get_library_for_display_type(args.display)
+    if lib_name is not None:
+        lib_version = cmdline.get_library_version(lib_name)
+    else:
+        lib_name = lib_version = 'unknown'
 
-    def text_draw(self, items):
+    import luma.core
+    version = 'luma.{} {} (luma.core {})'.format(
+        lib_name, lib_version, luma.core.__version__)
+
+    return 'Version: {}\nDisplay: {}\n{}Dimensions: {} x {}\n{}'.format(
+        version, args.display, iface, args.width, args.height, '-' * 60)
+
+
+def get_device(actual_args=None):
+    """
+    Create device from command-line arguments and return it.
+    """
+    device = None
+    if actual_args is None:
+        actual_args = sys.argv[1:]
+    parser = cmdline.create_parser(description='PlayerCake Visual Debugger')
+    args = parser.parse_args(actual_args)
+
+    if args.config:
+        # load config from file
+        config = cmdline.load_config(args.config)
+        args = parser.parse_args(config + actual_args)
+
+    print(display_settings(args))
+
+    # create device
+    try:
+        device = cmdline.create_device(args)
+    except error.Error as e:
+        parser.error(e)
+
+    return device
+
+
+class Display:
+    """
+    This is our debug screen controller.
+    """
+    def __init__(self, controller):
         """
-        This draws some text onto the screen:
+        :param controller: Inherit from real time program.
+        :type controller: rt.Start
+        """
+        self.controller = controller
+        self.mode = self.controller.settings.debug_screen_mode
+        self.lines = self.controller.lines
+        self.device = get_device()
+        font_path = os.path.abspath(
+            os.path.join(
+                # os.path.dirname(__file__), 'fonts', 'C&C Red Alert [INET].ttf'))
+                os.path.dirname(__file__), 'fonts', 'code2000.ttf'))
+        self.font2 = ImageFont.truetype(font_path, 8)
+        self.font3 = ImageFont.truetype(font_path)
+
+    def update(self):
+        """
+        This updates the screen with new information depending on the screen debugging mode.
+        """
+        meth = eval('self.' + self.mode)
+        meth()
+
+    def text(self):
+        """
+        This is the micro-console debug mode.
 
         {
             "1": {
@@ -63,32 +111,41 @@ class SSD1306:
             },,
             "2": {}, - etc....
         }
-
-        :param items: This is a dictionary of the various things we want to draw
-        :type items: dict
         """
 
-        self.clear()
-        lines = OrderedDict(sorted(items.items()))
-        for cnt, line in enumerate(lines):
-            params = lines[line]
-            if len(list(self.defaults.keys())) != len(list(params.keys())):
-                for default in self.defaults:
-                    if default not in params.keys():
-                        params[default] = self.defaults[default]
-                params['y_pos'] = str(eval(params['y_pos']) + (cnt * 8))
-            for param in params:
-                if not params[param]:
-                    params[param] = self.defaults[param]
-            self.image_draw.text(
-                tuple((eval(params['x_pos']), eval(params['y_pos']))),
-                params['message'],
-                font=eval(params['font']),
-                fill=eval(params['fill'])
-            )
-        self.disp.image(self.image)
-        self.disp.show()
+        lines = list(self.lines)
+        lines.reverse()
+        inc = 7
+        with canvas(self.device) as draw:
+            for idx, line in enumerate(lines[:7]):
+                inc += 7
+                if not idx:
+                    draw.text((0, 3), str(line), font=self.font3, fill="white")
+                else:
+                    draw.text((0, inc), str(line), font=self.font2, fill="white")
 
-
-# Test logic
-# SSD1306().text_draw({'1': {'x_pos': '', 'y_pos': '', 'message': 'hey!', 'font': '', 'fill': ''}})
+    def stats(self):
+        """
+        This shows system stats.
+        """
+        syss = self.controller.rt_data['SYS']
+        stats = self.controller.rt_data['SYS']['STATS']
+        imu = self.controller.rt_data['IMU']
+        gps = self.controller.rt_data['GPS']
+        template = {
+            '1': {'message': 'CPU:' + str(stats['CPU_LOAD']) + ' ' + 'CPU_T:' + str(syss['CPU_TEMP']) + 'C'},
+            '2': {
+                'message': 'Mem:' + str(stats['VIRTUAL_MEMORY'].percent) + ' disk:' + str(stats['DISK_IO'].percent)},
+            '3': {'message': 'Gyro: X ' + str(round(imu['kalmanX'], 1)) + '\tY ' + str(round(imu['kalmanY'], 1))},
+            '4': {'message': 'Heading: ' + str(round(imu['tiltCompensatedHeading'], 5))},
+            '5': {'message': 'Lat: ' + str(round(gps['LAT'], 5))},
+            '6': {'message': 'Long: ' + str(round(gps['LONG'], 5))},
+            '7': {'message': 'Altitude: ' + str(round(gps['ALT'], 5))},
+            '8': {'message': 'Pressure: ' + str(round(gps['PRESS'], 1))},
+        }
+        inc = 0
+        with canvas(self.device) as draw:
+            for idx, line in enumerate(template):
+                text = template[str(idx + 1)]['message']
+                draw.text((0, inc), str(text), font=self.font2, fill="white")
+                inc += 7

@@ -3,8 +3,12 @@ This is our master settings file.
 
 Note: We are moving this out into our new BuildSettings logic for flexibility.
 """
+import os
 from warehouse.utils import BuildSettings
-settings = BuildSettings('stage/settings.ini', 'stage/defaults.ini')
+# setfile = os.path.abspath(os.path.join(os.path.dirname(__file__), 'settings.ini'))
+# deffile = os.path.abspath(os.path.join(os.path.dirname(__file__), 'defaults.ini'))
+setpath = os.path.abspath(os.path.join(os.path.dirname(__file__)))
+settings = BuildSettings('settings.ini', 'defaults.ini', setpath)
 
 Debug = True  # Enables debugging
 Debug_Pretty = False  # Pprint the debug info instead of print. - Disables Debug_filter.
