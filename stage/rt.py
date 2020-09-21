@@ -25,14 +25,6 @@ from warehouse.system import get_cpu_temperature, get_system_stats
 from warehouse.communication import NetScan, NetCom
 from warehouse.loggers import dprint, tprint
 
-# from stage.tests.ssd1306 import Display
-
-
-# noinspection PyArgumentEqualDefault,PyArgumentEqualDefault,PyArgumentEqualDefault
-# adc = ADCPi(*settings.ADC_I2C)  # Init ADC.
-# adc.set_pga(1)  # Set gain
-# adc.set_bit_rate(12)  # Adjust timing (lower is faster)
-# adc.set_conversion_mode(1)  # Set continuous conversion
 
 rt_data = dict()
 term = False
@@ -49,7 +41,6 @@ GPIO.setup(settings.gps_enable, GPIO.OUT)  # Setup GPS enable.
 GPIO.output(settings.gps_enable, 1)  # Init GPS to acquire initial fix.
 
 
-# noinspection DuplicatedCode
 class Start:
     """
     Real time program loop.
@@ -140,10 +131,6 @@ class Start:
         self.alt = ReadAlt  # Init altimiter.
         self.temp = get_cpu_temperature  # Pull CPU temps.
         self.stats = get_system_stats  # Read system info.
-        # self.adc = ADCPi(*settings.ADC_I2C)  # Init ADC.
-        # self.adc.set_pga(1)  # Set gain.
-        # self.adc.set_bit_rate(12)  # Adjust timing (lower is faster).
-        # self.adc.set_conversion_mode(1)  # Set continuous conversion.
         self.netscan = NetScan
         self.netcom = NetCom(self.settings)
         self.netclient = self.netcom.tcpclient  # Get client,

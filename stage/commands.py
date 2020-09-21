@@ -34,7 +34,7 @@ class Command:
         This is used to detect dangerous or unauthorized commands.
         """
         valid = True
-        self.lines.append('CMD:'+ self.command)
+        self.lines.append('CMD:' + self.command)
         command_digest = split_string(self.command)
         for digest in command_digest:
             if digest not in self.exceptions:
@@ -66,6 +66,12 @@ class Command:
         This can be used to terminate the real time program.
         """
         self.rt_self.close()
+
+    def debug_mode(self, mode):
+        """
+        Here we will change our screen debugging mode.
+        """
+        self.rt_self.settings.debug_screen_mode = mode
 
 
 def command_test():
