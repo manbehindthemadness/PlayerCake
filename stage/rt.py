@@ -441,7 +441,7 @@ class Start:
             dt = leg_defaults[leg]
             for axis in dt:
                 ax = dt[axis]
-                if len(axis) == 1:
+                if len(axis) == 1:  # TODO: We might have to handl continous rotation here.
                     rad[str(ax['pwm'])] = ax['nu']
         xyz = pwmdt['XYZ'] = dict()  # Populate desired XYZ position.
         for pos in range(16):  # TODO: This is where we will need to translate the default nautral value from RAD.

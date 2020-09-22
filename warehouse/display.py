@@ -214,3 +214,79 @@ class Display:
                     inc += 7
         except KeyError:
             self.wait()
+
+    def pwmadc(self):
+        """
+        This shows the pwm value in contrast to it respective adc value.
+        """
+        def get_spec(leg, p_outs, a_ins):
+            """
+            This will pull the specified legs pwm and adc ports.
+            This will return a list with a series of tuples for x y z and foot.
+            [
+                [x pwm, x adc],
+                ...
+            ]
+            """
+            def get_pwm(lg, p_out, ax):
+                """
+                This will get us a pwm value based on a leg's axis.
+                """
+                if len(ax) == 1:
+                    ret = str(p_out[str(lg[ax]['pwm'])])
+                else:
+                    ret = ''
+                return ret
+
+            def get_adc(lg, a_in, ax):
+                """
+                This will get us an adc value based on a legs axis.
+                """
+                ret = str(a_in['ADCPort' + str(lg[ax]['adc'])])
+                return ret
+            result = list()
+            for axis in ['x', 'y', 'z', 'foot']:
+                pw = get_pwm(leg, p_outs, str(axis))
+                ad = get_adc(leg, a_ins, str(axis))
+                result.append(
+                    (axis + ': ' + pw, ad)
+                )
+            return result
+
+        def make_cols(col_a, col_b, specs):
+            """
+            This iterates through a list of tuples supplied from get_spec and adds it to the respective columns.
+            """
+            for spec in specs:
+                a, b = spec
+                col_a.append(a)
+                col_b.append(b)
+
+        try:
+            l_defaults = self.controller.settings.legs
+            p_outputs = self.controller.rt_data['PWM']['RAD']
+            a_inputs = self.controller.rt_data['ADC']
+            col_1 = list()
+            col_2 = list()
+            col_3 = list()
+            col_4 = list()
+            l_1 = ['LEG1', 'LEG3']
+            l_2 = ['LEG2', 'LEG4']
+            for l_leg, r_leg in zip(l_1, l_2):
+                l_spec = l_defaults[l_leg]
+                r_spec = l_defaults[r_leg]
+                l_vals = get_spec(l_spec, p_outputs, a_inputs)
+                r_vals = get_spec(r_spec, p_outputs, a_inputs)
+                make_cols(col_1, col_2, l_vals)
+                make_cols(col_3, col_4, r_vals)
+            inc = 0
+            with canvas(self.device) as draw:
+                for l1, l2, l3, l4 in zip(col_1, col_2, col_3, col_4):
+                    draw.text((0, inc), str(l1), font=self.font2, fill="white")
+                    draw.text((32, inc), str(l2), font=self.font2, fill="white")
+                    draw.text((64, inc), str(l3), font=self.font2, fill="white")
+                    draw.text((96, inc), str(l4), font=self.font2, fill="white")
+                    inc += 7
+        except KeyError as err:
+            print(err)
+            self.wait()
