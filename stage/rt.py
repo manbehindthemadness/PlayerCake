@@ -152,6 +152,7 @@ class Start:
             Thread(target=self.listen, args=()),
             Thread(target=self.send_ready_state, args=()),
             Thread(target=self.command_parser, args=(), daemon=True),
+            Thread(target=self.command_pwm, args=()),
         ]
         if settings.debug:
             self.threads.append(Thread(target=self.debug, args=()))
@@ -336,15 +337,6 @@ class Start:
         mcp = MCP3008(self)
         while not self.term:
             mcp.scan()
-        #     try:
-        #         for num in range(1, settings.ADC_Num_Channels):
-        #             comp = 0
-        #             if num in settings.ADC_Ungrounded_Channels:
-        #                 comp = settings.ADC_Noise
-        #             self.rt_data['ADC']['ADCPort' + str(num)] = adc.read_voltage(num - comp)
-        #     except ADCTimeout:
-        #         dprint(settings, ('ADC timeout',))
-        #         pass
 
     def read_imu(self):
         """
@@ -413,3 +405,44 @@ class Start:
                 except ValueError:
                     dprint(settings, ('GPS telemetry error, invalid data',))
         time.sleep(self.settings.gps_delay)
+
+    def command_pwm(self):
+        """
+        This is where we will set the pwm values that drive our servos.
+
+        Servo control will be achieved in three parts of the real time data model:
+            1. We will have a section that stores the raw pwm values that are read to the controller.
+            2. we will have pre-rendered local grids that sport the pwm values required to achieve a specific XYZ position.
+            3. we will have a command section that contains the XYZ values that the plotter instructs so we follow our trajectory.
+        'PWM': {
+            'GRIDS': {
+                'LEG1': '<grid data>',  # dict
+                'LEG2': ...
+            },
+            'RAD': {
+                '0': '<pwm value>',  # int
+                '1': ...
+            },
+            'XYZ': {
+                '0': '(<x value>, <y value>, <z value>)',  # tuple of ints
+                '1': ...
+            }
+        }
+        """
+        leg_defaults = self.settings.legs
+        pwmdt = self.rt_data['PWM'] = dict()
+        grids = pwmdt['GRIDS'] = dict()
+        for leg in range(4):  # Populate local grids.
+            leg = str(leg + 1)
+            exec('leg = "LEG' + leg + '"')  # TODO: This is where we will place the local grid renderer.
+            grids[leg] = dict()
+        rad = pwmdt['RAD'] = dict()  # Populate radial PWM values.
+        for leg in leg_defaults:  # Here we set the legs to the configured neutral.
+            dt = leg_defaults[leg]
+            for axis in dt:
+                ax = dt[axis]
+                if len(axis) == 1:
+                    rad[str(ax['pwm'])] = ax['nu']
+        xyz = pwmdt['XYZ'] = dict()  # Populate desired XYZ position.
+        for pos in range(16):  # TODO: This is where we will need to translate the default nautral value from RAD.
+            xyz[str(pos)] = (0, 0, 0)

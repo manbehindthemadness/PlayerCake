@@ -77,6 +77,8 @@ class Display:
     """
     def __init__(self, controller):
         """
+        NOTE: Some of these display modes could be simplified; however, I left them this way to ease future alterations.
+
         :param controller: Inherit from real time program.
         :type controller: rt.Start
         """
@@ -90,6 +92,17 @@ class Display:
                 os.path.dirname(__file__), 'fonts', 'code2000.ttf'))
         self.font2 = ImageFont.truetype(font_path, 8)
         self.font3 = ImageFont.truetype(font_path)
+        self.ready_msg = True
+
+    def wait(self):
+        """
+        This prints a notification, and then waits for a second.
+        """
+        if self.ready_msg:
+            print('realtime model incomplete, waiting')
+            self.ready_msg = False
+        time.sleep(1)
+
 
     def update(self):
         """
@@ -167,10 +180,37 @@ class Display:
                     col_2.append(text)
             inc = 0
             with canvas(self.device) as draw:
-                for l, r in zip(col_1, col_2):
-                    draw.text((0, inc), str(l), font=self.font2, fill="white")
+                for ll, r in zip(col_1, col_2):
+                    draw.text((0, inc), str(ll), font=self.font2, fill="white")
                     draw.text((64, inc), str(r), font=self.font2, fill="white")
                     inc += 7
         except KeyError:
-            print('realtime model incomplete, waiting')
-            time.sleep(1)
+            self.wait()
+
+    def pwm(self):
+        """
+        This will draw two columns of PWM values.
+        """
+        try:
+            p_outputs = self.controller.rt_data['PWM']['RAD']
+            col_1 = list()
+            col_2 = list()
+            for port in range(16):
+                pt = str(port)
+                text = pt + ': '
+                if pt in p_outputs.keys():
+                    text += str(p_outputs[pt])
+                else:
+                    text += '0'
+                if port < 8:
+                    col_1.append(text)
+                else:
+                    col_2.append(text)
+            inc = 0
+            with canvas(self.device) as draw:
+                for ll, r in zip(col_1, col_2):
+                    draw.text((0, inc), str(ll), font=self.font2, fill="white")
+                    draw.text((64, inc), str(r), font=self.font2, fill="white")
+                    inc += 7
+        except KeyError:
+            self.wait()
