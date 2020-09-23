@@ -10,6 +10,7 @@ from stage.commands import Command
 from stage.improvisors.berryimu import ReadIMU, ReadAlt
 from stage.improvisors.gps_lkp import ReadGPS
 from stage.improvisors.adc import MCP3008
+from stage.improvisors.hscsr04 import Sonar
 # from stage.improvisors.bmp280 import alt
 # from ADCPi import ADCPi, TimeoutError as ADCTimeout
 import RPi.GPIO as GPIO
@@ -142,6 +143,7 @@ class Start:
         self.connected = False
         self.command = None
         self.addresses = self.rt_data['ADDRESSES'] = check_dict(self.rt_data, 'ADDRESSES')
+        self.sonar = Sonar(self)
 
         self.threads = [  # Create threads.
             Thread(target=self.read_adc, args=(), daemon=True),
@@ -152,6 +154,7 @@ class Start:
             Thread(target=self.listen, args=()),
             Thread(target=self.send_ready_state, args=()),
             Thread(target=self.command_parser, args=(), daemon=True),
+            Thread(target=self.read_sonar, args=''),
             Thread(target=self.command_pwm, args=()),
         ]
         if settings.debug:
@@ -406,6 +409,15 @@ class Start:
                     dprint(settings, ('GPS telemetry error, invalid data',))
         time.sleep(self.settings.gps_delay)
 
+    def read_sonar(self):
+        """
+        This captures our sonar data and stores it in the real time model.
+        """
+        self.rt_data['sonar'] = dict()
+        while not self.term:
+            self.sonar.ping()
+            time.sleep(settings.sonar_cycle)
+
     def command_pwm(self):
         """
         This is where we will set the pwm values that drive our servos.
@@ -437,11 +449,11 @@ class Start:
             exec('leg = "LEG' + leg + '"')  # TODO: This is where we will place the local grid renderer.
             grids[leg] = dict()
         rad = pwmdt['RAD'] = dict()  # Populate radial PWM values.
-        for leg in leg_defaults:  # Here we set the legs to the configured neutral.
+        for leg in ['LEG1', 'LEG2', 'LEG3', 'LEG4']:  # Here we set the legs to the configured neutral.
             dt = leg_defaults[leg]
             for axis in dt:
                 ax = dt[axis]
-                if len(axis) == 1:  # TODO: We might have to handl continous rotation here.
+                if len(axis) == 1:  # TODO: We might have to handle continous rotation here.
                     rad[str(ax['pwm'])] = ax['nu']
         xyz = pwmdt['XYZ'] = dict()  # Populate desired XYZ position.
         for pos in range(16):  # TODO: This is where we will need to translate the default nautral value from RAD.

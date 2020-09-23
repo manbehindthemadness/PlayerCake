@@ -26,8 +26,8 @@ GPIO.setup(GPIO_TRIGGER_left, GPIO.OUT)
 GPIO.setup(GPIO_ECHO_left, GPIO.IN)
 
 # set GPIO Pins rear sensor
-GPIO_TRIGGER_rear = 25
-GPIO_ECHO_rear = 9
+GPIO_TRIGGER_rear = 18
+GPIO_ECHO_rear = 17
 
 # set GPIO direction (IN / OUT)
 GPIO.setup(GPIO_TRIGGER_rear, GPIO.OUT)
@@ -75,12 +75,12 @@ if __name__ == '__main__':
     try:
         while True:
             message = "Distance right = %.1f cm" % distance(GPIO_TRIGGER_right, GPIO_ECHO_right)
-            time.sleep(0.1)
+            time.sleep(0.3)
             message = message + " Distance left = %.1f cm" % distance(GPIO_TRIGGER_left, GPIO_ECHO_left)
-            time.sleep(0.1)
+            time.sleep(0.3)
             message = message + " Distance rear = %.1f cm" % distance(GPIO_TRIGGER_rear, GPIO_ECHO_rear)
             print(message)
-            time.sleep(0.25)
+            time.sleep(0.3)
             # TODO: This need to have a rational tolerance regulator, as the results are only partially accurate.
 
         # Reset by pressing CTRL + C

@@ -290,3 +290,8 @@ class Display:
         except KeyError as err:
             print(err)
             self.wait()
+
+    def sonar(self):
+        """
+        This allows us to debug the echolocation sensors.
+        """
