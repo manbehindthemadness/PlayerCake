@@ -10,7 +10,7 @@ from stage.commands import Command
 from stage.improvisors.berryimu import ReadIMU, ReadAlt
 from stage.improvisors.gps_lkp import ReadGPS
 from stage.improvisors.adc import MCP3008
-from stage.improvisors.hscsr04 import Sonar
+from stage.improvisors.hcsr04 import Sonar
 # from stage.improvisors.bmp280 import alt
 # from ADCPi import ADCPi, TimeoutError as ADCTimeout
 import RPi.GPIO as GPIO
