@@ -315,7 +315,7 @@ class Display:
             elif not value:
                 value = 1
             if direction == 'left':
-                offset = def_l + (percent_of(value, lmax) / 2)
+                offset = def_l + ((100 - percent_in(value, def_r)) / 2)
             elif direction == 'right':
                 offset = def_r - ((100 - percent_in(value, def_r)) / 2)
             elif direction == 'rear':
