@@ -6,7 +6,7 @@ https://github.com/adafruit/Adafruit_Python_BNO055/blob/master/examples/simplete
 
 import logging
 
-from Adafruit_BNO055 import BNO055 as BNO
+from stage.oem.Adafruit_BNO055 import BNO055 as BNO
 
 logger = logging.getLogger('Adafruit_BNO055.BNO055')
 logger.setLevel('WARNING')
@@ -30,7 +30,16 @@ class BNO055:
             'linear_acceleration',
             'gravity'
         ]
+        self.status = self.calibration_status = None
         self.reading = None
+        self.fetch_constants()
+
+    def fetch_constants(self):
+        """
+        This pulls static data from the chip
+        """
+        # self.status = self.sensor.get_system_status
+        # self.calibration_status = self.sensor.get_calibration_status
 
     def read(self):
         """

@@ -131,6 +131,7 @@ class Start:
         self.gac = ReadIMU  # Init IMU.
         self.gps = ReadGPS  # Init GPS.
         self.alt = ReadAlt  # Init altimiter.
+        self.dof = BNO055
         self.temp = get_cpu_temperature  # Pull CPU temps.
         self.stats = get_system_stats  # Read system info.
         self.netscan = NetScan
@@ -370,8 +371,8 @@ class Start:
         """
         self.rt_data['9DOF'] = dict()
         while not self.term:
-            BNO055(self).read()
-            print(self.rt_data['9DOF'])
+            self.dof(self).read()
+            # print(self.rt_data['9DOF'])
             time.sleep(self.settings.dof_cycle)
 
     def read_system(self):
