@@ -10,6 +10,7 @@ import sys
 import logging
 from luma.core import cmdline, error
 import os
+from warehouse.utils import percent_in, percent_of
 
 
 # logging
@@ -90,8 +91,13 @@ class Display:
             os.path.join(
                 # os.path.dirname(__file__), 'fonts', 'C&C Red Alert [INET].ttf'))
                 os.path.dirname(__file__), 'fonts', 'code2000.ttf'))
+        alt_font_path = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__), 'fonts', 'C&C Red Alert [INET].ttf'))
         self.font2 = ImageFont.truetype(font_path, 8)
         self.font3 = ImageFont.truetype(font_path)
+        self.font4 = ImageFont.truetype(alt_font_path, 60)
+        self.font5 = ImageFont.truetype(font_path, 60)
         self.ready_msg = True
 
     def wait(self):
@@ -102,7 +108,6 @@ class Display:
             print('realtime model incomplete, waiting')
             self.ready_msg = False
         time.sleep(1)
-
 
     def update(self):
         """
@@ -295,3 +300,36 @@ class Display:
         """
         This allows us to debug the echolocation sensors.
         """
+        def solve(direction, value):
+            """
+            This solves the position of the bars on the graph.
+            """
+            def_l = 0
+            lmax = 55
+            def_r = 119
+            def_b = 31
+            bmax = 50
+            offset = 0
+            if value > 100:
+                value = 100
+            elif not value:
+                value = 1
+            if direction == 'left':
+                offset = def_l + (percent_of(value, lmax) / 2)
+            elif direction == 'right':
+                offset = def_r - ((100 - percent_in(value, def_r)) / 2)
+            elif direction == 'rear':
+                offset = def_b - (bmax - (percent_of(value, bmax) / 2))
+            if offset > 100:
+                offset = 100
+            return offset
+
+        with canvas(self.device) as draw:
+            sn = self.controller.rt_data['SONAR']
+            for dirr in sn:
+                shift = solve(dirr, sn[dirr])
+                if dirr == 'rear':
+                    draw.text((31, shift), '__', font=self.font4, fill="white")
+                else:
+                    draw.text((shift, 0), '|', font=self.font5, fill="white")
+
