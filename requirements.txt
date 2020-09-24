@@ -1,6 +1,7 @@
 board
 abelectronics
 Adafruit-Blinka
+adafruit-circuitpython-bno055
 adafruit-circuitpython-busdevice
 adafruit-circuitpython-framebuf
 adafruit-circuitpython-motor

@@ -11,6 +11,7 @@ from stage.improvisors.berryimu import ReadIMU, ReadAlt
 from stage.improvisors.gps_lkp import ReadGPS
 from stage.improvisors.adc import MCP3008
 from stage.improvisors.hcsr04 import Sonar
+from stage.improvisors.bno055 import BNO055
 # from stage.improvisors.bmp280 import alt
 # from ADCPi import ADCPi, TimeoutError as ADCTimeout
 import RPi.GPIO as GPIO
@@ -148,6 +149,7 @@ class Start:
         self.threads = [  # Create threads.
             Thread(target=self.read_adc, args=(), daemon=True),
             Thread(target=self.read_imu, args=()),
+            Thread(target=self.read_9dof, args=()),
             Thread(target=self.read_system, args=()),
             Thread(target=self.read_networks, args=()),
             Thread(target=self.read_gps, args=()),
@@ -344,6 +346,8 @@ class Start:
     def read_imu(self):
         """
         Here is where we read the accel/mag/gyro/alt/temp.
+
+        NOTE: This is for the backup gyro, not the real time unit, the real time data is acquired within read_9dof.
         """
         self.lines.append('launching imu thread')
         # noinspection PyUnusedLocal
@@ -359,6 +363,16 @@ class Start:
                     dbg += str(rt_value) + ':' + str(imud[str(rt_value)]) + '  '
             if self.settings.debug_imu:
                 print(dbg)
+
+    def read_9dof(self):
+        """
+        This is where we get the real time 9dof information.
+        """
+        self.rt_data['9DOF'] = dict()
+        while not self.term:
+            BNO055(self).read()
+            print(self.rt_data['9DOF'])
+            time.sleep(self.settings.dof_cycle)
 
     def read_system(self):
         """
