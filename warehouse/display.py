@@ -7,19 +7,19 @@ from luma.core.render import canvas
 from PIL import ImageFont
 import time
 import sys
-import logging
+# import logging
 from luma.core import cmdline, error
 import os
 from warehouse.utils import percent_in, percent_of
 
 
-# logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)-15s - %(message)s'
-)
-# ignore PIL debug messages
-logging.getLogger('PIL').setLevel(logging.ERROR)
+# # logging
+# logging.basicConfig(
+#     level=logging.DEBUG,
+#     format='%(asctime)-15s - %(message)s'
+# )
+# # ignore PIL debug messages
+# logging.getLogger('PIL').setLevel(logging.ERROR)
 
 
 def display_settings(args):
@@ -332,4 +332,24 @@ class Display:
                     draw.text((31, shift), '__', font=self.font4, fill="white")
                 else:
                     draw.text((shift, 0), '|', font=self.font5, fill="white")
+
+    def gyro(self):
+        """
+        This is where will will calibrate the gyros.
+        """
+        sensor_data = self.controller.rt_data['9DOF']
+        inc = 0
+        with canvas(self.device) as draw:
+            for sensor in sensor_data:
+                draw.text((0, inc), str(sensor)[0:5] + ':    ', font=self.font2, fill="white")
+                data = sensor_data[sensor]
+                if isinstance(data, tuple):
+                    idx = 36
+                    for val in list(data):
+                        draw.text((idx, inc), str(round(val, 2)), font=self.font2,
+                                  fill="white")
+                        idx += 25
+                else:
+                    draw.text((36, inc), str(round(sensor_data[sensor], 2)), font=self.font2, fill="white")
+                inc += 7
 

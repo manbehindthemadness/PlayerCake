@@ -131,7 +131,8 @@ class Start:
         self.gac = ReadIMU  # Init IMU.
         self.gps = ReadGPS  # Init GPS.
         self.alt = ReadAlt  # Init altimiter.
-        self.dof = BNO055
+        self.rt_data['9DOF'] = dict()
+        self.dof = BNO055(self)  # Init DOF
         self.temp = get_cpu_temperature  # Pull CPU temps.
         self.stats = get_system_stats  # Read system info.
         self.netscan = NetScan
@@ -369,11 +370,15 @@ class Start:
         """
         This is where we get the real time 9dof information.
         """
-        self.rt_data['9DOF'] = dict()
+        rd = 0
         while not self.term:
-            self.dof(self).read()
-            # print(self.rt_data['9DOF'])
+            self.dof.read()
             time.sleep(self.settings.dof_cycle)
+            if rd == 1000:
+                self.dof.save_calibration()
+                rd = 0
+            else:
+                rd += 1
 
     def read_system(self):
         """

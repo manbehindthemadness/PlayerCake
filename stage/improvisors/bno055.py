@@ -32,20 +32,47 @@ class BNO055:
         ]
         self.status = self.calibration_status = None
         self.reading = None
-        self.fetch_constants()
 
     def fetch_constants(self):
         """
         This pulls static data from the chip
         """
-        # self.status = self.sensor.get_system_status
-        # self.calibration_status = self.sensor.get_calibration_status
+        self.status = self.sensor.get_system_status()
+        self.calibration_status = self.sensor.get_calibration_status()
+
+    def reset_calibration(self):
+        """
+        We can use this to recover the state after we fail to load an invalid calibration.
+        """
+        self.sensor.set_calibration(
+            [87, 67, 87, 56, 53, 13, 34, 87, 66, 76, 4, 87, 67, 54, 252, 255, 255, 255, 232, 3, 5, 3]
+        )
+
+    def save_calibration(self):
+        """
+        This will save the calibration data to our settings file.
+        """
+
+        self.controller.settings.set(
+            'dof_calibrations',
+            self.sensor.get_calibration()
+        )
+
+    def load_calibration(self):
+        """
+        This reads out calibration from the settings file and loads it into the 9dof.
+        """
+        calibrations = self.controller.settings.dof_calibrations
+        if calibrations:
+            self.sensor.set_calibration(
+                calibrations
+            )
 
     def read(self):
         """
         This reads the 9dof data and adds it into the real time data model.
         """
-        for reading in self.readings:
+        for idx, reading in enumerate(self.readings):
             exec('self.reading = self.sensor.read_' + reading + '()')
             # print(self.reading)
             self.data[reading] = self.reading
