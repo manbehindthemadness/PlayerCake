@@ -57,6 +57,7 @@ class BNO055:
             'dof_calibrations',
             self.sensor.get_calibration()
         )
+        self.controller.settings.save()
 
     def load_calibration(self):
         """
