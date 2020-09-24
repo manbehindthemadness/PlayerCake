@@ -31,8 +31,8 @@ class Sonar:
         """
         for name, distance in zip(self.names, self.sensors):
             try:
-                self.rt_data['sonar'][name] = distance.distance
-                print(name, distance.distance)
+                self.rt_data['SONAR'][name] = int(distance.distance)
+                # print(name, distance.distance)
             except RuntimeError:
                 pass
             time.sleep(0.1)

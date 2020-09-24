@@ -413,7 +413,7 @@ class Start:
         """
         This captures our sonar data and stores it in the real time model.
         """
-        self.rt_data['sonar'] = dict()
+        self.rt_data['SONAR'] = dict()
         while not self.term:
             self.sonar.ping()
             time.sleep(settings.sonar_cycle)
