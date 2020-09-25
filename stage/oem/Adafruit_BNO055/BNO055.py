@@ -124,12 +124,15 @@ BNO055_SYS_TRIGGER_ADDR = 0X3F
 BNO055_TEMP_SOURCE_ADDR = 0X40
 
 # Axis remap registers
+# BNO055_AXIS_MAP_CONFIG_ADDR = 0X41
+# BNO055_AXIS_MAP_SIGN_ADDR = 0X42
+
 BNO055_AXIS_MAP_CONFIG_ADDR = 0X41
 BNO055_AXIS_MAP_SIGN_ADDR = 0X42
 
 # Axis remap values
-AXIS_REMAP_X = 0x00
-AXIS_REMAP_Y = 0x01
+AXIS_REMAP_X = 0x01  # 0x00  # Remap for our orientation
+AXIS_REMAP_Y = 0x00  # 0x01
 AXIS_REMAP_Z = 0x02
 AXIS_REMAP_POSITIVE = 0x00
 AXIS_REMAP_NEGATIVE = 0x01
@@ -623,6 +626,15 @@ class BNO055(object):
         sign_config |= z_sign & 0x01
         self._write_byte(BNO055_AXIS_MAP_SIGN_ADDR, sign_config)
         # Go back to normal operation mode.
+        self._operation_mode()
+
+    def set_axis_remap_raw(self, mapp, sign):
+        """
+        I added this because the above doesn't seem to be functional.
+        """
+        self._config_mode()
+        self._write_byte(BNO055_AXIS_MAP_CONFIG_ADDR, mapp)
+        self._write_byte(BNO055_AXIS_MAP_SIGN_ADDR, sign)
         self._operation_mode()
 
     def _read_vector(self, address, count=3):
