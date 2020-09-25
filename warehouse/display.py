@@ -363,5 +363,7 @@ class Display:
             for line in calibrate.report:
                 draw.text((0, inc), line, font=self.font2, fill="white")
                 inc += 7
-            draw.text((0, inc), str(calibrate.status), font=self.font2, fill="white")
+            draw.text((0, inc), str(calibrate.calibration_status), font=self.font2, fill="white")
             draw.text((100, inc), '9DOF', font=self.font2, fill="white")
+            draw.text((0, inc + 7), str(calibrate.status), font=self.font2, fill="white")
+            time.sleep(2)

@@ -147,6 +147,7 @@ class Start:
         self.server_address = None
         self.connected = False
         self.command = None
+        self.imud = None
         self.addresses = self.rt_data['ADDRESSES'] = check_dict(self.rt_data, 'ADDRESSES')
         self.sonar = Sonar(self)
 
@@ -354,17 +355,16 @@ class Start:
         NOTE: This is for the backup gyro, not the real time unit, the real time data is acquired within read_9dof.
         """
         self.lines.append('launching imu thread')
-        # noinspection PyUnusedLocal
-        imud = check_dict(self.rt_data, 'IMU')
+        self.imud = check_dict(self.rt_data, 'IMU')
         gac = self.gac
 
         while not self.term:
             dbg = str()
             for rt_value in gac.rt_values:
-                eval_str = "imud['" + rt_value + "'] = gac.getvalues()." + rt_value
+                eval_str = "self.imud['" + rt_value + "'] = gac.getvalues()." + rt_value
                 exec(eval_str)
                 if self.settings.debug_imu:
-                    dbg += str(rt_value) + ':' + str(imud[str(rt_value)]) + '  '
+                    dbg += str(rt_value) + ':' + str(self.imud[str(rt_value)]) + '  '
             if self.settings.debug_imu:
                 print(dbg)
 

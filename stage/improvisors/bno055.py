@@ -50,16 +50,17 @@ class BNO055:
         """
         We can use this to recover the state after we fail to load an invalid calibration.
         """
-        self.calibrations = [87, 67, 87, 56, 53, 13, 34, 87, 66, 76, 4, 87, 67, 54, 252, 255, 255, 255, 232, 3, 5, 3]
+        # self.calibrations = [128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 124, 255, 251, 255, 129, 0, 104, 131, 0, 0]
+        self.calibrations = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 252, 255, 251, 255, 1, 0, 232, 3, 0, 0]
         self.sensor.set_calibration(
             self.calibrations
         )
+        self.save_calibration()
 
     def save_calibration(self):
         """
         This will save the calibration data to our settings file.
         """
-
         self.controller.settings.set(
             'dof_calibrations',
             self.sensor.get_calibration()

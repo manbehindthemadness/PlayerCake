@@ -13,6 +13,7 @@ class SetGyros:
         self.imu = self.controller.gac.imu
         self.report = None
         self.status = None
+        self.calibration_status = None
         self.magXmin = 32767
         self.magYmin = 32767
         self.magZmin = 32767
@@ -58,5 +59,6 @@ class SetGyros:
             'zmi: ' + str(self.magZmin),
         ]
         self.dof.fetch_constants()
-        self.status = self.dof.calibration_status
+        self.calibration_status = self.dof.calibration_status
+        self.status = self.dof.status
         return self
