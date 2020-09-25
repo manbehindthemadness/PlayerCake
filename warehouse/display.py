@@ -351,3 +351,17 @@ class Display:
                 else:
                     draw.text((36, inc), str(round(sensor_data[sensor], 2)), font=self.font2, fill="white")
                 inc += 7
+
+    def gyro_calibrate(self):
+        """
+        This performs calibrations on our backup IMU and the real time 9DOF.
+        """
+        calibrate = self.controller.calibrate.track()
+        with canvas(self.device) as draw:
+            inc = 0
+            draw.text((100, inc), 'IMU', font=self.font2, fill="white")
+            for line in calibrate.report:
+                draw.text((0, inc), line, font=self.font2, fill="white")
+                inc += 7
+            draw.text((0, inc), str(calibrate.status), font=self.font2, fill="white")
+            draw.text((100, inc), '9DOF', font=self.font2, fill="white")

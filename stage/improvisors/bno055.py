@@ -42,7 +42,9 @@ class BNO055:
         This pulls static data from the chip
         """
         self.status = self.sensor.get_system_status()
-        self.calibration_status = self.sensor.get_calibration_status()
+        calibration_status = self.sensor.get_calibration_status()
+        sys, gyr, acc, mag = calibration_status
+        self.calibration_status = 'sy: ' + str(sys) + ' gy: ' + str(gyr) + ' ac: ' + str(acc) + ' ma: ' + str(mag)
 
     def reset_calibration(self):
         """

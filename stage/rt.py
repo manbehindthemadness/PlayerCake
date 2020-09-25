@@ -129,9 +129,9 @@ class Start:
         self.screen_mode = 'test'
         self.display = Display(self)
         self.term = term  # Pass termination.
-        self.gac = ReadIMU  # Init IMU.
-        self.gps = ReadGPS  # Init GPS.
-        self.alt = ReadAlt  # Init altimiter.
+        self.gac = ReadIMU()  # Init IMU.
+        self.gps = ReadGPS()  # Init GPS.
+        self.alt = ReadAlt()  # Init altimiter.
         self.rt_data['9DOF'] = dict()
         self.dof = BNO055(self)  # Init DOF
         self.calibrate = SetGyros(self)
@@ -356,7 +356,7 @@ class Start:
         self.lines.append('launching imu thread')
         # noinspection PyUnusedLocal
         imud = check_dict(self.rt_data, 'IMU')
-        gac = self.gac()
+        gac = self.gac
 
         while not self.term:
             dbg = str()
@@ -410,13 +410,13 @@ class Start:
         """
         self.lines.append('launching gps thread')
         gps = check_dict(self.rt_data, 'GPS')
-        alt = self.alt()
+        alt = self.alt
         lat_vals = list()
         long_vals = list()
         while not self.term:
             if GPIO.input(settings.gps_sync):
                 try:
-                    gps_dat = self.gps().getpositiondata()
+                    gps_dat = self.gps.getpositiondata()
                     lats = Fade(settings.gps_fade, lat_vals, gps_dat.lat)
                     gps['LAT'] = lats[0]
                     lat_vals = lats[1]

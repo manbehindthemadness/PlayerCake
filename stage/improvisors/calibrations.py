@@ -49,8 +49,14 @@ class SetGyros:
         sett.set('magYmax', self.magYmax)
         sett.set('magZmin', self.magZmin)
         sett.set('magZmax', self.magZmax)
-        self.report = (" magXmin  %i  magYmin  %i  magZmin  %i  ## magXmax  %i  magYmax  %i  magZmax %i  " % (
-            self.magXmin, self.magYmin, self.magZmin, self.magXmax, self.magYmax, self.magZmax))
+        self.report = [
+            'xmi: ' + str(self.magXmin),
+            'xma: ' + str(self.magXmax),
+            'ymi: ' + str(self.magYmin),
+            'ymi: ' + str(self.magYmin),
+            'zmi: ' + str(self.magZmin),
+            'zmi: ' + str(self.magZmin),
+        ]
         self.dof.fetch_constants()
         self.status = self.dof.calibration_status
         return self
