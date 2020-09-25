@@ -18,6 +18,7 @@ class ReadIMU(object):
     def __init__(self):
         IMU.detectIMU()  # Detect if BerryIMUv1 or BerryIMUv2 is connected.
         IMU.initIMU()  # Initialise the accelerometer, gyroscope and compass
+        self.imu = IMU
         self.cycle_start_time = datetime.datetime.now()
         self.cycle_time = 0.1
         self.LP = None

@@ -12,6 +12,7 @@ from stage.improvisors.gps_lkp import ReadGPS
 from stage.improvisors.adc import MCP3008
 from stage.improvisors.hcsr04 import Sonar
 from stage.improvisors.bno055 import BNO055
+from stage.improvisors.calibrations import SetGyros
 # from stage.improvisors.bmp280 import alt
 # from ADCPi import ADCPi, TimeoutError as ADCTimeout
 import RPi.GPIO as GPIO
@@ -133,6 +134,7 @@ class Start:
         self.alt = ReadAlt  # Init altimiter.
         self.rt_data['9DOF'] = dict()
         self.dof = BNO055(self)  # Init DOF
+        self.calibrate = SetGyros(self)
         self.temp = get_cpu_temperature  # Pull CPU temps.
         self.stats = get_system_stats  # Read system info.
         self.netscan = NetScan

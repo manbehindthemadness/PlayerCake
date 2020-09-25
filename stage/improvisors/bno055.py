@@ -22,6 +22,7 @@ class BNO055:
         self.sensor = BNO.BNO055()
         self.calibrations = self.controller.settings.dof_calibrations
         if not self.calibrations:
+            print('no calibrations found, creating...')
             self.reset_calibration()
         self.readings = [
             'temp',
