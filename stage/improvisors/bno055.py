@@ -20,6 +20,9 @@ class BNO055:
         self.controller = controller
         self.data = self.controller.rt_data['9DOF']
         self.sensor = BNO.BNO055()
+        self.calibrations = self.controller.settings.dof_calibrations
+        if not self.calibrations:
+            self.reset_calibration()
         self.readings = [
             'temp',
             'accelerometer',
@@ -44,8 +47,9 @@ class BNO055:
         """
         We can use this to recover the state after we fail to load an invalid calibration.
         """
+        self.calibrations = [87, 67, 87, 56, 53, 13, 34, 87, 66, 76, 4, 87, 67, 54, 252, 255, 255, 255, 232, 3, 5, 3]
         self.sensor.set_calibration(
-            [87, 67, 87, 56, 53, 13, 34, 87, 66, 76, 4, 87, 67, 54, 252, 255, 255, 255, 232, 3, 5, 3]
+            self.calibrations
         )
 
     def save_calibration(self):
@@ -63,10 +67,10 @@ class BNO055:
         """
         This reads out calibration from the settings file and loads it into the 9dof.
         """
-        calibrations = self.controller.settings.dof_calibrations
-        if calibrations:
+        self.calibrations = self.controller.settings.dof_calibrations
+        if self.calibrations:
             self.sensor.set_calibration(
-                calibrations
+                self.calibrations
             )
 
     def read(self):
@@ -86,4 +90,3 @@ class BNO055:
                         readings.append(value)
         if not readings:
             self.reset_calibration()
-

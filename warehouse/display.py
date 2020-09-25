@@ -305,7 +305,6 @@ class Display:
             This solves the position of the bars on the graph.
             """
             def_l = 0
-            lmax = 55
             def_r = 119
             def_b = 31
             bmax = 50
@@ -352,4 +351,3 @@ class Display:
                 else:
                     draw.text((36, inc), str(round(sensor_data[sensor], 2)), font=self.font2, fill="white")
                 inc += 7
-
