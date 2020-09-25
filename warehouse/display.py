@@ -345,7 +345,7 @@ class Display:
                 if isinstance(data, tuple):
                     idx = 36
                     for val in list(data):
-                        draw.text((idx, inc), str(round(val, 2)), font=self.font2,
+                        draw.text((idx, inc), str(round(val, 1)), font=self.font2,
                                   fill="white")
                         idx += 25
                 else:
