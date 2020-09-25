@@ -129,11 +129,11 @@ class Start:
         self.screen_mode = 'test'
         self.display = Display(self)
         self.term = term  # Pass termination.
+        self.rt_data['9DOF'] = dict()
+        self.dof = BNO055(self)  # Init DOF
         self.gac = ReadIMU()  # Init IMU.
         self.gps = ReadGPS()  # Init GPS.
         self.alt = ReadAlt()  # Init altimiter.
-        self.rt_data['9DOF'] = dict()
-        self.dof = BNO055(self)  # Init DOF
         self.calibrate = SetGyros(self)
         self.temp = get_cpu_temperature  # Pull CPU temps.
         self.stats = get_system_stats  # Read system info.
@@ -366,7 +366,11 @@ class Start:
                 if self.settings.debug_imu:
                     dbg += str(rt_value) + ':' + str(self.imud[str(rt_value)]) + '  '
             if self.settings.debug_imu:
-                print(dbg)
+                # print(dbg, '\n', self.rt_data['9DOF']['accelerometer'])
+                # i = self.rt_data['IMU']
+                # print(i['gyroXangle'], i['gyroYangle'], i['gyroZangle'])
+                # print(self.rt_data['9DOF']['gyroscope'], '\n')
+                time.sleep(1)
 
     def read_9dof(self):
         """
@@ -377,6 +381,7 @@ class Start:
             self.dof.read()
             time.sleep(self.settings.dof_cycle)
             if rd == 1000:
+                print('saving calibration')
                 self.dof.save_calibration()
                 rd = 0
             else:

@@ -5,7 +5,6 @@ https://github.com/adafruit/Adafruit_Python_BNO055/blob/master/examples/simplete
 """
 
 import logging
-
 from stage.oem.Adafruit_BNO055 import BNO055 as BNO
 
 logger = logging.getLogger('Adafruit_BNO055.BNO055')
@@ -19,20 +18,24 @@ class BNO055:
     def __init__(self, controller):
         self.controller = controller
         self.data = self.controller.rt_data['9DOF']
-        self.sensor = BNO.BNO055()
+        s = self.sensor = BNO.BNO055()
+        mapp, sign = self.controller.settings.dof_remap
+        s.set_axis_remap_raw(mapp, sign)
         self.calibrations = self.controller.settings.dof_calibrations
+        self.is_calibrated = True
         if not self.calibrations:
             print('no calibrations found, creating...')
+            self.is_calibrated = False
             self.reset_calibration()
         self.readings = [
-            'temp',
+            # 'temp',
             'accelerometer',
-            'magnetometer',
-            'gyroscope',
+            # 'magnetometer',
+            # 'gyroscope',
             'euler',
             'quaternion',
             'linear_acceleration',
-            'gravity'
+            # 'gravity'
         ]
         self.status = self.calibration_status = None
         self.reading = None
@@ -43,6 +46,10 @@ class BNO055:
         """
         self.status = self.sensor.get_system_status()
         calibration_status = self.sensor.get_calibration_status()
+        if calibration_status == (3, 3, 3, 3):
+            self.is_calibrated = True
+        else:
+            self.is_calibrated = False
         sys, gyr, acc, mag = calibration_status
         self.calibration_status = 'sy: ' + str(sys) + ' gy: ' + str(gyr) + ' ac: ' + str(acc) + ' ma: ' + str(mag)
 
@@ -50,7 +57,6 @@ class BNO055:
         """
         We can use this to recover the state after we fail to load an invalid calibration.
         """
-        # self.calibrations = [128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 124, 255, 251, 255, 129, 0, 104, 131, 0, 0]
         self.calibrations = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 252, 255, 251, 255, 1, 0, 232, 3, 0, 0]
         self.sensor.set_calibration(
             self.calibrations

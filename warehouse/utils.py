@@ -188,7 +188,11 @@ class BuildSettings:
     def save(self, upgrade=False):
         """
         Saves the current settings model to file.
+        TODO: We need to thread this out so it can retry in the event we have another thread saving information.
         """
+        # success = False
+        # while not success:
+        #     try:
         if upgrade:
             self.load()
             store_old = self.settings
@@ -197,7 +201,7 @@ class BuildSettings:
         else:
             store_old = None
             store = self.settings
-        for key in store:
+        for key in store:  # We need to get to the bottom of this changing size during operation.
             if upgrade:
                 # print(store_old.keys())
                 if key in store_old.keys():
@@ -231,6 +235,10 @@ class BuildSettings:
                 upgrade
             )
         self.load()
+        # success = True
+        #     except RuntimeError:
+        #         print('.')
+        #         pass
         return self
 
     def add(self, setting, value):

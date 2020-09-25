@@ -94,6 +94,7 @@ class Display:
         alt_font_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__), 'fonts', 'C&C Red Alert [INET].ttf'))
+        self.font1 = ImageFont.truetype(font_path, 9)
         self.font2 = ImageFont.truetype(font_path, 8)
         self.font3 = ImageFont.truetype(font_path)
         self.font4 = ImageFont.truetype(alt_font_path, 60)
@@ -345,12 +346,12 @@ class Display:
                 if isinstance(data, tuple):
                     idx = 36
                     for val in list(data):
-                        draw.text((idx, inc), str(round(val, 1)), font=self.font2,
+                        draw.text((idx, inc), str(round(val, 2)), font=self.font2,
                                   fill="white")
-                        idx += 25
+                        idx += 23
                 else:
                     draw.text((36, inc), str(round(sensor_data[sensor], 2)), font=self.font2, fill="white")
-                inc += 7
+                inc += 8
 
     def gyro_calibrate(self):
         """
