@@ -29,7 +29,7 @@ class Sonar:
         self.board_pins = list()
         for t, e in self.pins:
             exec('self.board_pins.append((board.D' + str(t) + ', board.D' + str(e) + '))')
-            print('self.board_pins.append((board.D' + str(t) + ', board.D' + str(e) + '))')
+            # print('self.board_pins.append((board.D' + str(t) + ', board.D' + str(e) + '))')
         self.sensors = list()
         for t, e in self.board_pins:
             self.sensors.append(adafruit_hcsr04.HCSR04(trigger_pin=t, echo_pin=e))

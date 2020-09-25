@@ -151,7 +151,7 @@ class Start:
         self.threads = [  # Create threads.
             Thread(target=self.read_adc, args=(), daemon=True),
             Thread(target=self.read_imu, args=()),
-            # Thread(target=self.read_9dof, args=()),
+            Thread(target=self.read_9dof, args=()),
             Thread(target=self.read_system, args=()),
             Thread(target=self.read_networks, args=()),
             Thread(target=self.read_gps, args=()),

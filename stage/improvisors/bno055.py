@@ -77,3 +77,13 @@ class BNO055:
             exec('self.reading = self.sensor.read_' + reading + '()')
             # print(self.reading)
             self.data[reading] = self.reading
+        readings = list()
+        for reading in self.data:
+            data = self.data[reading]
+            if isinstance(data, tuple):
+                for value in list(data):
+                    if value:
+                        readings.append(value)
+        if not readings:
+            self.reset_calibration()
+
