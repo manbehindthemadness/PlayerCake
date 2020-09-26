@@ -647,10 +647,9 @@ class BNO055(object):
         """
         # print(type(offsets), offsets)
         self._config_mode()
-        address = None
         for offset in offsets:
             address = eval(offset)
-            print(type(address), address, type(offset), offset)
+            # print(type(address), address, type(offset), offset)
             self._write_byte(address, offsets[offset])
         self._operation_mode()
 
