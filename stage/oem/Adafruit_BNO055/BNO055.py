@@ -211,6 +211,9 @@ logger = logging.getLogger(__name__)
 
 
 class BNO055(object):
+    """
+    Slightly modified driver.
+    """
 
     def __init__(self, rst=None, address=BNO055_ADDRESS_A, i2c=None, gpio=None,
                  serial_port=None, serial_timeout_sec=5, **kwargs):
@@ -218,6 +221,7 @@ class BNO055(object):
         # bus (or the default system GPIO bus if none is provided).
         self._mode = OPERATION_MODE_NDOF
         self._rst = rst
+        GPIO = None
         if self._rst is not None:
             if gpio is None:
                 import Adafruit_GPIO as GPIO
@@ -635,6 +639,19 @@ class BNO055(object):
         self._config_mode()
         self._write_byte(BNO055_AXIS_MAP_CONFIG_ADDR, mapp)
         self._write_byte(BNO055_AXIS_MAP_SIGN_ADDR, sign)
+        self._operation_mode()
+
+    def set_offsets_raw(self, offsets):
+        """
+        This basically takes a dict of offset names and values and applies them to the sip.
+        """
+        # print(type(offsets), offsets)
+        self._config_mode()
+        address = None
+        for offset in offsets:
+            address = eval(offset)
+            print(type(address), address, type(offset), offset)
+            self._write_byte(address, offsets[offset])
         self._operation_mode()
 
     def _read_vector(self, address, count=3):

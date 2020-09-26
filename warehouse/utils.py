@@ -208,7 +208,7 @@ class BuildSettings:
                     try:
                         storeset = eval(store[key])
                         oldstoreset = eval(store_old[key])
-                        print(key, type(oldstoreset), oldstoreset)
+                        # print(key, type(oldstoreset), oldstoreset)
                     except (NameError, SyntaxError):
                         storeset = store[key]
                         oldstoreset = store_old[key]

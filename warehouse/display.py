@@ -337,6 +337,13 @@ class Display:
         """
         This is where will will calibrate the gyros.
         """
+        um = [
+            'heading',
+            'CFangleX',
+            'CFangleY',
+            'tiltCompensatedHeading',
+        ]
+        imu_data = self.controller.rt_data['IMU']
         sensor_data = self.controller.rt_data['9DOF']
         inc = 0
         with canvas(self.device) as draw:
@@ -351,6 +358,9 @@ class Display:
                         idx += 23
                 else:
                     draw.text((36, inc), str(round(sensor_data[sensor], 2)), font=self.font2, fill="white")
+                inc += 8
+            for value in um:
+                draw.text((0, inc), value + ': ' + str(imu_data[value])[0:5] + ':    ', font=self.font2, fill="white")
                 inc += 8
 
     def gyro_calibrate(self):

@@ -19,9 +19,10 @@ class BNO055:
         self.controller = controller
         self.data = self.controller.rt_data['9DOF']
         s = self.sensor = BNO.BNO055()
-        print(type(self.controller.settings.dof_remap), self.controller.settings.dof_remap)
+        # print(type(self.controller.settings.dof_remap), self.controller.settings.dof_remap)
         mapp, sign = self.controller.settings.dof_remap
         s.set_axis_remap_raw(mapp, sign)
+        s.set_offsets_raw(self.controller.settings.dof_offsets)
         self.calibrations = self.controller.settings.dof_calibrations
         self.is_calibrated = True
         if not self.calibrations:
@@ -58,7 +59,8 @@ class BNO055:
         """
         We can use this to recover the state after we fail to load an invalid calibration.
         """
-        self.calibrations = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 252, 255, 251, 255, 1, 0, 232, 3, 0, 0]
+        # self.calibrations = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 252, 255, 251, 255, 1, 0, 232, 3, 0, 0]
+        self.calibrations = [128, 0, 0, 0, 0, 0, 15, 0, 207, 1, 161, 253, 5, 0, 0, 0, 255, 255, 232, 3, 178, 3]
         self.sensor.set_calibration(
             self.calibrations
         )
