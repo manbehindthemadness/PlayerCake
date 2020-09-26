@@ -365,6 +365,7 @@ class Start:
                 exec(eval_str)
                 if self.settings.debug_imu:
                     dbg += str(rt_value) + ':' + str(self.imud[str(rt_value)]) + '  '
+            # print(self.imud['heading'])
             if self.settings.debug_imu:
                 # print(dbg, '\n', self.rt_data['9DOF']['accelerometer'])
                 # i = self.rt_data['IMU']

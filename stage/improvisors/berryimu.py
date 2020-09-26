@@ -7,7 +7,7 @@ TODO: This is waaaaaaay too slow to actualy use for rt measurement, so we will a
 import math
 import datetime
 import smbus2 as smbus
-from stage import settings
+from stage.settings import settings
 from stage.improvisors import IMU
 
 
@@ -43,39 +43,39 @@ class ReadIMU(object):
         self.magYcomp = None
         self.tiltCompensatedHeading = None
         # Pull stuff from settings file (we do this so we can easily adjust calibration settings).
-        self.magXmin = settings.magXmin
-        self.magYmin = settings.magYmin
-        self.magZmin = settings.magZmin
-        self.magXmax = settings.magXmax
-        self.magYmax = settings.magYmax
-        self.magZmax = settings.magZmax
-        self.G_GAIN = settings.G_GAIN
-        self.gyroXangle = settings.gyroXangle
-        self.gyroYangle = settings.gyroYangle
-        self.gyroZangle = settings.gyroZangle
-        self.IMU_UPSIDE_DOWN = settings.IMU_UPSIDE_DOWN
-        self.RAD_TO_DEG = settings.RAD_TO_DEG
-        self.M_PI = settings.M_PI
-        self.AA = settings.AA
-        self.KFangleX = settings.KFangleX
-        self.KFangleY = settings.KFangleY
-        self.CFangleX = settings.CFangleX
-        self.CFangleY = settings.CFangleY
-        self.kalmanX = settings.kalmanX
-        self.kalmanY = settings.kalmanY
-        self.Q_angle = settings.Q_angle
-        self.Q_gyro = settings.Q_gyro
-        self.R_angle = settings.R_angle
+        self.magXmin = settings.magxmin
+        self.magYmin = settings.magymin
+        self.magZmin = settings.magzmin
+        self.magXmax = settings.magxmax
+        self.magYmax = settings.magymax
+        self.magZmax = settings.magzmax
+        self.G_GAIN = settings.g_gain
+        self.gyroXangle = settings.gyroxangle
+        self.gyroYangle = settings.gyroyangle
+        self.gyroZangle = settings.gyrozangle
+        self.IMU_UPSIDE_DOWN = settings.imu_upside_down
+        self.RAD_TO_DEG = settings.rad_to_deg
+        self.M_PI = settings.m_pi
+        self.AA = settings.aa
+        self.KFangleX = settings.kfanglex
+        self.KFangleY = settings.kfangley
+        self.CFangleX = settings.cfanglex
+        self.CFangleY = settings.cfangley
+        self.kalmanX = settings.kalmanx
+        self.kalmanY = settings.kalmany
+        self.Q_angle = settings.q_angle
+        self.Q_gyro = settings.q_gyro
+        self.R_angle = settings.r_angle
         self.y_bias = settings.y_bias
         self.x_bias = settings.x_bias
-        self.XP_00 = settings.XP_00
-        self.XP_01 = settings.XP_01
-        self.XP_10 = settings.XP_10
-        self.XP_11 = settings.XP_11
-        self.YP_00 = settings.YP_00
-        self.YP_01 = settings.YP_01
-        self.YP_10 = settings.YP_10
-        self.YP_11 = settings.YP_11
+        self.XP_00 = settings.xp_00
+        self.XP_01 = settings.xp_01
+        self.XP_10 = settings.xp_10
+        self.XP_11 = settings.xp_11
+        self.YP_00 = settings.yp_00
+        self.YP_01 = settings.yp_01
+        self.YP_10 = settings.yp_10
+        self.YP_11 = settings.yp_11
 
         self.rt_values = [
             'AccXangle',
@@ -89,7 +89,7 @@ class ReadIMU(object):
             'tiltCompensatedHeading',
             'kalmanX',
             'kalmanY'
-        ] + settings.IMU_rt_values
+        ] + settings.imu_rt_values
 
     def getvalues(self):
         """

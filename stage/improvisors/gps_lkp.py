@@ -6,7 +6,7 @@ import time
 import board
 
 import serial
-from stage import settings
+from stage.settings import settings
 import adafruit_gps
 import RPi.GPIO as GPIO
 
@@ -14,7 +14,7 @@ RX = board.RX
 TX = board.TX
 
 # uart = busio.UART(TX, RX, baudrate=9600, timeout=30)  # This would be used on arduino
-uart = serial.Serial(settings.GPS_UART, timeout=10)
+uart = serial.Serial(settings.gps_uart, timeout=10)
 gps = adafruit_gps.GPS(uart)
 
 gps.send_command(b'PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0')
@@ -44,7 +44,7 @@ class ReadGPS:
         # https://gpsd.gitlab.io/gpsd/gpsd_json.html
 
         """
-        if GPIO.input(settings.Gps_Sync):  # Check if GPS data is ready
+        if GPIO.input(settings.gps_sync):  # Check if GPS data is ready
             self.gps.update()
             self.lat = gps.latitude
             self.long = gps.longitude

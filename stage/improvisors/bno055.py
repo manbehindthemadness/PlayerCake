@@ -19,6 +19,7 @@ class BNO055:
         self.controller = controller
         self.data = self.controller.rt_data['9DOF']
         s = self.sensor = BNO.BNO055()
+        print(type(self.controller.settings.dof_remap), self.controller.settings.dof_remap)
         mapp, sign = self.controller.settings.dof_remap
         s.set_axis_remap_raw(mapp, sign)
         self.calibrations = self.controller.settings.dof_calibrations

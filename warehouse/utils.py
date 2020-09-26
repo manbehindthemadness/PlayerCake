@@ -131,7 +131,7 @@ def update_setting(filename, section, setting, value, merge=False):
         if merge:
             try:
                 sett = config.get(section, setting)
-                # print(type(sett))
+                # print(type(sett), setting)
                 if isinstance(sett, dict) or isinstance(sett, list):
                     config.set(section, setting, value)  # Save setting value.
             except configparser.NoOptionError:  # Check for missing setting, add if needed.
@@ -208,6 +208,7 @@ class BuildSettings:
                     try:
                         storeset = eval(store[key])
                         oldstoreset = eval(store_old[key])
+                        print(key, type(oldstoreset), oldstoreset)
                     except (NameError, SyntaxError):
                         storeset = store[key]
                         oldstoreset = store_old[key]
