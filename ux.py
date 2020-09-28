@@ -26,7 +26,8 @@ from PIL import Image as PilImage, ImageTk as PilImageTk
 # import settings
 from settings import settings
 from warehouse.system import system_command
-from warehouse.utils import percent_of, percent_in, file_rename, image_resize
+from warehouse.utils import percent_of, percent_in, file_rename
+from warehouse.uxutils import image_resize
 from writer.plot import pymesh_stl
 
 scr_x, scr_y = settings.screensize
@@ -209,7 +210,7 @@ class Home(Frame):
         This restarts the playercake service.
         """
         self.system_command(
-            ['sudo', 'service', 'playercake', 'restart']
+            ['sudo', 'service', 'pc', 'restart']
         )
 
 
@@ -438,7 +439,7 @@ class Writer(Frame):
         full_button.image = full_image
         full_button.configure(
             width=self.panel_size,
-            height=self.panel_size / 5,
+            height=self.panel_size / 5 - 5,
         )
         full_button = config_button(full_button)
         if text:
@@ -487,12 +488,17 @@ class Writer(Frame):
     def update_defaults(self):
         """
         This updates the default values we pass to the trajectory plotter.
+
         """
         for setting in self.controller.rt_data:
             if setting in self.controller.defaults.keys():
                 u_set = self.controller.rt_data[setting].get()
                 if u_set.lstrip("-").isdigit():  # Confirm we have a number.
                     u_set = eval(u_set)  # Eval the setting back into a literal.
+                elif not u_set[-1].isalnum():  # Handle dicts and arrays.
+                    u_set = eval(u_set)
+                    # print('evaluating exception')
+                    # print(type(self.controller.defaults[setting]), self.controller.defaults[setting])
                 self.controller.defaults[setting] = u_set
         self.defaults = self.controller.defaults
 
@@ -515,7 +521,6 @@ class Writer(Frame):
 
         if self.plot:  # Clear if needed.
             self.plot.get_tk_widget().pack_forget()  # Clear old plot.
-
         self.update_defaults()  # update with latest config.
 
         self.plotfile.set(  # Update filename label.
@@ -634,14 +639,16 @@ class Rehearsal(Frame):
             highlightbackground=theme['entrybackground']
         )
         self.classes.place(  # These use static values as we don't resize animations (yet).
-            width=494,
+            width=prx(39),
             height=pry(75),
             x=cp(prx(35), 494),
             y=cp(pry(45), pry(75))
         )
+        self.classes.grid_columnconfigure(0, weight=1)
         self.class_label = GifIcon(
             self.classes,
-            self.locate_image('animal-gaits.gif')
+            'animal-gaits.gif',
+            (35, 35)
         )
         self.class_label.configure(
             bg='white',
@@ -685,7 +692,7 @@ class Rehearsal(Frame):
             highlightbackground=theme['entrybackground']
         )
         self.scalers.place(
-            width=360,
+            width=prx(30),
             height=pry(45),
             x=cp(prx(35), 360),
             y=cp(pry(45), pry(45))
@@ -701,12 +708,14 @@ class Rehearsal(Frame):
         self.scaler_icon_frame.grid_columnconfigure(0, weight=1)
         self.rotate_label = GifIcon(
             self.scaler_icon_frame,
-            self.locate_image('rotate.gif')
+            'rotate.gif',
+            (25, 25)
         )
         self.rotate_label.grid(row=0, column=0)
         self.sidestep_label = GifIcon(
             self.scaler_icon_frame,
-            self.locate_image('sidestep.gif')
+            'sidestep.gif',
+            (25, 25)
         )
         self.sidestep_label.grid(row=0, column=1)
         button_array(
@@ -802,9 +811,9 @@ class Rehearsal(Frame):
         )
         self.compound_frame.place(
             width=prx(51),
-            height=pry(90),
+            height=pry(94),
             x=cp(prx(35), prx(51)),
-            y=cp(pry(45), pry(90))
+            y=cp(pry(47), pry(94))
         )
         self.compound_frame.grid_columnconfigure(0, weight=1)
         self.compound_left = Frame(
@@ -911,11 +920,11 @@ class Rehearsal(Frame):
             self,
             bg=theme['main'],
             width=prx(70),
-            height=pry(90)
+            height=pry(94)
         )
         self.base.place(  # Place Base.
             width=prx(70),
-            height=pry(90)
+            height=pry(94)
         )
         #  ##########
         #  Left panel
@@ -1135,6 +1144,7 @@ class Rehearsal(Frame):
         """
         self.script_class.set(c_name)
         if c_name != 'custom':
+            print(type(self.controller.defaults['timings']), self.controller.defaults['timings'])
             tmg = self.controller.defaults['timings'][c_name]
             self.refresh()
             self.base.tkraise()
@@ -1363,6 +1373,7 @@ class Rehearsal(Frame):
             container,
             width=prx(10),
             height=pry(10),
+            bg=theme['main'],
         )
         chk_frame.grid(row=2, column=0)
         config_checkbox(
@@ -1478,19 +1489,7 @@ class Rehearsal(Frame):
             command=lambda: self.compound_cancel_event(),
         )
         c_button.pack(side=LEFT)
-        sf_label = Label(
-            slider_frame,
-            height=pry(22),
-            width=prx(2),
-            bg=theme['main'],
-            fg=theme['buttontext'],
-            image=self.controller.spacer,
-            text='1\n\n2\n\n3\n\n4',
-            compound='center',
-            justify=LEFT
-        )
-        sf_label.pack(side=LEFT)
-        for idx, (name, slider) in enumerate(zip(
+        for idx, (name, slider) in enumerate(zip(  # Loop to create sliders.
                 names,
                 [
                     t1,
@@ -1498,9 +1497,28 @@ class Rehearsal(Frame):
                     t3,
                     t4
                 ])):
-            sc = Scale(
+            slide_frame = Frame(
                 slider_frame,
-                width=pry(2),
+                width=pry(49),
+                height=pry(3),
+                bg=theme['main']
+            )
+            slide_frame.pack(side=TOP)
+            sc_label = config_text(
+                element=Label(
+                    slide_frame,
+                    width=prx(3),
+                    height=pry(2),
+                    image=self.controller.spacer,
+                    justify=LEFT,
+                ),
+                text=str(idx + 1),
+                # size=2
+            )
+            sc_label.pack(side=LEFT)
+            sc = Scale(
+                slide_frame,
+                width=pry(3),
                 length=prx(45),
                 variable=slider,
                 label=name,
@@ -1511,7 +1529,7 @@ class Rehearsal(Frame):
                 troughcolor=theme['slidecolor'],
                 highlightthickness=0,
                 bigincrement=5,
-                command=lambda q: self.select_class()  # TODO: This is odd...
+                command=lambda q: self.select_class()
             )
             sc.pack()
             exec('self.timing' + str(idx + 1) + ' = sc')
@@ -1696,7 +1714,7 @@ class MainView(tk.Tk):
                 frame.grid(row=0, column=0)
             elif page_name == 'Rehearsal':
                 frame.configure(
-                    height=pry(92),
+                    height=pry(96),
                     width=prx(71),
                     bg=theme['main'],
                     highlightthickness=pry(1),
@@ -1773,6 +1791,8 @@ class NumPad(Frame):
         self.grid()
         self.numvar = StringVar()
         self.numvar.set('')
+        self.entvar = StringVar()
+        self.entvar.set('')
         # print(self.numvar.get())
         self.get_num()
         self.number = None
@@ -1798,6 +1818,7 @@ class NumPad(Frame):
         else:
             self.number = number
         self.numvar.set(self.number)
+        self.ent_go()
 
     def pass_nums(self):
         """
@@ -1822,11 +1843,13 @@ class NumPad(Frame):
         """
         self.number = self.number[0:-1]
         self.numvar.set(self.number)
+        self.ent_go()
 
     def numpad_create(self):
         """
         Creates a simple number pad.
         """
+        self.ent_go()
         btn_list = [
             '7', '8', '9',
             '4', '5', '6',
@@ -1850,9 +1873,19 @@ class NumPad(Frame):
         self.dell = Button(self, text='del', width=width, height=height, command=lambda: self.delete_nums())
         config_number_button(self.dell)
         self.dell.grid(row=4, column=1)
-        self.go = Button(self, text='go', width=width, height=height, command=lambda: self.pass_nums())
+        self.go = Button(self, textvariable=self.entvar, width=width, height=height, command=lambda: self.pass_nums())
         config_number_button(self.go)
         self.go.grid(row=4, column=2)
+
+    def ent_go(self):
+        """
+        This changes the text on our enter button.
+        """
+        print(self.numvar.get())
+        if self.numvar.get():
+            self.entvar.set('go')
+        else:
+            self.entvar.set('exit')
 
 
 class Keyboard(Frame):
@@ -2544,13 +2577,16 @@ class GifIcon(Frame):
     This is a cool animated loading icon.
     """
 
-    def __init__(self, parent, file):
+    def __init__(self, parent, file, size=None):
         Frame.__init__(self, parent)
+        if not size:
+            size = (100, 100)
         self.go = False
-        self.gif = GifAnimation(self, file)
+        self.gif = GifAnimation(self, file, size=size)
+        w, h = size
         self.configure(
-            width=prx(15),
-            height=pry(15),
+            width=prx(w),
+            height=pry(h),
         )
 
 
@@ -2561,9 +2597,12 @@ class GifAnimation(Frame):
     Ref: https://github.com/python-pillow/Pillow/issues/3660
     """
 
-    def __init__(self, parent, file, optimize=False):
+    def __init__(self, parent, file, optimize=False, size=None):
         Frame.__init__(self, parent)
-        image = file
+        if not size:
+            size = (100, 100)
+        # image = file
+        image = img(file, *size)
         self.frames = list()
         self.go = False
         if optimize:
@@ -2576,7 +2615,7 @@ class GifAnimation(Frame):
         self.label = Label(
             parent,
             bd=0,
-            highlightthickness=0
+            highlightthickness=0,
         )
         self.label.pack()
         self.label.after(0, self.update, 0)
@@ -2640,7 +2679,7 @@ def config_checkbox(parent, text, intvar, command=None):
         width=prx(0.25),
         height=pry(2),
         bg=theme['main'],
-        fg=theme['buttontext'],
+        fg='black',
         highlightcolor=theme['main'],
         highlightthickness=0,
         activeforeground=theme['main'],

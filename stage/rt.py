@@ -382,7 +382,7 @@ class Start:
             self.dof.read()
             time.sleep(self.settings.dof_cycle)
             if rd == 1000:
-                print('saving calibration')
+                # print('saving calibration')
                 self.dof.save_calibration()
                 rd = 0
             else:

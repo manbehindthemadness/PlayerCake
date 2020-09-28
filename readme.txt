@@ -13,7 +13,7 @@ Applications:
 
 Terms:
     Rehersals: Raw movement instructions that will be pre-processed into a Script.
-    Script: A pre-rendered result of a Rehersal collection of movement instructions. These are used as the foundation for kinamatic operations.
+    Script: A pre-rendered result of a Rehersal collection of movement instructions. These are used as the foundation for Kinamatic Operations.
     lines: A Line is a single interation if specific instructions within a Script.
     Scenes: Scenes are sequential collections of one or more scripts resulting in a procedure (like taking a step).
     Plays: Collections of one or more scenes specifying an end-goal.
@@ -23,5 +23,10 @@ Terms:
     Props: Sensors providing information about the physical world (echolocation, laser, IR...etc)
     Cues: Any conditional interrupt that results in an action being taken (there is a wall in front of me...).
     Critics: These conditionally discourage certain queues depending on what kind of Scene we are using.
-    Performance: This is a rating attached to Scripts, Scenes, plays and Directors respectively. The value signifies effectiveness.
+    Performance: This is a rating attached to Scripts, Scenes, plays and Directors respectively. The value signifies Effectiveness.
     Heckles: These are direct commands sent from Audience that effect the behavior of one or more Stages.
+
+references:
+	Duplicate software environment: https://linuxize.com/post/how-to-list-installed-packages-on-ubuntu/
+	Take control of console session: https://www.tecmint.com/use-conspy-to-view-and-control-remote-linux-virtual-consoles/
+	Rotate screen properly: https://bbs.archlinux.org/viewtopic.php?id=255134
