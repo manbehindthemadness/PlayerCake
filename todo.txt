@@ -12,11 +12,11 @@ Hardware:
         Identify viable sensors. - Complete
             Pressure peizo, position slide pot, object detection ultrasonics/laser/video/nightvision, physical GPS/compas/gyro/accel.
         Identify control board. - Complete
-            Raspberry Pi Zero / Banana BPI M2 Zero.
+            Raspberry Pi 3 / 4.
         Identify daughter boards. - Complete
             ADC/PWM/SAT-NAV.
         Identify power supply. - Complete
-            2xLiIon 5500mah.
+            4xLiIon 5500mah.
         Identify communications accessories. - Complete
             Ceramic +38db active GPS antenna, +50db active wifi antenna.
 
@@ -32,17 +32,20 @@ Hardware:
         Establish Improvisor payload. - Complete
             GPS / 10DOF Accelerometer, Gyroscope, Magnetometer and Barometric/Altitude Sensor.
         Determine electronics payload. - Complete
-            Raspberry Pi Zero / Banana BPI M2 Zero,
+            Raspberry Pi 3 / 4.
             BerryGPS-IMUv3,
-            Raspi ADC,
+            Adafruit BNO055 9DOF,
+            OhEye 16 ADC,
             PWM/Servo Driver IIC interface-PCA9685,
             Cirocomm 580 32db GPS Antenna,
             WALKING SLOW-Replacement for iPad WiFi WLAN Bluetooth Wireless Signal Connector Antenna Flex Cable Ribbon (iPad Air),
-            LV-MaxSonar-EZ1,
+            LV-MaxSonar-EZ1,  # Will be replaced by OAK-D
             3 x HC-SR04,
-            3W 850 IR HP NightVision,
-            OV5647 1080p 60fps camera (OV5640 for BPI),
-            50mw 780nm IR Laser.
+            3W 850 IR HP NightVision,  # Will be replaced by OAK-D
+            OV5647 1080p 60fps camera (OV5640 for BPI),  # Will be replaced by OAK-D
+            50mw 780nm IR Laser.  # Will be replaced by OAK-D
+            BW RC Servo BEC UBEC 3A 5V,
+            ZTW UBEC 10A Peak Continuous 6A 6.0V 5.5V.5.0V,
             4 x Uxcell 10mm Acoustic piezo,
             4 x Uxcell B102 B1K slide potentiometer 18mm/10k,
             100k thermistor,
