@@ -41,8 +41,8 @@ class NetCom:
         self.types = (bytes, bytearray)
         self.data = bytes()
         self.output = None
-        print('connecting wireless')
-        system_command(['wpa_supplicant', '-B', '-i ' + self.settings.bindadaptor, '/etc/wpa_supplicant/wpa_supplicant.conf', '-D wext'])
+        # print('connecting wireless')
+        # system_command(['wpa_supplicant', '-B', '-i ' + self.settings.bindadaptor, '/etc/wpa_supplicant/wpa_supplicant.conf', '-D wext'])
         self.bindaddr = GetIP(self.settings).ipv4
         print('opening listening ports')
         system_command(['firewall-cmd', '--zone=public', '--add-port=' + str(self.settings.tcpbindport) + '/tcp'])

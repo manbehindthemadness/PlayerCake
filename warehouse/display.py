@@ -174,16 +174,23 @@ class Display:
         stats = self.controller.rt_data['SYS']['STATS']
         imu = self.controller.rt_data['IMU']
         gps = self.controller.rt_data['GPS']
+        try:
+            lat = str(round(gps['LAT'], 5))
+            long = str(round(gps['LONG'], 5))
+            alt = str(round(gps['ALT'], 5))
+            press = str(round(gps['PRESS'], 1))
+        except KeyError:
+            lat = long = alt = press = '0'
         template = {
             '1': {'message': 'CPU:' + str(stats['CPU_LOAD']) + ' ' + 'CPU_T:' + str(syss['CPU_TEMP']) + 'C'},
             '2': {
                 'message': 'Mem:' + str(stats['VIRTUAL_MEMORY'].percent) + ' disk:' + str(stats['DISK_IO'].percent)},
             '3': {'message': 'Gyro: X ' + str(round(imu['kalmanX'], 1)) + '\tY ' + str(round(imu['kalmanY'], 1))},
             '4': {'message': 'Heading: ' + str(round(imu['tiltCompensatedHeading'], 5))},
-            '5': {'message': 'Lat: ' + str(round(gps['LAT'], 5))},
-            '6': {'message': 'Long: ' + str(round(gps['LONG'], 5))},
-            '7': {'message': 'Altitude: ' + str(round(gps['ALT'], 5))},
-            '8': {'message': 'Pressure: ' + str(round(gps['PRESS'], 1))},
+            '5': {'message': 'Lat: ' + lat},
+            '6': {'message': 'Long: ' + long},
+            '7': {'message': 'Altitude: ' + alt},
+            '8': {'message': 'Pressure: ' + press},
         }
         inc = 0
         with canvas(self.device) as draw:

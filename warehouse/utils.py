@@ -113,8 +113,10 @@ def update_setting(filename, section, setting, value, merge=False):
             rename(file + "~", file)
             time.sleep(1)
             fileswap(file)
-        remove(file + "~")
-
+        try:
+            remove(file + "~")
+        except FileNotFoundError:
+            pass
     if not os.path.exists(filename):  # Create settings file if it doesn't exist.
         try:
             os.mknod(filename)
