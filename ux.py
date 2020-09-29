@@ -48,7 +48,8 @@ def get_spacer():
     """
     Returns a spacer image.
     """
-    return PhotoImage(file='img/base/spacer.png')
+    imgpth = os.getcwd() + '/img/base/spacer.png'
+    return PhotoImage(file=imgpth)
 
 
 class Page(Frame):
@@ -629,6 +630,7 @@ class Rehearsal(Frame):
         self.script = dict()
         self.stage_id = str()
         self.stage_buttons = list()
+        self.spacer = get_spacer()
         #  ##############
         #  class selector
         #  ##############
@@ -645,6 +647,7 @@ class Rehearsal(Frame):
             y=cp(pry(45), pry(75))
         )
         self.classes.grid_columnconfigure(0, weight=1)
+        self.classes.grid_rowconfigure(1, weight=1)
         self.class_label = GifIcon(
             self.classes,
             'animal-gaits.gif',
@@ -816,6 +819,8 @@ class Rehearsal(Frame):
             y=cp(pry(47), pry(94))
         )
         self.compound_frame.grid_columnconfigure(0, weight=1)
+        self.compound_frame.grid_columnconfigure(1, weight=1)
+        self.compound_frame.grid_columnconfigure(2, weight=1)
         self.compound_left = Frame(
             self.compound_frame,
             bg=theme['main']
@@ -850,26 +855,22 @@ class Rehearsal(Frame):
         self.compound_2.grid(row=1, column=0)
         self.compound_graphic_frame = Frame(
             self.compound_frame,
-            width=prx(25),
             height=pry(70),
         )
-        self.compound_graphic_frame.grid(row=0, column=1)
-        self.compound_graphic_frame.grid_columnconfigure(0, weight=1)
-        self.compound_graphic = PhotoImage(file=img('quad_front.png', 25, 70))
+        self.compound_graphic_frame.grid(row=0, rowspan=2, column=1, sticky=(N, S, E, W))
+        self.compound_graphic = PhotoImage(file=img('quad_front.png', 20, 70))
         self.compound_graphic_label = Label(
             self.compound_graphic_frame,
             image=self.compound_graphic,
             bg=theme['main'],
-            width=prx(25),
+            width=prx(22),
             height=pry(59)
         )
         self.compound_graphic_label.image = self.compound_graphic
-        self.compound_graphic_label.pack()
+        self.compound_graphic_label.pack(fill="both", expand=True)
         self.compound_right = Frame(
             self.compound_frame,
             bg=theme['main']
-            # width=prx(21.6),
-            # height=pry(70)
         )
         self.compound_right.grid(row=0, column=2)
         self.comp3_rev = IntVar()
@@ -912,7 +913,7 @@ class Rehearsal(Frame):
             self.t4,
             # ['1', '2', '3', '4']
         )
-        self.timing_frame.grid(row=1, columnspan=3)
+        self.timing_frame.grid(row=2, columnspan=3)
         #  ##############
         #  configure base
         #  ##############
@@ -1332,24 +1333,23 @@ class Rehearsal(Frame):
         # self.controller.target = 'Rehearsal'
         self.compound_frame.tkraise()
 
-    @staticmethod
-    def compound_open(parent, title, tvar, revvar, mirvar, command):
+    def compound_open(self, parent, title, tvar, revvar, mirvar, command):
         """
         This is the widget we will use for selecting a compound rehersal.
         """
-        container = Frame(
+        container = Frame(  # Build base.
             parent,
             width=prx(21.6),
             height=pry(40),
             bg=theme['main']
         )
         container.grid_columnconfigure(0, weight=1)
-        ti_frame = Frame(
+        ti_frame = Frame(  # Build title frame.
             container,
             width=prx(21.6),
             height=pry(10),
         )
-        ti_frame.grid(row=0, column=0)
+        ti_frame.grid(row=0, column=0)  # Create title label.
         til = config_text(
             Label(
                 ti_frame
@@ -1358,54 +1358,70 @@ class Rehearsal(Frame):
             4
         )
         til.pack()
-        btn_frame = Frame(
+        btn_frame = Frame(  # Create frame to hold buttons.
             container,
             width=prx(21.6),
             height=pry(10)
         )
         btn_frame.grid(row=1, column=0)
-        config_single_button(
+        config_single_button(  # Create open button.
             btn_frame,
             tvar,
             command
         )
-        chk_frame = Frame(
+        chk_frame = Frame(  # Create frame to hold checkboxs.
             container,
             width=prx(10),
             height=pry(10),
             bg=theme['main'],
         )
-        chk_frame.grid(row=2, column=0)
+        chk_frame.grid(row=2, column=0)  # Create reverse checkbox.
         config_checkbox(
             chk_frame,
             '',
             revvar
         )
-        Label(
+        Label(  # Create spacer.
             chk_frame,
             width=prx(3),
             image=get_spacer(),
             bg=theme['main']
         ).pack(side=LEFT)
-        config_checkbox(
+        config_checkbox(  # Create mirror checkbox.
             chk_frame,
             '',
             mirvar
         )
-        lbl_frame = Frame(
+        lbl_frame = Frame(  # Create label frame.
             container,
             width=prx(21.6),
             height=pry(10)
         )
         lbl_frame.grid(row=3, column=0)
-
-        lbl = config_text(
-            Label(
+        rev_btn = config_button(  # Create reverse button.
+            Button(
                 lbl_frame,
-            ),
-            'reverse   mirror'
+                text='reverse',
+                height=pry(3),
+                width=prx(5),
+                image=self.spacer,
+                command=lambda: chkvar_handler(revvar)
+            )
         )
-        lbl.pack()
+        rev_btn.image = self.spacer
+        rev_btn.pack(side=LEFT)
+        mir_btn = config_button(  # Create mirror button.
+            Button(
+                lbl_frame,
+                text='mirror',
+                height=pry(3),
+                width=prx(5),
+                image=self.spacer,
+                command=lambda: chkvar_handler(mirvar)
+            )
+        )
+        mir_btn.image = self.spacer
+        mir_btn.pack(side=LEFT)
         return container
 
     def compound_cancel_event(self):
@@ -2669,6 +2685,23 @@ class GifAnimation(Frame):
         return self
 
 
+def chkvar_handler(chkvar):
+    """
+    This emulates checkbox toggle behavior within a button.
+    """
+    state = chkvar.get()
+    nstate = 1
+    if state:
+        nstate = 0
+    if isinstance(chkvar, StringVar):
+        nstate = str(nstate)
+    elif isinstance(chkvar, IntVar):
+        nstate = int(nstate)
+    else:
+        pass
+    chkvar.set(nstate)
+
+
 def config_checkbox(parent, text, intvar, command=None):
     """
     This creates a checkbox.
@@ -2756,7 +2789,7 @@ def config_single_button(parent, text, command, size=None):
     return btn
 
 
-def config_button(element):
+def config_button(element, size=2):
     """
     This configures our button styles.
     """
@@ -2768,7 +2801,8 @@ def config_button(element):
         borderwidth=0,
         highlightthickness=0,
         relief=FLAT,
-        compound='center'
+        compound='center',
+        font=(theme['font'], pointsy(size))
     )
     return element
 

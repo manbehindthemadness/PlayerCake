@@ -486,3 +486,7 @@ class Start:
         xyz = pwmdt['XYZ'] = dict()  # Populate desired XYZ position.
         for pos in range(16):  # TODO: This is where we will need to translate the default nautral value from RAD.
             xyz[str(pos)] = (0, 0, 0)
+
+
+if __name__ == '__main__':
+    Start()
