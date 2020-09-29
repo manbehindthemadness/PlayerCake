@@ -145,7 +145,7 @@ class Display:
         lines.reverse()
         inc = 7
         with canvas(self.device) as draw:
-            txt = []
+            # txt = []
             for idx, line in enumerate(lines[:7]):
 
                 if inc <= 49:

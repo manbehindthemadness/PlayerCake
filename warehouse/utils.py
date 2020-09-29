@@ -105,18 +105,25 @@ def update_setting(filename, section, setting, value, merge=False):
         """
         with open(file + '.new', "w") as fh:
             config.write(fh)
-        rename(file, file + "~")
         try:
-            rename(file + ".new", file)
+            rename(file, file + "~")
+            time.sleep(0.01)
+            try:
+                rename(file + ".new", file)
+                time.sleep(0.01)
+            except FileNotFoundError:
+                rename(file + "~", file)
+                time.sleep(1)
+                fileswap(file)
+            try:
+                remove(file + "~")
+                time.sleep(0.01)
+            except FileNotFoundError:
+                pass
         except FileNotFoundError:
-            print('save failed, retrying')
-            rename(file + "~", file)
-            time.sleep(1)
+            print('settings save failed, retrying')
+            time.sleep(0.5)
             fileswap(file)
-        try:
-            remove(file + "~")
-        except FileNotFoundError:
-            pass
     if not os.path.exists(filename):  # Create settings file if it doesn't exist.
         try:
             os.mknod(filename)
