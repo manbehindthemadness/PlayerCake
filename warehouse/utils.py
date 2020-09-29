@@ -2,6 +2,7 @@
 This is where we house general utilities.
 """
 import datetime
+import time
 import re
 import os
 
@@ -105,11 +106,20 @@ def update_setting(filename, section, setting, value, merge=False):
         with open(file + '.new', "w") as fh:
             config.write(fh)
         rename(file, file + "~")
-        rename(file + ".new", file)
+        try:
+            rename(file + ".new", file)
+        except FileNotFoundError:
+            print('save failed, retrying')
+            rename(file + "~", file)
+            time.sleep(1)
+            fileswap(file)
         remove(file + "~")
 
     if not os.path.exists(filename):  # Create settings file if it doesn't exist.
-        os.mknod(filename)
+        try:
+            os.mknod(filename)
+        except FileExistsError:
+            pass
     config = configparser.ConfigParser()  # Load config parser.
     config.read(filename, encoding='utf-8-sig')  # Read settings file.
     try:
@@ -250,10 +260,13 @@ class BuildSettings:
         """
         This changes a specific setting value.
         """
-        if not value:
-            exec('self.settings[setting] = str(self.' + setting + ')')
+        if setting in self.settings.keys():
+            if not value:
+                exec('self.settings[setting] = str(self.' + setting + ')')
+            else:
+                self.settings[setting] = str(value)
         else:
-            self.settings[setting] = str(value)
+            self.add(setting, value)
         return self
 
 

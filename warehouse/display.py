@@ -7,6 +7,7 @@ from luma.core.render import canvas
 from PIL import ImageFont
 import time
 import sys
+from textwrap import wrap
 # import logging
 from luma.core import cmdline, error
 import os
@@ -134,17 +135,36 @@ class Display:
             "2": {}, - etc....
         }
         """
+        def breaktext(text, length):
+            """
+            We will use this to implement line breaks into the debug screen.
+            """
+            return wrap(str(text), length)
 
         lines = list(self.lines)
         lines.reverse()
         inc = 7
         with canvas(self.device) as draw:
+            txt = []
             for idx, line in enumerate(lines[:7]):
-                inc += 7
-                if not idx:
-                    draw.text((0, 3), str(line), font=self.font3, fill="white")
-                else:
-                    draw.text((0, inc), str(line), font=self.font2, fill="white")
+
+                if inc <= 49:
+                    if not idx:
+                        txt = breaktext(line, 23)
+                        draw.text((0, 3), txt[0], font=self.font3, fill="white")
+                        inc += 2
+                    else:
+                        inc += 7
+                        txt = breaktext(line, 27)
+                        draw.text((0, inc), txt[0], font=self.font2, fill="white")
+                    if len(txt) > 1:
+                        # print(txt)
+                        for tx in txt[1:]:
+                            inc += 7
+                            if inc <= 49:
+                                draw.text((0, inc), tx, font=self.font2, fill="white")
+                # print(len(txt), txt)
+                # time.sleep(1)
 
     def stats(self):
         """

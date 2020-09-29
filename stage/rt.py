@@ -124,8 +124,8 @@ class Start:
         self.rt_data = rt_data  # Pass realtime data.
         self.execute = Command(self).execute
         listener = self.rt_data['LISTENER'] = dict()
-        listener[settings.directorid] = dict()
-        listener[settings.stageid] = dict()
+        listener[settings.director_id] = dict()
+        listener[settings.stage_id] = dict()
         self.screen_mode = 'test'
         self.display = Display(self)
         self.term = term  # Pass termination.
@@ -190,7 +190,7 @@ class Start:
 
                 self.sender = self.received_data['SENDER']
                 # print('receiving data:', self.received_data)
-                if self.sender in self.settings.directorid:  # Identify incoming connection.
+                if self.sender in self.settings.director_id:  # Identify incoming connection.
                     # listener[self.sender] = self.received_data['DATA']  # Send received data to real time model.
                     if self.sender not in listener.keys():
                         listener[self.sender] = dict()
@@ -214,9 +214,9 @@ class Start:
         """
         This transmits a data package to the specified client id.
         """
-        destination_id = self.settings.directorid
+        destination_id = self.settings.director_id
         addresses = self.rt_data['ADDRESSES']
-        self.lines.append('transmitting data')
+        # self.lines.append('transmitting data')
         try:
             if destination_id in addresses.keys():
                 # print('Address detected, using:', self.rt_data['ADDRESSES'][destination_id][0])
@@ -238,23 +238,23 @@ class Start:
         ready = {'STATUS': 'ready'}
         while not self.term:  # Start loop.
             if not self.connected:
-                self.rt_data['LISTENER'][self.settings.stageid] = ready
+                self.rt_data['LISTENER'][self.settings.stage_id] = ready
                 # self.rt_data['LISTENER'][self.settings.director_id]['STATUS'] = 'ready'
                 try:
-                    self.send({'SENDER': self.settings.stageid, 'DATA': ready})  # Transmit ready state to director.
+                    self.send({'SENDER': self.settings.stage_id, 'DATA': ready})  # Transmit ready state to director.
                     time.sleep(1)
                     print(self.rt_data['LISTENER'])
                     if self.rt_data['LISTENER'][self.settings.director_id]['STATUS'] == 'confirmed':  # TODO: This guy likes to give up problems when the server malfunctions...
                         print('Handshake with director confirmed, starting heartbeat')
                         self.lines.append('handshake confirmed')
-                        self.lines.append('starting heartbeat')
+                        # self.lines.append('starting heartbeat')
                         self.connected = True
                         # TODO: We should nest another while loop here to autometically send keepalive and determine connection stability.
                         failures = 0
                         while self.connected and not self.term:  # Start loop.
                             try:
-                                print('sending heartbeat')
-                                self.send({'SENDER': self.settings.stageid, 'DATA': {'HEARTBEAT': str(datetime.datetime.utcnow())}})  # Transmit ready state to director.
+                                # print('sending heartbeat')
+                                self.send({'SENDER': self.settings.stage_id, 'DATA': {'HEARTBEAT': str(datetime.datetime.utcnow())}})  # Transmit ready state to director.
                                 failures = 0
                             except (TimeoutError, socket.timeout):  # Retry on timeout.
                                 failures += 1  # Up failure count.
@@ -264,14 +264,14 @@ class Start:
                                 self.lines.append('connection failure')
                                 self.lines.append('reconnecting')
                                 self.connected = False
-                                self.rt_data['LISTENER'][self.settings.directorid]['STATUS'] = 'disconnected'
-                                del self.rt_data['ADDRESSES'][self.settings.directorid]
+                                self.rt_data['LISTENER'][self.settings.director_id]['STATUS'] = 'disconnected'
+                                del self.rt_data['ADDRESSES'][self.settings.director_id]
                             time.sleep(1)
                 except (TimeoutError, socket.timeout) as err:  # Retry on timeout.
                     dprint(self.settings, ('Connection timeout', err))
                     self.lines.append('connection timeout')
                     pass
-            elif self.rt_data['LISTENER'][self.settings.directorid]['STATUS'] == 'ready':  # This will allow us to re-confirm after connection dropouts.
+            elif self.rt_data['LISTENER'][self.settings.director_id]['STATUS'] == 'ready':  # This will allow us to re-confirm after connection dropouts.
                 self.connected = False
             time.sleep(1)
 
@@ -281,7 +281,7 @@ class Start:
         """
         self.lines.append('launching command thread')
         while not self.term:
-            commands = self.rt_data['LISTENER'][settings.directorid]
+            commands = self.rt_data['LISTENER'][settings.director_id]
             check_dict(commands, 'COMMAND')  # Confirm the key exists.
             self.command = commands['COMMAND']
             if self.command:  # Check for command.

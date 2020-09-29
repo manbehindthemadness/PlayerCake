@@ -75,7 +75,14 @@ class Command:
         Here we will change our screen debugging mode.
         """
         self.rt_self.settings.debug_screen_mode = mode
-        # print(self.rt_self.settings.debug_screen_mode)
+        self.setting_change('debug_screen_mode', mode)
+
+    def setting_change(self, setting, value):
+        """
+        This makes a change to our real time settings.
+        """
+        self.settings.set(setting, value)
+        self.settings.save()
 
 
 def command_test():

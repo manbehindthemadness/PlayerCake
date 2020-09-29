@@ -117,7 +117,7 @@ class NetCom:
         server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcasting mode.
 
         server.settimeout(0.2)  # Define server timeout.
-        print(self.settings.role + ':' + socket.gethostname() + ':' + self.settings.director_id + ':' + self.bindaddr + ':' + str(self.settings.tcpbindport))
+        # print(self.settings.role + ':' + socket.gethostname() + ':' + self.settings.director_id + ':' + self.bindaddr + ':' + str(self.settings.tcpbindport))
         statement = self.settings.role + ':' + socket.gethostname() + ':' + self.settings.director_id + ':' + self.bindaddr + ':' + str(self.settings.tcpbindport)  # Define data package.
         # TODO: Encode the above information.
         message = self.encode(statement).message
@@ -174,7 +174,7 @@ class NetCom:
         while search:  # Listen for upstream server to identify itself.
             data, addr = client.recvfrom(1024)
             self.data = self.decode(data).message.split(':')
-            if self.data[0] == self.settings.target and self.data[2] == self.settings.directorid:  # TODO: revise for cross-application compatibility.
+            if self.data[0] == self.settings.target and self.data[2] == self.settings.director_id:  # TODO: revise for cross-application compatibility.
                 search = False
         return self.data  # Return upstream server TCP connection information.
 
