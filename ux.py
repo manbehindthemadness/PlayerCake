@@ -29,6 +29,9 @@ from warehouse.system import system_command
 from warehouse.utils import percent_of, percent_in, file_rename
 from warehouse.uxutils import image_resize
 from writer.plot import pymesh_stl
+from director.rt import Start
+
+director = Start()
 
 scr_x, scr_y = settings.screensize
 

@@ -220,6 +220,3 @@ class Start:
                     # print('beat age', beat_time)
             time.sleep(1)
 
-
-if __name__ == '__main__':
-    Start()

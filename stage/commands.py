@@ -58,7 +58,10 @@ class Command:
         self.command = command
         valid = self.verify()
         if valid:
-            eval(self.command)
+            try:
+                exec(self.command)
+            except NameError:
+                exec('self.' + self.command)
             dprint(self.settings, ('Command executed:', self.command,))
 
     def close(self):
