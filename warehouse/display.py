@@ -114,6 +114,8 @@ class Display:
         """
         This updates the screen with new information depending on the screen debugging mode.
         """
+        self.mode = self.controller.settings.debug_screen_mode
+        # print('changing screen to mode:', self.mode)
         meth = eval('self.' + self.mode)
         meth()
 

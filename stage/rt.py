@@ -239,10 +239,12 @@ class Start:
         while not self.term:  # Start loop.
             if not self.connected:
                 self.rt_data['LISTENER'][self.settings.stageid] = ready
+                # self.rt_data['LISTENER'][self.settings.director_id]['STATUS'] = 'ready'
                 try:
                     self.send({'SENDER': self.settings.stageid, 'DATA': ready})  # Transmit ready state to director.
                     time.sleep(1)
-                    if self.rt_data['LISTENER'][self.settings.DirectorID]['STATUS'] == 'confirmed':  # TODO: This guy likes to give up problems when the server malfunctions...
+                    print(self.rt_data['LISTENER'])
+                    if self.rt_data['LISTENER'][self.settings.director_id]['STATUS'] == 'confirmed':  # TODO: This guy likes to give up problems when the server malfunctions...
                         print('Handshake with director confirmed, starting heartbeat')
                         self.lines.append('handshake confirmed')
                         self.lines.append('starting heartbeat')
@@ -251,7 +253,7 @@ class Start:
                         failures = 0
                         while self.connected and not self.term:  # Start loop.
                             try:
-                                # print('sending heartbeat')
+                                print('sending heartbeat')
                                 self.send({'SENDER': self.settings.stageid, 'DATA': {'HEARTBEAT': str(datetime.datetime.utcnow())}})  # Transmit ready state to director.
                                 failures = 0
                             except (TimeoutError, socket.timeout):  # Retry on timeout.

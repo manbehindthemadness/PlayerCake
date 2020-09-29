@@ -3,12 +3,16 @@ This holds our programs main loops.
 """
 from warehouse.communication import NetCom
 from warehouse.utils import check_dict, update_dict, get_time_secs
-from director import settings
+from settings import settings
 from threading import Thread
 from warehouse.loggers import dprint, tprint
 import pprint
 import time
-# import datetime
+import sys
+import os
+currentdir = os.path.dirname(os.path.realpath(__file__))
+parentdir = os.path.dirname(currentdir)
+sys.path.append(parentdir)
 
 rt_data = dict()
 term = False
@@ -53,7 +57,7 @@ class Start:
             Thread(target=self.listen, args=()),
             Thread(target=self.confirm_ready_state, args=())
         ]
-        if settings.Debug:
+        if settings.debug:
             self.threads.append(Thread(target=self.debug, args=()))
 
         for thread in self.threads:  # Launch threads.
@@ -68,13 +72,13 @@ class Start:
         time.sleep(5)
         debug_model = dict()
         for reading in self.rt_data:  # Build debug model.
-            if reading in settings.Debug_Filter:
+            if reading in settings.debug_filter:
                 debug_model[reading] = dict()
         while not self.term:
             tprint(self.settings, 'debug')
             skip_report = False
-            if settings.Debug_Update_Only:  # Log update only.
-                for reading in self.settings.Debug_Filter:
+            if settings.debug_update_only:  # Log update only.
+                for reading in self.settings.debug_filter:
                     old = debug_model[reading]
                     new = self.rt_data[reading]
                     if new != old:
@@ -86,13 +90,13 @@ class Start:
             else:  # Log direct.
                 debug_model = self.rt_data
             if not skip_report:
-                if settings.Debug_Pretty:
+                if settings.debug_pretty:
                     pprint.PrettyPrinter(indent=4).pprint(debug_model)
                 else:
                     for reading in debug_model:
-                        if reading in settings.Debug_Filter:
+                        if reading in settings.debug_filter:
                             print(reading, debug_model[reading], '\n')
-            time.sleep(settings.Debug_Cycle)
+            time.sleep(settings.debug_cycle)
 
     def dump(self):
         """This just dumps the real time model to console"""
@@ -124,7 +128,8 @@ class Start:
             try:
                 self.sender = self.received_data['SENDER']
                 # print('receiving data:', self.received_data)
-                if self.sender in self.settings.Paired_Stages:  # Identify incoming connection.
+                # TODO: Convert this to use the settings.stages dict.
+                if self.sender in self.settings.paired_stages:  # Identify incoming connection.
                     # listener[self.sender] = self.received_data['DATA']  # Send received data to real time model.
                     if self.sender not in listener.keys():
                         listener[self.sender] = dict()
@@ -145,11 +150,11 @@ class Start:
         This transmits a data package to the specified client id.
         """
         if 'SENDER' not in message.keys():
-            message['SENDER'] = self.settings.DirectorID
+            message['SENDER'] = self.settings.director_id
         addresses = self.rt_data['ADDRESSES']
         if destination_id in addresses.keys():
             address = self.rt_data['ADDRESSES'][destination_id][0]
-            self.netclient(message, address + ':' + str(self.settings.TCPBindPort))
+            self.netclient(message, address + ':' + str(self.settings.tcpbindport))
         else:
             dprint(self.settings, ('Error, client not found: ' + destination_id,))
 
@@ -168,7 +173,7 @@ class Start:
                         client['STATUS'] = 'ready'  # Handle state check for sudden disconnects.
                     if client['STATUS'] == 'ready':
                         print('sending ready state to', stage)
-                        self.send(stage, {'SENDER': self.settings.DirectorID, 'DATA': {'STATUS': 'confirmed'}})  # Transmit ready state to stage.
+                        self.send(stage, {'SENDER': self.settings.director_id, 'DATA': {'STATUS': 'confirmed'}})  # Transmit ready state to stage.
                         client['STATUS'] = 'confirmed'
                         dprint(self.settings, ('Handshake with client ' + stage + ' confirmed, starting heartbeat',))
                         # TODO: start heartbeat thread here.
@@ -208,9 +213,13 @@ class Start:
                     #         )
                     # ).total_seconds()
                     beat_time = get_time_secs(stage['HEARTBEAT'])
-                    if int(beat_time) >= settings.NetworkTimeout:  # Client is dead :(
+                    if int(beat_time) >= settings.networktimeout:  # Client is dead :(
                         client = False
                         listener[stage_id]['STATUS'] = 'disconected'
                         dprint(self.settings, ('Client:', stage_id, 'has disconnected'))
                     # print('beat age', beat_time)
             time.sleep(1)
+
+
+if __name__ == '__main__':
+    Start()

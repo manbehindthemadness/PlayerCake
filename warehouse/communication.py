@@ -22,6 +22,7 @@ import os
 import psutil
 from cbor2 import loads, dumps, CBORDecodeEOF
 from threading import Thread
+from warehouse.system import system_command
 from warehouse.loggers import dprint
 
 
@@ -40,18 +41,24 @@ class NetCom:
         self.types = (bytes, bytearray)
         self.data = bytes()
         self.output = None
+        print('connecting wireless')
+        system_command(['wpa_supplicant', '-B', '-i ' + self.settings.bindadaptor, '/etc/wpa_supplicant/wpa_supplicant.conf', '-D wext'])
         self.bindaddr = GetIP(self.settings).ipv4
+        print('opening listening ports')
+        system_command(['firewall-cmd', '--zone=public', '--add-port=' + str(self.settings.tcpbindport) + '/tcp'])
+        system_command(['firewall-cmd', '--zone=public', '--add-port=' + str(self.settings.udpbindport) + '/udp'])
 
         announcethread = Thread(target=self.udpserver, args=())  # Create transmitter thread.
         announcethread.start()  # Launch UDP transmitter.
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
 
-        if self.settings.environment == 'mixed':
-            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 
-        else:
-            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        # if self.settings.environment == 'mixed':
+        #     self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # else:
+        #     self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.server_address = (self.bindaddr, self.settings.tcpbindport)  # Create connection string.
         dprint(self.settings, ('starting up on %s port %s' % self.server_address,))
         self.sock.bind(self.server_address)  # Bind connection string to socket.
@@ -100,16 +107,18 @@ class NetCom:
         :return: Nothing.
         """
         self.udpsock = server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # Create UDP transmission socket.
-        if self.settings.environment == 'pure':
-            server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        elif self.settings.environment == 'mixed':  # This is a windows thing...
-            server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            server.bind((self.bindaddr, self.settings.udpbroadcastport))
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        # if self.settings.environment == 'pure':
+        #     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        # elif self.settings.environment == 'mixed':  # This is a windows thing...
+        #     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        #     server.bind((self.bindaddr, self.settings.udpbroadcastport))
 
         server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcasting mode.
 
         server.settimeout(0.2)  # Define server timeout.
-        statement = self.settings.role + ':' + socket.gethostname() + ':' + self.settings.directorid + ':' + self.bindaddr + ':' + str(self.settings.tcpbindport)  # Define data package.
+        print(self.settings.role + ':' + socket.gethostname() + ':' + self.settings.director_id + ':' + self.bindaddr + ':' + str(self.settings.tcpbindport))
+        statement = self.settings.role + ':' + socket.gethostname() + ':' + self.settings.director_id + ':' + self.bindaddr + ':' + str(self.settings.tcpbindport)  # Define data package.
         # TODO: Encode the above information.
         message = self.encode(statement).message
         while not self.term:  # Broadcast until termination signal is recieved.
@@ -151,12 +160,14 @@ class NetCom:
         :rtype: list
         """
         client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # Create UDP client socket.
-        if self.settings.environment == 'pure':
-            client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)  # Specify socket options.
-            client.bind(("", self.settings.udpbindport))  # Bind the socket to all adaptors and the target port.
-        elif self.settings.environment == 'mixed':
-            client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Windows compatable version.
-            client.bind(("", self.settings.udpbindport))  # Bind the socket to all adaptors and the target port.
+        client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)  # Specify socket options.
+        client.bind(("", self.settings.udpbindport))  # Bind the socket to all adaptors and the target port.
+        # if self.settings.environment == 'pure':
+        #     client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)  # Specify socket options.
+        #     client.bind(("", self.settings.udpbindport))  # Bind the socket to all adaptors and the target port.
+        # elif self.settings.environment == 'mixed':
+        #     client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Windows compatable version.
+        #     client.bind(("", self.settings.udpbindport))  # Bind the socket to all adaptors and the target port.
         client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcasting mode.
 
         search = True
@@ -194,8 +205,12 @@ class NetCom:
             server_address = server_info[0], int(server_info[1])
         else:
             server_address = (server_info[3], int(server_info[4]))  # Collect server connection string.
-        # dprint(self.settings, ('connecting to %s port %s' % server_address,))
-        sock.connect(server_address)  # Connect the socket to the port where the server is listening.
+        # print('connecting to %s port %s' % server_address,)
+        try:
+            sock.connect(server_address)  # Connect the socket to the port where the server is listening.
+        except OSError as err:
+            print('connection failed, retrying', err)
+            self.tcpclient(message, address)
         message = self.encode(message).message
         try:
             sock.sendall(message)  # Send message.
@@ -268,6 +283,7 @@ class GetIP:
         :param adaptor: Optional string value of adaptor.
         """
         if settings:
+            print('we have settings')
             self.adaptor = settings.bindadaptor
         if adaptor:
             self.adaptor = adaptor
