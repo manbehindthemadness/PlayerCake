@@ -339,7 +339,7 @@ class Writer(Frame):
         self.calibrate_button = self.full_button(
             self.left_panel_frame,
             'fullbuttonframe.png',
-            command='',
+            command=lambda: self.show_calibrations(),
             text='calibrate'
         )
         self.calibrate_button.grid(row=4, columnspan=2)
@@ -595,10 +595,17 @@ class Writer(Frame):
 
     def show_rehearsal(self):
         """
-        This will raise the audition frame.
+        This will raise the rehersal frame.
         """
         self.controller.refresh('Rehearsal')
         safe_raise(self.controller, 'Rehearsal', 'Writer')
+        self.controller.show_frame('CloseWidget')
+
+    def show_calibrations(self):
+        """
+        This will raise the calibrations frame.
+        """
+        safe_raise(self.controller, 'Calibrations', 'Writer')
         self.controller.show_frame('CloseWidget')
 
 
@@ -1619,6 +1626,15 @@ class Rehearsal(Frame):
         return 'img/base/' + file_rename(settings.theme + '_', image, reverse=True)
 
 
+class Calibrations(Frame):
+    """
+    This is the machine calibration and configuration interface.
+    """
+    def __init__(self, parent, controller):
+        Frame.__init__(self, parent)
+        self.controller = controller
+
+
 class Audience(Frame):
     """
     Audience page.
@@ -1674,6 +1690,7 @@ class MainView(tk.Tk):
                 Writer,
                 Audience,
                 Rehearsal,
+                Calibrations,
                 Keyboard,
                 NumPad,
                 FileBrowser,
@@ -1682,7 +1699,7 @@ class MainView(tk.Tk):
                 LoadingIcon,
                 ConfirmationWidget,
                 ErrorWidget
-        ):
+        ):  # TODO: This is pretty messy and should be cleaned up after we know what all this looks like.
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -1740,6 +1757,13 @@ class MainView(tk.Tk):
                     highlightbackground=theme['entrybackground']
                 )
                 frame.grid(row=0, column=0)
+            elif page_name == 'Calibrations':
+                frame.configure(
+                    width=prx(90),
+                    height=pry(90),
+                    highlightthickness=pry(1),
+                    highlightbackground=theme['entrybackground']
+                )
             elif page_name == 'ConfirmationWidget' or page_name == 'ErrorWidget':
                 frame.configure(
                     width=prx(30),
@@ -1751,7 +1775,6 @@ class MainView(tk.Tk):
             else:
                 frame.grid(row=0, column=0, sticky="nsew")
 
-        # home.show()
         self.show_frame('Home')
 
     def get_frame(self, page_name):

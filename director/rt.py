@@ -2,7 +2,7 @@
 This holds our programs main loops.
 """
 from warehouse.communication import NetCom
-from warehouse.utils import check_dict, update_dict, get_time_secs
+from warehouse.utils import check_dict, update_dict, get_time_secs, fltr_al
 from settings import settings
 from threading import Thread
 from warehouse.loggers import dprint, tprint
@@ -45,6 +45,7 @@ class Start:
         global rt_data
         global term
         self.rt_data = rt_data  # Pass real time data
+        self.connected_stages = self.rt_data['connected_stages'] = dict()  # This will be used to select active stages in the UX.
         self.term = term  # Pass termination.
         self.settings = settings  # Pass settings.
         self.netcom = NetCom(self)
@@ -176,6 +177,8 @@ class Start:
                         self.send(stage, {'SENDER': self.settings.director_id, 'DATA': {'STATUS': 'confirmed'}})  # Transmit ready state to stage.
                         client['STATUS'] = 'confirmed'
                         dprint(self.settings, ('Handshake with client ' + stage + ' confirmed, starting heartbeat',))
+                        exec('self.' + fltr_al(stage) + ' = True')  # Create a dynamic connection variable.
+                        self.connected_stages[stage] = 'self.' + fltr_al(stage)  # Add stage to connected clients list.
                         # TODO: start heartbeat thread here.
                         thread = Thread(target=self.heartbeat, args=(stage,))
                         thread.start()
@@ -193,6 +196,13 @@ class Start:
         self.send(destination_id, message)
         return self
 
+    def disconnect_stage(self, stage):
+        """
+        This removes a stage from the connected_stages dict.
+        """
+        del self.connected_stages[stage]
+        del self.rt_data['LISTENER'][stage]
+
     def heartbeat(self, stage_id):
         """
         This is our keepalive thread... Should this be moved to stage?
@@ -203,20 +213,19 @@ class Start:
         client = True
         listener = self.rt_data['LISTENER']
         time.sleep(2)  # Wait for new heartbeat to arrive.
+        retry = 0
         while not self.term and client:
             if stage_id in listener.keys():
                 stage = listener[stage_id]
                 if 'HEARTBEAT' in stage.keys():
-                    # beat_time = (  # Compare heartbeat times.
-                    #         datetime.datetime.utcnow() - datetime.datetime.strptime(
-                    #             stage['HEARTBEAT'], '%Y-%m-%d %H:%M:%S.%f'
-                    #         )
-                    # ).total_seconds()
                     beat_time = get_time_secs(stage['HEARTBEAT'])
                     if int(beat_time) >= settings.networktimeout:  # Client is dead :(
-                        client = False
-                        listener[stage_id]['STATUS'] = 'disconected'
-                        dprint(self.settings, ('Client:', stage_id, 'has disconnected'))
+                        retry += 1
+                        if retry > self.settings.networkretries:
+                            client = False
+                            listener[stage_id]['STATUS'] = 'disconected'
+                            dprint(self.settings, ('Client:', stage_id, 'has disconnected'))
+                            self.disconnect_stage(stage_id)
                         self.send_command(stage_id, 'network_reset()')  # Trigger reset if possible.
                     # print('beat age', beat_time)
             time.sleep(1)

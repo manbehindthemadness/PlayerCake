@@ -46,6 +46,13 @@ class Fade:
         return [return_value, values]
 
 
+def fltr_al(value):
+    """
+    This strips all non-alphas from a string.
+    """
+    return re.sub(r'[^A-z]', '', value)
+
+
 def check_dict(_dict, key):
     """
     Checks to see if a key is in a dictionary and adds it if missing.

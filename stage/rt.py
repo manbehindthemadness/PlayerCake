@@ -230,6 +230,13 @@ class Start:
             self.send(message)
         return self.netclient
 
+    def send_disconnect_notification(self):
+        """
+        This notifies the director that we are disconnecting.
+        Used for power downs...etc.
+        """
+        self.send({'SENDER': self.settings.stage_id, 'DATA': {'STATUS': 'disconnected'}})
+
     def send_ready_state(self):
         """This tells the director we are online and ready"""
         self.lines.append('launching state thread')
@@ -242,7 +249,7 @@ class Start:
                 try:
                     self.send({'SENDER': self.settings.stage_id, 'DATA': ready})  # Transmit ready state to director.
                     time.sleep(1)
-                    print(self.rt_data['LISTENER'])
+                    # print(self.rt_data['LISTENER'])
                     if self.rt_data['LISTENER'][self.settings.director_id]['STATUS'] == 'confirmed':  # TODO: This guy likes to give up problems when the server malfunctions...
                         print('Handshake with director confirmed, starting heartbeat')
                         self.lines.append('handshake confirmed')
