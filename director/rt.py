@@ -6,6 +6,7 @@ from warehouse.utils import check_dict, update_dict, get_time_secs, fltr_al
 from settings import settings
 from threading import Thread
 from warehouse.loggers import dprint, tprint
+import traceback
 import pprint
 import time
 import sys
@@ -187,10 +188,14 @@ class Start:
                         thread = Thread(target=self.heartbeat, args=(stage,))
                         thread.start()
             except (KeyError, ConnectionRefusedError) as err:
+                track = traceback.format_exc()  # Show full stack.
                 self.notification.set('client ' + client + ' failed to connect')
                 self.notify()
                 client['STATUS'] = 'disconnected'
                 dprint(self.settings, ('Ready state for client:', client, 'not found, retrying', err))
+                del stages[client]
+                print(track)
+
             time.sleep(1)
 
     def send_command(self, destination_id, command):
