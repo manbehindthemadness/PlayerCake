@@ -129,7 +129,7 @@ class Start:
                 self.sender = self.received_data['SENDER']
                 # print('receiving data:', self.received_data)
                 # TODO: Convert this to use the settings.stages dict.
-                if self.sender in self.settings.paired_stages:  # Identify incoming connection.
+                if self.sender in self.settings.stages.keys():  # Identify incoming connection.
                     # listener[self.sender] = self.received_data['DATA']  # Send received data to real time model.
                     if self.sender not in listener.keys():
                         listener[self.sender] = dict()
@@ -219,4 +219,3 @@ class Start:
                         dprint(self.settings, ('Client:', stage_id, 'has disconnected'))
                     # print('beat age', beat_time)
             time.sleep(1)
-

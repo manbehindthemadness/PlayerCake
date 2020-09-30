@@ -194,7 +194,8 @@ class NetCom:
             sock.connect(server_address)  # Connect the socket to the port where the server is listening.
         except OSError as err:
             print('connection failed, retrying', err)
-            self.tcpclient(message, address)
+            time.sleep(0.5)
+            self.tcpclient(message, address)  # Retry connection.
         message = self.encode(message).message
         try:
             sock.sendall(message)  # Send message.
@@ -207,6 +208,10 @@ class NetCom:
                 data = sock.recv(4096)  # Break data into chunks.
                 amount_received += len(data)  # Count collected data.
             self.address = tuple(server_address)
+        except BrokenPipeError:
+            print('connection failed, broken pipe, retrying')
+            time.sleep(0.5)
+            self.tcpclient(message, address)  # Retry connection.
         finally:
             sock.close()  # Close socket.
         return self
