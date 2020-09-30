@@ -1878,10 +1878,11 @@ class Notifier(Frame):
         """
         This causes the notifier to destroy itself so we can re_use it later.
         """
-        print('destroying')
+        # print('destroying')
         self.btn.destroy()
         self.base.destroy()
         # self.controller.show_frame(self.target)
+
 
 class NumPad(Frame):
     """

@@ -137,6 +137,7 @@ class Start:
         self.calibrate = SetGyros(self)
         self.temp = get_cpu_temperature  # Pull CPU temps.
         self.stats = get_system_stats  # Read system info.
+        self.reconnecting = False
         self.netscan = NetScan
         self.netcom = NetCom(self)
         self.netclient = self.netcom.tcpclient  # Get client,

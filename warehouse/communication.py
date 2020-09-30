@@ -35,6 +35,7 @@ class NetCom:
     """
     def __init__(self, controller):
         self.controller = controller
+        self.reconnecting = self.controller.reconnecting
         self.term = False
         self.address = None
         self.message = None
@@ -68,18 +69,21 @@ class NetCom:
         """
         This restarts the networking services in the event we have a bad wifi connection.
         """
-        print('network dropout detected, reconnecting')
-        time.sleep(5)
-        if self.settings.role == 'stage':
-            self.controller.lines.append('wifi reset')
-        system_command(['service', 'networking', 'restart'])
-        time.sleep(2)
-        system_command(['service', 'wpa_supplicant', 'restart'])
-        time.sleep(2)
-        system_command(
-            ['wpa_supplicant', '-B', '-i ' + self.settings.bindadaptor, '/etc/wpa_supplicant/wpa_supplicant.conf',
-             '-D wext'])
-        time.sleep(5)
+        if not self.reconnecting:
+            self.reconnecting = True
+            print('network dropout detected, reconnecting')
+            time.sleep(5)
+            if self.settings.role == 'stage':
+                self.controller.lines.append('wifi reset')
+            system_command(['service', 'networking', 'restart'])
+            time.sleep(2)
+            system_command(['service', 'wpa_supplicant', 'restart'])
+            time.sleep(2)
+            system_command(
+                ['wpa_supplicant', '-B', '-i ' + self.settings.bindadaptor, '/etc/wpa_supplicant/wpa_supplicant.conf',
+                 '-D wext'])
+            time.sleep(5)
+            self.reconnecting = False
 
     def close(self):
         """

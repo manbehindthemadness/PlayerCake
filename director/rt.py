@@ -51,6 +51,7 @@ class Start:
         self.settings = settings  # Pass settings.
         self.notify = self.controller.notify
         self.notification = controller.notification
+        self.reconnecting = False
         self.netcom = NetCom(self)
         self.netclient = self.netcom.tcpclient  # Get client,
         self.netserver = self.netcom.tcpserver  # Get server.
@@ -233,6 +234,6 @@ class Start:
                             listener[stage_id]['STATUS'] = 'disconected'
                             dprint(self.settings, ('Client:', stage_id, 'has disconnected'))
                             self.disconnect_stage(stage_id)
-                        self.send_command(stage_id, 'network_reset()')  # Trigger reset if possible.
+                        # self.send_command(stage_id, 'network_reset()')  # Trigger reset if possible.
                     # print('beat age', beat_time)
             time.sleep(1)
