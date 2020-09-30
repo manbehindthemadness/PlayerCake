@@ -138,7 +138,7 @@ class Start:
         self.temp = get_cpu_temperature  # Pull CPU temps.
         self.stats = get_system_stats  # Read system info.
         self.netscan = NetScan
-        self.netcom = NetCom(self.settings)
+        self.netcom = NetCom(self)
         self.netclient = self.netcom.tcpclient  # Get client,
         self.netserver = self.netcom.tcpserver  # Get server.
         self.netterm = self.netcom.close
@@ -201,7 +201,6 @@ class Start:
                 else:
                     dprint(self.settings, ('Unknown client connection:', self.sender))  # Send to debug log.
                     self.lines.append('client unknown')
-
             except (KeyError, TypeError) as err:
                 dprint(self.settings, ('Malformed client connection:', self.sender, err))  # Send to debug log.
                 dprint(self.settings, (self.received_data,))
@@ -257,6 +256,7 @@ class Start:
                                 self.send({'SENDER': self.settings.stage_id, 'DATA': {'HEARTBEAT': str(datetime.datetime.utcnow())}})  # Transmit ready state to director.
                                 failures = 0
                             except (TimeoutError, socket.timeout):  # Retry on timeout.
+                                print('heartbeat timeout, retrying')
                                 failures += 1  # Up failure count.
                                 pass
                             if failures >= settings.networktimeout:

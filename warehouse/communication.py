@@ -33,16 +33,17 @@ class NetCom:
         https://github.com/ninedraft/python-udp/blob/master/client.py
         https://stackoverflow.com/questions/43475468/windows-python-udp-broadcast-blocked-no-firewall
     """
-    def __init__(self, settings):
+    def __init__(self, controller):
+        self.controller = controller
         self.term = False
         self.address = None
         self.message = None
-        self.settings = settings
+        self.settings = self.controller.settings
         self.types = (bytes, bytearray)
         self.data = bytes()
         self.output = None
         # print('connecting wireless')
-        # system_command(['wpa_supplicant', '-B', '-i ' + self.settings.bindadaptor, '/etc/wpa_supplicant/wpa_supplicant.conf', '-D wext'])
+        #
         self.bindaddr = GetIP(self.settings).ipv4
         print('opening listening ports')
         system_command(['firewall-cmd', '--zone=public', '--add-port=' + str(self.settings.tcpbindport) + '/tcp'])
@@ -62,6 +63,22 @@ class NetCom:
         self.udpsock = None
         self.client_address = None
         self.connection = None
+
+    def reconnect(self):
+        """
+        This restarts the networking services in the event we have a bad wifi connection.
+        """
+        print('network dropout detected, reconnecting')
+        if self.settings.role == 'stage':
+            self.controller.lines.append('wifi reset')
+        system_command(['service', 'networking', 'restart'])
+        time.sleep(2)
+        system_command(['service', 'wpa_supplicant', 'restart'])
+        time.sleep(2)
+        system_command(
+            ['wpa_supplicant', '-B', '-i ' + self.settings.bindadaptor, '/etc/wpa_supplicant/wpa_supplicant.conf',
+             '-D wext'])
+        time.sleep(5)
 
     def close(self):
         """
@@ -163,7 +180,7 @@ class NetCom:
                 search = False
         return self.data  # Return upstream server TCP connection information.
 
-    def tcpclient(self, message, address=None):
+    def tcpclient(self, message, address=None, fail=0):
         """
         Launches a TCP client.
 
@@ -173,8 +190,12 @@ class NetCom:
         :type message:
         :param address: Optional server address and port: 1.2.3.4:5.
         ::type address: str
+        :param fail:  This is a reconnect failure count, it will allow us to trigger additional measures for reconnect.
+        :type fail: int
         :return: Self.
         """
+        if fail > 10:
+            self.reconnect()
         # dprint(self.settings, ('connection init',))
         server_info = None
         if address:  # Use server address where able.
@@ -195,15 +216,15 @@ class NetCom:
         except OSError as err:
             print('connection failed, retrying', err)
             time.sleep(0.5)
-            self.tcpclient(message, address)  # Retry connection.
+            fail += 1
+            sock.close()  # Close socket.
+            self.tcpclient(message, address, fail)  # Retry connection.
         message = self.encode(message).message
         try:
             sock.sendall(message)  # Send message.
             # Look for the response
             amount_received = 0
             amount_expected = len(message)
-
-            # TODO: We need to alter this so we just send back a confirmation, not all data.
             while amount_received < amount_expected:  # Loop until expected data is recieved.
                 data = sock.recv(4096)  # Break data into chunks.
                 amount_received += len(data)  # Count collected data.
@@ -211,7 +232,9 @@ class NetCom:
         except BrokenPipeError:
             print('connection failed, broken pipe, retrying')
             time.sleep(0.5)
-            self.tcpclient(message, address)  # Retry connection.
+            fail += 1
+            sock.close()  # Close socket.
+            self.tcpclient(message, address, fail)  # Retry connection.
         finally:
             sock.close()  # Close socket.
         return self

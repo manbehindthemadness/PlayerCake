@@ -47,7 +47,7 @@ class Start:
         self.rt_data = rt_data  # Pass real time data
         self.term = term  # Pass termination.
         self.settings = settings  # Pass settings.
-        self.netcom = NetCom(self.settings)
+        self.netcom = NetCom(self)
         self.netclient = self.netcom.tcpclient  # Get client,
         self.netserver = self.netcom.tcpserver  # Get server.
         self.received_data = None
@@ -217,5 +217,6 @@ class Start:
                         client = False
                         listener[stage_id]['STATUS'] = 'disconected'
                         dprint(self.settings, ('Client:', stage_id, 'has disconnected'))
+                        self.send_command(stage_id, 'network_reset()')  # Trigger reset if possible.
                     # print('beat age', beat_time)
             time.sleep(1)

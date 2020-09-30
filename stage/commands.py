@@ -84,6 +84,12 @@ class Command:
         self.settings.set(setting, value)
         self.settings.save()
 
+    def network_reset(self):
+        """
+        This triggers a network reset of the stage instance.
+        """
+        self.rt_self.netcom.reconnect()
+
 
 def command_test():
     """
