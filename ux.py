@@ -17,6 +17,8 @@ TODO: We seriously need to break these inits down into classes...
 import os
 import tkinter as tk
 import uuid
+import time
+from threading import Thread
 from tkinter import *
 from tkinter.filedialog import askopenfilename
 
@@ -30,8 +32,6 @@ from warehouse.utils import percent_of, percent_in, file_rename
 from warehouse.uxutils import image_resize
 from writer.plot import pymesh_stl
 from director.rt import Start
-
-director = Start()
 
 scr_x, scr_y = settings.screensize
 
@@ -361,7 +361,7 @@ class Writer(Frame):
             self.left_panel_frame,
             'fullbuttonframe.png',
             command=lambda: self.show_qr_code(),
-            text='pair'
+            text='pairing'
         )
         self.pair_button.grid(row=7, columnspan=2)
 
@@ -1657,7 +1657,8 @@ class MainView(tk.Tk):
         global rt_data
         self.rt_data = rt_data
         self.temp = self.rt_data['temp'] = dict()
-        self.defaults = settings.defaults
+        self.settings = settings
+        self.defaults = self.settings.defaults
         for sett in self.defaults:  # Populate defaults
             self.rt_data[sett] = StringVar()
             self.rt_data[sett].set(str(self.defaults[sett]))
@@ -1670,10 +1671,15 @@ class MainView(tk.Tk):
         self.scripts = rt_data['scripts'] = settings.scripts
         self.has_plot = False
         self.command = None
+        self.notification = StringVar()
+        self.notification_timeout = IntVar()
+        self.notification_timeout.set(self.settings.notification_timeout)
         self.rt_data['key_test'] = StringVar()  # TODO: This is just for testing the keyboard.
         self.rt_data['key_test'].set('')
         self.spacer = get_spacer()
         self.update()  # I wish I had thought of this sooner...
+
+        self.director = Start(self)  # online director.
 
         container = tk.Frame(self)
         container.place(
@@ -1684,6 +1690,7 @@ class MainView(tk.Tk):
         )
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
+        self.container = container
         self.frames = dict()
         for F in (  # Ensure the primary classes are passed before the widgets.
                 Home,
@@ -1776,6 +1783,7 @@ class MainView(tk.Tk):
                 frame.grid(row=0, column=0, sticky="nsew")
 
         self.show_frame('Home')
+        self.notify('online successful')
 
     def get_frame(self, page_name):
         """
@@ -1815,6 +1823,65 @@ class MainView(tk.Tk):
         for setting in self.rt_data:
             exec('self.' + setting + ' = self.rt_data[setting]')
 
+    def notify(self, message=None):
+        """
+        This raises a notification dialog.
+        """
+        self.notification_timeout.set(self.settings.notification_timeout)
+        if message:
+            self.notification.set(message)
+        timed_element(
+            self.container,
+            self,
+            Notifier,
+            self.notification_timeout
+        )
+
+
+class Notifier(Frame):
+    """
+    This pops upa notification at the top of the screen.
+    """
+    def __init__(self, parent, controller):
+        Frame.__init__(self, parent)
+        self.controller = controller
+        self.message = self.controller.notification  # Pull message from controller.
+        self.target = self.controller.target  # Find out where we are going to revert to.
+        self.base = Frame(
+            parent,
+            width=prx(50),
+            height=pry(5),
+        )
+        self.base.place(
+            x=cp(prx(50), prx(50)),
+            y=0
+        )
+        self.im = img('notifier.png', 50, 5, aspect=False)
+        self.img = PhotoImage(file=self.im)
+        self.btn = config_button(
+            Button(
+                self.base,
+                width=prx(50),
+                height=pry(5),
+                image=self.img,
+                textvariable=self.message,
+                command=lambda: self.destroy()
+            )
+        )
+        self.btn.configure(fg='white')
+        self.btn.image = self.im
+        self.btn.pack()
+        self.base.tkraise()
+        # print('notifying')
+
+    def destroy(self):
+        """
+        This causes the notifier to destroy itself so we can re_use it later.
+        """
+        print('destroying')
+        self.btn.destroy()
+        self.base.destroy()
+        # self.controller.show_frame(self.target)
 
 class NumPad(Frame):
     """
@@ -2709,6 +2776,29 @@ class GifAnimation(Frame):
             ind += 1
         self.after(maxx, self.update, ind)
         return self
+
+
+def timed_element(parent, controller, element, timeout):
+    """
+    This presents a timed UX element that will distroy itself after the timeout has been reached.
+    """
+    def thread_instance(pr, ct, el, tm):
+        """
+        This creates out element.
+        """
+        ele = el(pr, ct)
+        _timeout = tm.get()
+        while _timeout > 0:
+            # print('timeout', _timeout)
+            time.sleep(1)
+            tm.set(
+                tm.get() - 1
+            )
+            _timeout = tm.get()
+        ele.destroy()
+
+    th = Thread(target=thread_instance, args=(parent, controller, element, timeout,))
+    th.start()
 
 
 def chkvar_handler(chkvar):

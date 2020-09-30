@@ -38,16 +38,19 @@ class Start:
 
     """
 
-    def __init__(self):
+    def __init__(self, controller):
         """
         Set initial variables.
         """
         global rt_data
         global term
-        self.rt_data = rt_data  # Pass real time data
+        self.controller = controller
+        self.rt_data = self.controller.rt_data  # Pass real time data
         self.connected_stages = self.rt_data['connected_stages'] = dict()  # This will be used to select active stages in the UX.
         self.term = term  # Pass termination.
         self.settings = settings  # Pass settings.
+        self.notify = self.controller.notify
+        self.notification = controller.notification
         self.netcom = NetCom(self)
         self.netclient = self.netcom.tcpclient  # Get client,
         self.netserver = self.netcom.tcpserver  # Get server.
@@ -125,11 +128,9 @@ class Start:
             server = self.netserver()
             self.received_data = server.output
             address = server.client_address
-            # noinspection PyBroadException,PyPep8
             try:
                 self.sender = self.received_data['SENDER']
                 # print('receiving data:', self.received_data)
-                # TODO: Convert this to use the settings.stages dict.
                 if self.sender in self.settings.stages.keys():  # Identify incoming connection.
                     # listener[self.sender] = self.received_data['DATA']  # Send received data to real time model.
                     if self.sender not in listener.keys():
@@ -177,12 +178,16 @@ class Start:
                         self.send(stage, {'SENDER': self.settings.director_id, 'DATA': {'STATUS': 'confirmed'}})  # Transmit ready state to stage.
                         client['STATUS'] = 'confirmed'
                         dprint(self.settings, ('Handshake with client ' + stage + ' confirmed, starting heartbeat',))
+                        self.notification.set('client ' + stage + ' connected')
+                        self.notify()
                         exec('self.' + fltr_al(stage) + ' = True')  # Create a dynamic connection variable.
                         self.connected_stages[stage] = 'self.' + fltr_al(stage)  # Add stage to connected clients list.
                         # TODO: start heartbeat thread here.
                         thread = Thread(target=self.heartbeat, args=(stage,))
                         thread.start()
             except (KeyError, ConnectionRefusedError) as err:
+                self.notification.set('client ' + client + ' failed to connect')
+                self.notify()
                 client['STATUS'] = 'disconnected'
                 dprint(self.settings, ('Ready state for client:', client, 'not found, retrying', err))
             time.sleep(1)
@@ -222,6 +227,8 @@ class Start:
                     if int(beat_time) >= settings.networktimeout:  # Client is dead :(
                         retry += 1
                         if retry > self.settings.networkretries:
+                            self.notification.set('client ' + stage_id + ' disconnected')
+                            self.notify()
                             client = False
                             listener[stage_id]['STATUS'] = 'disconected'
                             dprint(self.settings, ('Client:', stage_id, 'has disconnected'))

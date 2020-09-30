@@ -69,6 +69,7 @@ class NetCom:
         This restarts the networking services in the event we have a bad wifi connection.
         """
         print('network dropout detected, reconnecting')
+        time.sleep(5)
         if self.settings.role == 'stage':
             self.controller.lines.append('wifi reset')
         system_command(['service', 'networking', 'restart'])
@@ -194,8 +195,6 @@ class NetCom:
         :type fail: int
         :return: Self.
         """
-        if fail > 10:
-            self.reconnect()
         # dprint(self.settings, ('connection init',))
         server_info = None
         if address:  # Use server address where able.
@@ -215,7 +214,7 @@ class NetCom:
             sock.connect(server_address)  # Connect the socket to the port where the server is listening.
         except OSError as err:
             print('connection failed, retrying', err)
-            time.sleep(0.5)
+            time.sleep(1)
             fail += 1
             sock.close()  # Close socket.
             self.tcpclient(message, address, fail)  # Retry connection.
@@ -229,9 +228,9 @@ class NetCom:
                 data = sock.recv(4096)  # Break data into chunks.
                 amount_received += len(data)  # Count collected data.
             self.address = tuple(server_address)
-        except BrokenPipeError:
+        except (BrokenPipeError, OSError):
             print('connection failed, broken pipe, retrying')
-            time.sleep(0.5)
+            time.sleep(1)
             fail += 1
             sock.close()  # Close socket.
             self.tcpclient(message, address, fail)  # Retry connection.

@@ -242,6 +242,7 @@ class Start:
         self.lines.append('launching state thread')
         self.connected = False
         ready = {'STATUS': 'ready'}
+        fail = 0
         while not self.term:  # Start loop.
             if not self.connected:
                 self.rt_data['LISTENER'][self.settings.stage_id] = ready
@@ -274,7 +275,11 @@ class Start:
                                 self.rt_data['LISTENER'][self.settings.director_id]['STATUS'] = 'disconnected'
                                 del self.rt_data['ADDRESSES'][self.settings.director_id]
                             time.sleep(1)
+                    fail = 0
                 except (TimeoutError, socket.timeout) as err:  # Retry on timeout.
+                    fail += 1
+                    if fail > 20:
+                        self.netcom.reconnect()
                     dprint(self.settings, ('Connection timeout', err))
                     self.lines.append('connection timeout')
                     pass
