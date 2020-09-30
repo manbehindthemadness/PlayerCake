@@ -105,7 +105,7 @@ def update_setting(filename, section, setting, value, merge=False):
         """
         with open(file + '.new', "w") as fh:
             config.write(fh)
-        try:
+        try:  # This tangle is trying to give the file system a chance to catch up, while reverting and rertying in the middle.
             rename(file, file + "~")
             time.sleep(0.01)
             try:
