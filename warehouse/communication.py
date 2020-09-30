@@ -55,10 +55,6 @@ class NetCom:
 
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 
-        # if self.settings.environment == 'mixed':
-        #     self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        # else:
-        #     self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.server_address = (self.bindaddr, self.settings.tcpbindport)  # Create connection string.
         dprint(self.settings, ('starting up on %s port %s' % self.server_address,))
         self.sock.bind(self.server_address)  # Bind connection string to socket.
@@ -108,11 +104,6 @@ class NetCom:
         """
         self.udpsock = server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # Create UDP transmission socket.
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        # if self.settings.environment == 'pure':
-        #     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        # elif self.settings.environment == 'mixed':  # This is a windows thing...
-        #     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        #     server.bind((self.bindaddr, self.settings.udpbroadcastport))
 
         server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcasting mode.
 
@@ -161,13 +152,7 @@ class NetCom:
         """
         client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # Create UDP client socket.
         client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)  # Specify socket options.
-        client.bind(("", self.settings.udpbindport))  # Bind the socket to all adaptors and the target port.
-        # if self.settings.environment == 'pure':
-        #     client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)  # Specify socket options.
-        #     client.bind(("", self.settings.udpbindport))  # Bind the socket to all adaptors and the target port.
-        # elif self.settings.environment == 'mixed':
-        #     client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Windows compatable version.
-        #     client.bind(("", self.settings.udpbindport))  # Bind the socket to all adaptors and the target port.
+        client.bind(("", self.settings.udpbindport))  # Bind the socket to all adaptors and the target port..
         client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcasting mode.
 
         search = True
@@ -199,7 +184,6 @@ class NetCom:
             server_info = self.udpclient()
         # dprint(self.settings, ('connection found:', server_info))
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
-        # sock.bind(self.server_address)
         sock.settimeout(self.settings.networktimeout)
         if address:
             server_address = server_info[0], int(server_info[1])
@@ -235,7 +219,6 @@ class NetCom:
         """
         message = {
             'SENDER': self.settings.stageid,
-            # 'DATA': bytes(open_file("stage/tests/transmit.log"), "utf8")
             'DATA': bytes('Some data here 2', "utf8")
         }
         self.tcpclient(message)
