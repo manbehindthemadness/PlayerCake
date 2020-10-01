@@ -211,8 +211,11 @@ class Start:
         """
         This removes a stage from the connected_stages dict.
         """
-        del self.connected_stages[stage]
-        del self.rt_data['LISTENER'][stage]
+        try:
+            del self.connected_stages[stage]
+            del self.rt_data['LISTENER'][stage]
+        except KeyError:
+            pass
 
     def heartbeat(self, stage_id):
         """

@@ -46,6 +46,12 @@ class NetCom:
         # print('connecting wireless')
         #
         self.bindaddr = GetIP(self.settings).ipv4
+        ret = 0
+        while not self.bindaddr:
+            self.bindaddr = GetIP(self.settings).ipv4
+            ret += 1
+            if ret > 10:
+                self.bindaddr = self.settings.bindaddr
         print('opening listening ports')
         system_command(['firewall-cmd', '--zone=public', '--add-port=' + str(self.settings.tcpbindport) + '/tcp'])
         system_command(['firewall-cmd', '--zone=public', '--add-port=' + str(self.settings.udpbindport) + '/udp'])
@@ -130,7 +136,7 @@ class NetCom:
         server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcasting mode.
 
         server.settimeout(0.2)  # Define server timeout.
-        # print(self.settings.role + ':' + socket.gethostname() + ':' + self.settings.director_id + ':' + self.bindaddr + ':' + str(self.settings.tcpbindport))
+        # print(self.settings.role, socket.gethostname(), self.settings.director_id, self.bindaddr, str(self.settings.tcpbindport))
         statement = self.settings.role + ':' + socket.gethostname() + ':' + self.settings.director_id + ':' + self.bindaddr + ':' + str(self.settings.tcpbindport)  # Define data package.
         # TODO: Encode the above information.
         message = self.encode(statement).message
@@ -148,8 +154,8 @@ class NetCom:
         self.output = bytes()
         try:
             self.connection, self.client_address = self.sock.accept()  # This waits until a client connects.
-
             while not self.term:  # Receive the data in small chunks and retransmit it
+                # self.connection, self.client_address = self.sock.accept()  # This waits until a client connects.
                 self.data = self.connection.recv(4096)  # TODO: We need to alter this so we just send back a confirmation, not all data.
                 self.output += self.data
                 if self.data:
@@ -159,7 +165,7 @@ class NetCom:
                         self.output = self.decode(self.output).message
                     except CBORDecodeEOF:
                         dprint(self.settings, ('Invalid connection data, CBOR EOF, aborting',))
-                    self.connection.close()  # Clean up the connection.
+                    # self.connection.close()  # Clean up the connection.
                     break
         except OSError:
             pass
@@ -185,20 +191,21 @@ class NetCom:
                 search = False
         return self.data  # Return upstream server TCP connection information.
 
-    def tcpclient(self, message, address=None, fail=0):
+    def tcpclient(self, message_enc, address=None, fail=0):
         """
         Launches a TCP client.
 
         TODO: Find a way to cache the upstream server info.
 
-        :param message: Data to transmit
-        :type message:
+        :param message_enc: Data to transmit
+        :type message_enc:
         :param address: Optional server address and port: 1.2.3.4:5.
         ::type address: str
         :param fail:  This is a reconnect failure count, it will allow us to trigger additional measures for reconnect.
         :type fail: int
         :return: Self.
         """
+        message = self.encode(message_enc).message
         # dprint(self.settings, ('connection init',))
         server_info = None
         if address:  # Use server address where able.
@@ -221,8 +228,8 @@ class NetCom:
             time.sleep(1)
             fail += 1
             sock.close()  # Close socket.
-            self.tcpclient(message, address, fail)  # Retry connection.
-        message = self.encode(message).message
+            self.tcpclient(message_enc, address, fail)  # Retry connection.
+
         try:
             sock.sendall(message)  # Send message.
             # Look for the response
@@ -232,15 +239,72 @@ class NetCom:
                 data = sock.recv(4096)  # Break data into chunks.
                 amount_received += len(data)  # Count collected data.
             self.address = tuple(server_address)
-        except (BrokenPipeError, OSError):
-            print('connection failed, broken pipe, retrying')
+        except (BrokenPipeError, OSError) as err:
+            print('connection failed, broken pipe, retrying', err)
             time.sleep(1)
             fail += 1
             sock.close()  # Close socket.
-            self.tcpclient(message, address, fail)  # Retry connection.
+            self.tcpclient(message_enc, address, fail)  # Retry connection.
         finally:
             sock.close()  # Close socket.
         return self
+
+    # def tcpclient(self, message, address=None, fail=0):
+    #     """
+    #     Launches a TCP client.
+    #
+    #     TODO: Find a way to cache the upstream server info.
+    #
+    #     :param message: Data to transmit
+    #     :type message:
+    #     :param address: Optional server address and port: 1.2.3.4:5.
+    #     ::type address: str
+    #     :param fail:  This is a reconnect failure count, it will allow us to trigger additional measures for reconnect.
+    #     :type fail: int
+    #     :return: Self.
+    #     """
+    #     # dprint(self.settings, ('connection init',))
+    #     server_info = None
+    #     if address:  # Use server address where able.
+    #         server_info = address.split(':')
+    #     while not server_info:  # Look for upstream server.
+    #         dprint(self.settings, ('searching for connection...',))
+    #         server_info = self.udpclient()
+    #     # dprint(self.settings, ('connection found:', server_info))
+    #     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
+    #     sock.settimeout(self.settings.networktimeout)
+    #     if address:
+    #         server_address = server_info[0], int(server_info[1])
+    #     else:
+    #         server_address = (server_info[3], int(server_info[4]))  # Collect server connection string.
+    #     # print('connecting to %s port %s' % server_address,)
+    #     try:
+    #         sock.connect(server_address)  # Connect the socket to the port where the server is listening.
+    #     except OSError as err:
+    #         print('connection failed, retrying', err)
+    #         time.sleep(1)
+    #         fail += 1
+    #         sock.close()  # Close socket.
+    #         self.tcpclient(message, address, fail)  # Retry connection.
+    #     message = self.encode(message).message
+    #     try:
+    #         sock.sendall(message)  # Send message.
+    #         # Look for the response
+    #         amount_received = 0
+    #         amount_expected = len(message)
+    #         while amount_received < amount_expected:  # Loop until expected data is recieved.
+    #             data = sock.recv(4096)  # Break data into chunks.
+    #             amount_received += len(data)  # Count collected data.
+    #         self.address = tuple(server_address)
+    #     except (BrokenPipeError, OSError):
+    #         print('connection failed, broken pipe, retrying')
+    #         time.sleep(1)
+    #         fail += 1
+    #         sock.close()  # Close socket.
+    #         self.tcpclient(message, address, fail)  # Retry connection.
+    #     finally:
+    #         sock.close()  # Close socket.
+    #     return self
 
     def test(self):
         """
