@@ -1120,17 +1120,18 @@ class Rehearsal(Frame):
         """
         for stage_entry in settings.stages:
             s_id = stage_entry
-            s_name = settings.stages[stage_entry]['name']
-            self.stage_buttons.append(
-                config_stagelist_button(
-                    Button(
-                        self.stage_list.interior,
-                        text=s_name,
-                        command=lambda q=(s_id, s_name): self.select_stage(*q)
+            if stage_entry in self.rt_data['LISTENER']:
+                s_name = settings.stages[stage_entry]['name']
+                self.stage_buttons.append(
+                    config_stagelist_button(
+                        Button(
+                            self.stage_list.interior,
+                            text=s_name,
+                            command=lambda q=(s_id, s_name): self.select_stage(*q)
+                        )
                     )
                 )
-            )
-            self.stage_buttons[-1].pack()
+                self.stage_buttons[-1].pack()
 
     def select_stage(self, s_id, s_name):
         """
@@ -1845,6 +1846,7 @@ class Notifier(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         self.controller = controller
+        self.controller.refresh('Rehearsal')
         self.message = self.controller.notification  # Pull message from controller.
         self.target = self.controller.target  # Find out where we are going to revert to.
         self.base = Frame(

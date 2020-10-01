@@ -188,7 +188,6 @@ class Start:
             address = server.client_address
             # noinspection PyBroadException,PyPep8
             try:
-
                 self.sender = self.received_data['SENDER']
                 # print('receiving data:', self.received_data)
                 if self.sender in self.settings.director_id:  # Identify incoming connection.
