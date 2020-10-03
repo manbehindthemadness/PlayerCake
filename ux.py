@@ -229,10 +229,6 @@ class Writer(Frame):
         self.controller = controller
         self.rt_data = self.controller.rt_data
         self.defaults = self.controller.defaults
-        # self.defaults = defaults
-        # for sett in self.defaults:  # Populate defaults
-        #     self.rt_data[sett] = StringVar()
-        #     self.rt_data[sett].set(str(defaults[sett]))
         self.rt_data['plotfile'] = str()
         self.folder = None
         self.ext = None
@@ -314,7 +310,7 @@ class Writer(Frame):
         self.open_button.grid(row=0, column=1)
         # TODO: Stuff this into a loop.
         render = StringVar()
-        self.render_button = self.full_button(
+        self.render_button = self.full_button(  # TODO: We need to add a save dialog here.
             self.left_panel_frame,
             'fullbuttonframe.png',
             command=self.render_plotfile,
@@ -681,8 +677,6 @@ class Rehearsal(Frame):
                 lambda: self.select_class('amble'),
                 lambda: self.select_class('pace')
             ],
-            0,
-            0
         )
         button_array(
             self.class_selection_frame,
@@ -692,8 +686,7 @@ class Rehearsal(Frame):
                 lambda: self.select_class('canter'),
                 lambda: self.select_class('gallup')
             ],
-            1,
-            0
+            rw=1,
         )
         #  ###############
         #  scaler selector
@@ -738,8 +731,7 @@ class Rehearsal(Frame):
                 lambda: self.select_scaler('rotate'),
                 lambda: self.select_scaler('sidestep')
             ],
-            1,
-            0
+            rw=1,
         )
         self.scaler_cancel_frame = Frame(
             self.scaler_icon_frame,
@@ -750,8 +742,7 @@ class Rehearsal(Frame):
             self.scaler_cancel_frame,
             ['cancel'],
             [lambda: self.select_scaler('none')],
-            2,
-            0
+            rw=2,
         )
         #  ##############
         #  open rehearsal
@@ -789,8 +780,6 @@ class Rehearsal(Frame):
             self.cancel_rehearsal_open,
             ['cancel'],
             [lambda: self.cancel_rehearsal()],
-            0,
-            0
         )
         #  ##################
         #  configure compound
@@ -942,7 +931,7 @@ class Rehearsal(Frame):
         #  ##########
         self.stage_title_frame = Frame(  # Place title.
             self.base,
-            width=prx(23),
+            width=prx(20),
             height=pry(10),
         )
         self.stage_title_frame.grid(row=0, column=0)
@@ -955,15 +944,16 @@ class Rehearsal(Frame):
         ).pack()
         self.stage_selector = Frame(  # Place scroll list.
             self.base,
-            width=prx(25),
+            width=prx(20),
             height=pry(70),
+            bg='red'
         )
         self.stage_selector.grid(row=1, column=0, sticky=N)
-        self.stage_list = VerticalScrolledFrame(self.stage_selector)
+        self.stage_list = VerticalScrolledFrame(self.stage_selector, width=prx(20))
         self.stage_list.pack()
         self.selected_stage_frame = Frame(
             self.base,
-            width=prx(23),
+            width=prx(20),
             height=pry(10),
             bg=theme['main'],
         )
@@ -997,8 +987,6 @@ class Rehearsal(Frame):
                 lambda: self.save_rehearsal(rename=str(self.rehearsalname.get())),
                 lambda: self.delete_rehearsal()
             ],
-            0,
-            0
         )
         self.details_frame = Frame(  # Frame details.
             self.right_panel_frame,
@@ -1036,8 +1024,7 @@ class Rehearsal(Frame):
                 lambda: self.compound_selector(),
                 lambda: self.scaler_selector()
             ],
-            0,
-            1,
+            col=1,
             vert=True
         )
 
@@ -1054,8 +1041,7 @@ class Rehearsal(Frame):
                 lambda: self.show_numpad('offset'),
                 lambda: self.show_numpad('velocity')
             ],
-            2,
-            0
+            rw=2,
         )
 
     def show_numpad(self, varname):
@@ -1128,7 +1114,8 @@ class Rehearsal(Frame):
                             self.stage_list.interior,
                             text=s_name,
                             command=lambda q=(s_id, s_name): self.select_stage(*q)
-                        )
+                        ),
+                        width=prx(20)
                     )
                 )
                 self.stage_buttons[-1].pack()
@@ -1599,6 +1586,7 @@ class Rehearsal(Frame):
         """
         self.controller.target = 'Rehearsal'
         self.temp['error_message'].set(message)
+        self.temp['last_target'] = 'Writer'
         safe_raise(self.controller, 'ErrorWidget', 'Rehearsal')
 
     def refresh(self):
@@ -1634,6 +1622,143 @@ class Calibrations(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         self.controller = controller
+        self.send_command = self.controller.director.send_command
+        self.command = self.controller.command
+        self.settings = self.controller.settings
+        self.rt_data = controller.rt_data
+        self.temp = self.rt_data['temp']
+        self.error_message = self.temp['error_message'] = StringVar()
+        self.stagename = StringVar()
+        self.stage_id = None
+        self.stage_buttons = []
+        self.target = self.controller.target
+        #  ##############
+        #  Configure base
+        #  ##############
+        self.base = Frame(
+            self,
+            width=prx(74),
+            height=pry(88),
+            # bg=theme['main'],
+            bg='green',
+        )
+        self.base.place(
+            x=0,
+            y=0
+        )
+        center_weights(
+            self.base,
+            rows=3,
+            cols=2
+        )
+        self.stage_title_frame = Frame(
+            self.base,
+            width=prx(23),
+            height=pry(10)
+        )
+        self.stage_title_frame.grid(row=0, column=0)
+        config_text(
+            Label(
+                self.stage_title_frame,
+                pady=pry(2)
+            ),
+            text='stage selection',
+        ).pack()
+        self.stage_selector = Frame(
+            self.base,
+            width=prx(23),
+            height=pry(70)
+        )
+        self.stage_selector.grid(row=1, column=0)
+        self.stage_list = VerticalScrolledFrame(self.stage_selector, width=prx(20), height=pry(70))
+        self.stage_list.pack()
+        self.list_stages = list_stages
+        self.list_stages(self, self.stage_list)
+        self.selected_stage_frame = Frame(
+            self.base,
+            width=prx(23),
+            height=pry(10)
+        )
+        self.selected_stage_frame.grid(row=3, column=0)
+        self.selected_stage = config_text(
+            Label(
+                self.selected_stage_frame
+            ),
+            text=self.stagename
+        )
+        self.selected_stage.pack()
+        self.options = Frame(
+            self.base,
+            width=prx(50),
+            height=pry(88),
+            bg='blue',
+        )
+        self.options.grid(row=0, column=1, rowspan=3)
+        self.debug_title_frame = Frame(
+            self.options,
+            width=prx(23),
+            height=pry(10)
+        )
+        self.debug_title_frame.grid(row=0, column=0)
+        self.debug_title = config_text(
+            Label(
+                self.debug_title_frame,
+            ),
+            text='debug modes'
+        )
+        self.debug_title.pack()
+        center_weights(
+            self.options
+        )
+        names = [
+            'console',
+            'stats',
+            'PWM',
+            'ADC',
+            'IMU/9DOF',
+            'GPS',
+            'sonar'
+        ]
+        commands = [
+            lambda: self.command_event('Calibrations', 'debug_mode("text")'),
+            lambda: self.command_event('Calibrations', 'debug_mode("stats")'),
+            lambda: self.command_event('Calibrations', 'debug_mode("pwm")'),
+            lambda: self.command_event('Calibrations', 'debug_mode("adc")'),
+            lambda: self.command_event('Calibrations', 'debug_mode("gyro")'),
+            '',
+            lambda: self.command_event('Calibrations', 'debug_mode("sonar")'),
+        ]
+        button_array(
+            self.options,
+            names,
+            commands,
+            rw=1,
+            vert=True
+        )
+        names = [
+            'reboot stage',
+            'reset gyros',
+
+        ]
+
+    def refresh(self):
+        """
+        This will refresh our stage related data.
+        """
+        self.list_stages(self, self.stage_list)
+
+    def command_event(self, target, command):
+        """
+        This issues a command to the selected stage. will show an error if no stage is selected.
+        """
+
+        if self.stagename and self.stage_id:
+            self.send_command(self.stage_id, command)
+        else:
+            self.controller.target = target
+            self.controller.temp['error_message'].set('please select a stage')
+            self.controller.show_frame('ErrorWidget')
+            # ErrorWidget(self.base, self)
 
 
 class Audience(Frame):
@@ -1693,6 +1818,7 @@ class MainView(tk.Tk):
         container.grid_columnconfigure(0, weight=1)
         self.container = container
         self.frames = dict()
+        # self.refresh()
         for F in (  # Ensure the primary classes are passed before the widgets.
                 Home,
                 Writer,
@@ -1767,11 +1893,12 @@ class MainView(tk.Tk):
                 frame.grid(row=0, column=0)
             elif page_name == 'Calibrations':
                 frame.configure(
-                    width=prx(90),
+                    width=prx(75),
                     height=pry(90),
                     highlightthickness=pry(1),
                     highlightbackground=theme['entrybackground']
                 )
+                frame.grid(row=0, column=0)
             elif page_name == 'ConfirmationWidget' or page_name == 'ErrorWidget':
                 frame.configure(
                     width=prx(30),
@@ -1847,6 +1974,7 @@ class Notifier(Frame):
         Frame.__init__(self, parent)
         self.controller = controller
         self.controller.refresh('Rehearsal')
+        self.controller.refresh('Calibrations')
         self.message = self.controller.notification  # Pull message from controller.
         self.target = self.controller.target  # Find out where we are going to revert to.
         self.base = Frame(
@@ -2306,6 +2434,18 @@ class VerticalScrolledFrame(Frame):
             bg=theme['main'],
             bd=0
         )
+        # We create a dummy label here to control the width.
+        # TODO: This fixes the visual aspect, but seems to break the 'click' command...
+        spacr = get_spacer()
+        self.block = Label(
+            self.interior,
+            bg=theme['main'],
+            image=spacr,
+            width=width,
+            text='none'
+        )
+        self.block.image = spacr
+        self.block.pack()
         self.interior_id = canvas.create_window(0, 0, window=interior, anchor=NW)
 
         # track changes to the canvas and frame width and sync them,
@@ -2475,7 +2615,6 @@ class ConfirmationWidget(Frame):
                 self.cancel_event
             ],
             1,
-            0
         )
 
     def confirm_event(self):
@@ -2512,6 +2651,7 @@ class ErrorWidget(Frame):
         self.rt_data = self.controller.rt_data
         self.temp = self.controller.temp
         self.error_message = self.temp['error_message'] = StringVar()
+        self.last_target = self.temp['last_target'] = 'Writer'
         self.error_message.set('No Message loooooong test')
         self.base = Frame(
             self,
@@ -2547,7 +2687,6 @@ class ErrorWidget(Frame):
                 self.ok_event
             ],
             1,
-            0
         )
 
     def ok_event(self):
@@ -2560,8 +2699,10 @@ class ErrorWidget(Frame):
         """
         This clears the global variables and raises the target frame.
         """
+        print(self.controller.target)
         self.controller.show_frame(self.controller.target)
-        self.controller.target = None
+        self.controller.target = self.last_target
+        print('setting new target', self.controller.target)
         self.controller.command = None
 
 
@@ -2781,6 +2922,51 @@ class GifAnimation(Frame):
         return self
 
 
+def center_weights(parent, row=True, rows=1, col=True, cols=1):
+    """
+    This centers the pparent's grid weights
+    """
+    if row:
+        for rw in range(rows):
+            parent.grid_rowconfigure(rw, weight=1)
+    if col:
+        for cl in range(cols):
+            parent.grid_columnconfigure(cl, weight=1)
+
+
+def list_stages(controller, parent):
+    """
+    This produces the list of stages that we have been paired with.
+    """
+    for button in controller.stage_buttons:
+        button.destroy()
+    for stage_entry in controller.settings.stages:
+        s_id = stage_entry
+        if stage_entry in controller.rt_data['LISTENER']:
+            s_name = controller.settings.stages[stage_entry]['name']
+            controller.stage_buttons.append(
+                config_stagelist_button(
+                    Button(
+                        parent.interior,
+                        text=s_name,
+                        command=lambda q=(s_id, s_name): select_stage(controller, *q)
+                    ),
+                    width=prx(20)
+                )
+            )
+            controller.stage_buttons[-1].pack()
+
+
+def select_stage(controller, s_id, s_name):
+    """
+    This is the stage selection event.
+    """
+    controller.stagename.set('selected stage: ' + s_name)
+    controller.stage_id = s_id
+    controller.stagetarget = controller.stage_id
+    controller.refresh()
+
+
 def timed_element(parent, controller, element, timeout):
     """
     This presents a timed UX element that will distroy itself after the timeout has been reached.
@@ -2845,7 +3031,30 @@ def config_checkbox(parent, text, intvar, command=None):
     return chk
 
 
-def button_array(parent, tils, coms, rw, col, vert=False):
+# def button_array(parent, tils, coms, rw=0, col=0, vert=False):
+#     """
+#     Creates a horizontal or vertical series of buttons.
+#     """
+#     # bgm = PhotoImage(file=img('fullbuttonframe.png', 10, 10))
+#     for idx, (title, command) in enumerate(zip(tils, coms)):
+#         t_frame = Frame(
+#             parent,
+#             bg=theme['main'],
+#             width=prx(20),
+#             height=pry(10),
+#         )
+#         if not vert:
+#             t_frame.grid(row=rw, column=idx)
+#         else:
+#             t_frame.grid(row=idx, column=col)
+#         config_single_button(
+#             t_frame,
+#             title,
+#             command
+#         )
+
+
+def button_array(parent, tils, coms, rw=0, col=0, vert=False):
     """
     Creates a horizontal or vertical series of buttons.
     """
@@ -2858,29 +3067,14 @@ def button_array(parent, tils, coms, rw, col, vert=False):
             height=pry(10),
         )
         if not vert:
-            t_frame.grid(row=rw, column=idx)
+            t_frame.grid(row=rw, column=idx + col)
         else:
-            t_frame.grid(row=idx, column=col)
+            t_frame.grid(row=idx + rw, column=col)
         config_single_button(
             t_frame,
             title,
             command
         )
-        # t_button = config_button(
-        #     Button(
-        #         t_frame,
-        #         command=command,
-        #         width=prx(10),
-        #         height=pry(10),
-        #         image=bgm
-        #     )
-        # )
-        # t_button.image = bgm
-        # if isinstance(title, StringVar):
-        #     t_button.configure(textvariable=title)
-        # else:
-        #     t_button.configure(text=title)
-        # t_button.pack()
 
 
 def config_single_button(parent, text, command, size=None):
@@ -2965,18 +3159,22 @@ def config_file_button(element, bad=False):
     return element
 
 
-def config_stagelist_button(element, bad=False):
+def config_stagelist_button(element, bad=False, width=10):
     """
         This styles the buttons on the file browser.
         """
+    im = get_spacer()
     el = config_button(element)
     el.configure(
         font=(theme['font'], str(pointsy(5))),
         anchor=W,
-        width=10,
+        width=width,
         pady=pry(2),
-        justify=LEFT
+        padx=0,
+        justify=LEFT,
+        image=im
     )
+    el.image=im
     if bad:
         el.configure(
             fg=theme['badfiletext']
@@ -3006,10 +3204,12 @@ def config_rehearsallist_button(element, bad=False):
     return element
 
 
-def config_text(element, text='', size=2):
+def config_text(element, text=None, size=2):
     """
     This takes an element and configures the text properties
     """
+    if not text:
+        text = str()
     element.configure(
         font=(theme['font'], pointsy(size)),
         pady=pry(2),

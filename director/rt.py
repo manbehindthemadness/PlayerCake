@@ -183,7 +183,8 @@ class Start:
                         self.notification.set('client ' + stage + ' connected')
                         self.notify()
                         exec('self.' + fltr_al(stage) + ' = True')  # Create a dynamic connection variable.
-                        self.connected_stages[stage] = 'self.' + fltr_al(stage)  # Add stage to connected clients list.
+                        if stage not in self.connected_stages.keys():
+                            self.connected_stages[stage] = 'self.' + fltr_al(stage)  # Add stage to connected clients list.
                         # TODO: start heartbeat thread here.
                         thread = Thread(target=self.heartbeat, args=(stage,))
                         thread.start()

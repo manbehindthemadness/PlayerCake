@@ -42,8 +42,9 @@ class Sonar:
             try:
                 self.rt_data['SONAR'][name] = int(distance.distance)
                 # if name == 'left':
-                print(name, distance.distance)
-            except RuntimeError:
+                # print(name, distance.distance)
+            except (RuntimeError, ValueError):
+                self.rt_data['SONAR'][name] = 999
                 # print('fail')
                 pass
             time.sleep(0.1)

@@ -364,7 +364,7 @@ class Display:
 
     def gyro(self):
         """
-        This is where will will calibrate the gyros.
+        This is where we debug the IMU/gyro.
         """
         um = [
             'heading',

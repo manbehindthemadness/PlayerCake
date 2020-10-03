@@ -28,6 +28,9 @@ class Command:
         self.lines = self.rt_self.lines
         self.command = ''
         self.output = None
+        self.whitelist = [
+            'debug_mode("adc")',
+        ]
 
     def verify(self):
         """
@@ -35,16 +38,18 @@ class Command:
         """
         valid = True
         self.lines.append('CMD:' + self.command)
+        print(self.command)
         command_digest = split_string(self.command)
-        for digest in command_digest:
-            if digest not in self.exceptions:
-                for Import in self.imports:
-                    for item in Import.split('.'):
-                        if digest == item:
-                            dprint(self.settings, ('Invalid command detected:', self.command, 'blocked by', Import))
-                            self.lines.append('CMD: invalid')
-                            self.lines.append('CMD: aborting')
-                            valid = False
+        if self.command not in self.whitelist:
+            for digest in command_digest:
+                if digest not in self.exceptions:
+                    for Import in self.imports:
+                        for item in Import.split('.'):
+                            if digest == item:
+                                dprint(self.settings, ('Invalid command detected:', self.command, 'blocked by', Import))
+                                self.lines.append('CMD: invalid')
+                                self.lines.append('CMD: aborting')
+                                valid = False
         return valid
 
     def execute(self, command):

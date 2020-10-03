@@ -39,7 +39,7 @@ Hardware:
             PWM/Servo Driver IIC interface-PCA9685,
             Cirocomm 580 32db GPS Antenna,
             WALKING SLOW-Replacement for iPad WiFi WLAN Bluetooth Wireless Signal Connector Antenna Flex Cable Ribbon (iPad Air),
-            LV-MaxSonar-EZ1,  # Will be replaced by OAK-D
+            LV-MaxSonar-EZ1,  # Will be replaced by OAK-D - https://docs.luxonis.com/products/bw1094/#setup
             3 x HC-SR04,
             3W 850 IR HP NightVision,  # Will be replaced by OAK-D
             OV5647 1080p 60fps camera (OV5640 for BPI),  # Will be replaced by OAK-D

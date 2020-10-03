@@ -119,6 +119,8 @@ class Start:
     def __init__(self):
         global rt_data
         global term
+        self.scanning = False
+        self.sending = False
         self.lines = ['system init']
         self.settings = settings
         self.rt_data = rt_data  # Pass realtime data.
@@ -173,6 +175,22 @@ class Start:
 
         self.lines.append('system init complete')
 
+    def wait(self):
+        """
+        This just waits until the signal is true.
+        """
+        while self.scanning:
+            # print('waiting')
+            time.sleep(1)
+
+    def wait_send(self):
+        """
+        This just waits until the signal is true.
+        """
+        while self.sending:
+            # print('send_waiting')
+            time.sleep(1)
+
     def listen(self):
         """
         This starts the tcp server, listens for incoming connections and transports the data into the real time model.
@@ -182,11 +200,13 @@ class Start:
         addresses = self.addresses
 
         while not self.term:  # Start loop.
+            self.wait()  # Prevent communication while performaing a net scan.
             tprint(self.settings, 'listen')
             server = self.netserver()
             self.received_data = server.output
             address = server.client_address
             # noinspection PyBroadException,PyPep8
+            self.sending = True  # Set send wait flag.
             try:
                 self.sender = self.received_data['SENDER']
                 # print('receiving data:', self.received_data)
@@ -206,6 +226,7 @@ class Start:
                 dprint(self.settings, (self.received_data,))
                 self.lines.append('listener malformed')
                 time.sleep(0.1)
+            self.sending = False  # Set send wait flag.
             # print(self.rt_data['ADDRESSES'])
         self.netcom.close()  # Release network sockets.
 
@@ -213,9 +234,11 @@ class Start:
         """
         This transmits a data package to the specified client id.
         """
+        self.wait()  # Prevent communication while performaing a net scan.
         destination_id = self.settings.director_id
         addresses = self.rt_data['ADDRESSES']
         # self.lines.append('transmitting data')
+        self.sending = True  # Set send wait flag.
         try:
             if destination_id in addresses.keys():
                 # print('Address detected, using:', self.rt_data['ADDRESSES'][destination_id][0])
@@ -228,6 +251,7 @@ class Start:
             dprint(self.settings, ('Connection dropout, retrying', err))
             self.lines.append('connection reset')
             self.send(message)
+        self.sending = False  # Set send wait flag.
         return self.netclient
 
     def send_disconnect_notification(self):
@@ -251,31 +275,34 @@ class Start:
                     self.send({'SENDER': self.settings.stage_id, 'DATA': ready})  # Transmit ready state to director.
                     time.sleep(1)
                     # print(self.rt_data['LISTENER'])
-                    if self.rt_data['LISTENER'][self.settings.director_id]['STATUS'] == 'confirmed':  # TODO: This guy likes to give up problems when the server malfunctions...
-                        print('Handshake with director confirmed, starting heartbeat')
-                        self.lines.append('handshake confirmed')
-                        # self.lines.append('starting heartbeat')
-                        self.connected = True
-                        # TODO: We should nest another while loop here to autometically send keepalive and determine connection stability.
-                        failures = 0
-                        while self.connected and not self.term:  # Start loop.
-                            try:
-                                # print('sending heartbeat')
-                                self.send({'SENDER': self.settings.stage_id, 'DATA': {'HEARTBEAT': str(datetime.datetime.utcnow())}})  # Transmit ready state to director.
-                                failures = 0
-                            except (TimeoutError, socket.timeout):  # Retry on timeout.
-                                print('heartbeat timeout, retrying')
-                                failures += 1  # Up failure count.
-                                pass
-                            if failures >= settings.networktimeout:
-                                print('connection failure, attempting to reacquire director.')
-                                self.lines.append('connection failure')
-                                self.lines.append('reconnecting')
-                                self.connected = False
-                                self.rt_data['LISTENER'][self.settings.director_id]['STATUS'] = 'disconnected'
-                                del self.rt_data['ADDRESSES'][self.settings.director_id]
-                            time.sleep(1)
-                    fail = 0
+                    try:
+                        if self.rt_data['LISTENER'][self.settings.director_id]['STATUS'] == 'confirmed':  # TODO: This guy likes to give up problems when the server malfunctions...
+                            print('Handshake with director confirmed, starting heartbeat')
+                            self.lines.append('handshake confirmed')
+                            # self.lines.append('starting heartbeat')
+                            self.connected = True
+                            # TODO: We should nest another while loop here to autometically send keepalive and determine connection stability.
+                            failures = 0
+                            while self.connected and not self.term:  # Start loop.
+                                try:
+                                    # print('sending heartbeat')
+                                    self.send({'SENDER': self.settings.stage_id, 'DATA': {'HEARTBEAT': str(datetime.datetime.utcnow())}})  # Transmit ready state to director.
+                                    failures = 0
+                                except (TimeoutError, socket.timeout):  # Retry on timeout.
+                                    print('heartbeat timeout, retrying')
+                                    failures += 1  # Up failure count.
+                                    pass
+                                if failures >= settings.networktimeout:
+                                    print('connection failure, attempting to reacquire director.')
+                                    self.lines.append('connection failure')
+                                    self.lines.append('reconnecting')
+                                    self.connected = False
+                                    self.rt_data['LISTENER'][self.settings.director_id]['STATUS'] = 'disconnected'
+                                    del self.rt_data['ADDRESSES'][self.settings.director_id]
+                                time.sleep(1)
+                        fail = 0
+                    except ValueError:
+                        print('realtime model incomplete, retrying')
                 except (TimeoutError, socket.timeout) as err:  # Retry on timeout.
                     fail += 1
                     if fail > 20:
@@ -421,7 +448,13 @@ class Start:
         self.lines.append('launching network thread')
         sys = check_dict(self.rt_data, 'SYS')
         while not self.term:
+            self.wait_send()  # Wait for existing connections to close.
+            # print('starting scan')
+            self.scanning = True  # Set scanning flag.
+            time.sleep(1)
             sys['NETWORKS'] = self.netscan().data
+            # print('scanning complete')
+            self.scanning = False  # Set scanning flag.
             time.sleep(settings.netscan_cycle)
 
     def read_gps(self):
@@ -447,7 +480,7 @@ class Start:
                     gps['ALT'] = alt_data.altitude / 100
                     gps['PRESS'] = alt_data.pressure / 100
                     gps['TEMP'] = alt_data.temperature / 100
-                except ValueError:
+                except (ValueError, IndexError):
                     dprint(settings, ('GPS telemetry error, invalid data',))
         time.sleep(self.settings.gps_delay)
 
