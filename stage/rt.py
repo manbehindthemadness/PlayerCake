@@ -270,7 +270,9 @@ class Start:
         while not self.term:  # Start loop.
             if not self.connected:
                 self.rt_data['LISTENER'][self.settings.stage_id] = ready
-                # self.rt_data['LISTENER'][self.settings.director_id]['STATUS'] = 'ready'
+                dir_status = self.rt_data['LISTENER'][self.settings.director_id]
+                if 'STATUS' not in dir_status.keys():  # This fixes rapid disconnect reconnects.
+                    self.rt_data['LISTENER'][self.settings.director_id]['STATUS'] = 'ready'
                 try:
                     self.send({'SENDER': self.settings.stage_id, 'DATA': ready})  # Transmit ready state to director.
                     time.sleep(1)
