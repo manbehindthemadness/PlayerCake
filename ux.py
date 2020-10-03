@@ -1639,8 +1639,8 @@ class Calibrations(Frame):
             self,
             width=prx(74),
             height=pry(88),
-            # bg=theme['main'],
-            bg='green',
+            bg=theme['main'],
+            # bg='green',
         )
         self.base.place(
             x=0,
@@ -1654,50 +1654,58 @@ class Calibrations(Frame):
         self.stage_title_frame = Frame(
             self.base,
             width=prx(23),
-            height=pry(10)
+            height=pry(8)
         )
         self.stage_title_frame.grid(row=0, column=0)
-        config_text(
+        self.stage_title = config_text(
             Label(
                 self.stage_title_frame,
-                pady=pry(2)
             ),
             text='stage selection',
-        ).pack()
+            pad=0
+        )
+        self.stage_title.pack()
         self.stage_selector = Frame(
             self.base,
             width=prx(23),
             height=pry(70)
         )
         self.stage_selector.grid(row=1, column=0)
-        self.stage_list = VerticalScrolledFrame(self.stage_selector, width=prx(20), height=pry(70))
+        self.stage_list = VerticalScrolledFrame(self.stage_selector, width=prx(20), height=pry(75))
         self.stage_list.pack()
         self.list_stages = list_stages
         self.list_stages(self, self.stage_list)
         self.selected_stage_frame = Frame(
             self.base,
             width=prx(23),
-            height=pry(10)
+            height=pry(4)
         )
         self.selected_stage_frame.grid(row=3, column=0)
         self.selected_stage = config_text(
             Label(
-                self.selected_stage_frame
+                self.selected_stage_frame,
             ),
-            text=self.stagename
+            text=self.stagename,
+            pad=0
         )
         self.selected_stage.pack()
         self.options = Frame(
             self.base,
             width=prx(50),
             height=pry(88),
-            bg='blue',
+            bg=theme['main'],
         )
         self.options.grid(row=0, column=1, rowspan=3)
+        center_weights(
+            self.options
+        )
+        # ###########
+        # debug modes
+        # ###########
         self.debug_title_frame = Frame(
             self.options,
             width=prx(23),
-            height=pry(10)
+            height=pry(8)
         )
         self.debug_title_frame.grid(row=0, column=0)
         self.debug_title = config_text(
@@ -1707,9 +1715,7 @@ class Calibrations(Frame):
             text='debug modes'
         )
         self.debug_title.pack()
-        center_weights(
-            self.options
-        )
+
         names = [
             'console',
             'stats',
@@ -1735,11 +1741,51 @@ class Calibrations(Frame):
             rw=1,
             vert=True
         )
-        names = [
-            'reboot stage',
-            'reset gyros',
+        # ###############
+        # system commands
+        # ###############
+        self.sys_cmd_title_frame = Frame(
+            self.options,
+            width=prx(23),
+            height=pry(10)
+        )
+        self.sys_cmd_title_frame.grid(row=0, column=1)
+        self.sys_cmd_title = config_text(
+            Label(
+                self.sys_cmd_title_frame
+            ),
+            text='system commands'
+        )
+        self.sys_cmd_title.pack()
 
+        names = [
+            'reboot',
+            'shutdown',
+            'selftest',
+            'wifi reset',
+            'run command',
+            'edit setting',
+            'report',
         ]
+        commands = [
+            lambda: self.command_event('Calibrations', 'reboot()'),
+            lambda: self.command_event('Calibrations', 'poweroff()'),
+            lambda: self.command_event('Calibrations', 'selftest()'),
+            lambda: self.command_event('Calibrations', 'network_reset()'),
+            '',
+            '',
+            ''
+        ]
+        button_array(
+            self.options,
+            names,
+            commands,
+            rw=1,
+            col=1,
+            vert=True
+        )
+
+        self.refresh()
 
     def refresh(self):
         """
@@ -3204,7 +3250,7 @@ def config_rehearsallist_button(element, bad=False):
     return element
 
 
-def config_text(element, text=None, size=2):
+def config_text(element, text=None, size=2, pad=2):
     """
     This takes an element and configures the text properties
     """
@@ -3212,7 +3258,7 @@ def config_text(element, text=None, size=2):
         text = str()
     element.configure(
         font=(theme['font'], pointsy(size)),
-        pady=pry(2),
+        pady=pry(pad),
         fg=theme['text'],
         bg=theme['main'],
         compound='center'

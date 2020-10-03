@@ -1,15 +1,11 @@
 """
 This is where we house general utilities.
 """
-import datetime
-import time
-import re
-import os
-
-
-from os import path, rename, remove
-
 import configparser
+import datetime
+import os
+import re
+from os import path, rename, remove
 
 
 def average(lst):
@@ -23,6 +19,7 @@ class Fade:
     """
     This smoothes a series of values by avaraging them ofer a set number of iterations.
     """
+
     def __new__(cls, depth, values, value):
         """
         :param depth: The number of samples to use.
@@ -100,78 +97,65 @@ def open_file(filename):
     return file.read()
 
 
-def update_setting(filename, section, setting, value, merge=False):
-    """
-    Here we are able to update a settings file's contents, this is for deploying new settings.
-
-    NOTE: THis will create a file if it's not present.
-    """
-    def fileswap(file):
-        """
-        Does a silly musical chairs with the files to work around the update limitation.
-        """
-        with open(file + '.new', "w") as fh:
-            config.write(fh)
-        try:  # This tangle is trying to give the file system a chance to catch up, while reverting and rertying in the middle.
-            rename(file, file + "~")
-            time.sleep(0.01)
-            try:
-                rename(file + ".new", file)
-                time.sleep(0.01)
-            except FileNotFoundError:
-                rename(file + "~", file)
-                time.sleep(1)
-                fileswap(file)
-            try:
-                remove(file + "~")
-                time.sleep(0.01)
-            except FileNotFoundError:
-                pass
-        except FileNotFoundError:
-            print('settings save failed, retrying')
-            time.sleep(0.5)
-            fileswap(file)
-    if not os.path.exists(filename):  # Create settings file if it doesn't exist.
-        try:
-            os.mknod(filename)
-        except FileExistsError:
-            pass
-    config = configparser.ConfigParser()  # Load config parser.
-    config.read(filename, encoding='utf-8-sig')  # Read settings file.
-    try:
-        if merge:
-            try:
-                sett = config.get(section, setting)
-                # print(type(sett), setting)
-                if isinstance(sett, dict) or isinstance(sett, list):
-                    config.set(section, setting, value)  # Save setting value.
-            except configparser.NoOptionError:  # Check for missing setting, add if needed.
-                config.set(section, setting, value)  # Save setting value.
-        else:
-            config.set(section, setting, value)  # Save setting value.
-        fileswap(filename)
-    except configparser.NoSectionError:  # Check for missing section, add if needed.
-        config.add_section(section)
-        fileswap(filename)
-        config = update_setting(filename, section, setting, value)  # Loop to go back and add settings to the newly added section.
-    return config
-
-
 class BuildSettings:
     """
     This constructs a reloadable settings module.
     """
+
     def __init__(self, filename, defaults=None, pth=''):
+        self.writing = False
         self.config = configparser.ConfigParser()
+        self.config.read(filename, encoding='utf-8-sig')  # Read settings file.
         self.path = pth
         self.filename = self.path + '/' + filename
-        # if not os.path.exists(self.filename):
-        #     self.filename = file_rename(defaults, self.filename)
-        print(self.filename)
+        self.config = configparser.ConfigParser()  # Load config parser.
+        print('using config: ' + self.filename)
         self.settings = dict()
         self.defaults = defaults
         self.default_settings = dict()
         self.upgrade()
+
+    def fileswap(self):
+        """
+        Does a silly musical chairs with the files to work around the update limitation.
+        """
+        file = self.filename
+        with open(file + '.new', "w") as fh:
+            self.config.write(fh)
+        rename(file, file + "~")
+        rename(file + ".new", file)
+        remove(file + "~")
+
+    def update_setting(self, filename, section, setting, value, merge=False):
+        """
+        Here we are able to update a settings file's contents, this is for deploying new settings.
+
+        NOTE: THis will create a file if it's not present.
+        """
+
+        if not os.path.exists(filename):  # Create settings file if it doesn't exist.
+            try:
+                os.mknod(filename)
+            except FileExistsError:
+                pass
+        try:
+            if merge:
+                try:
+                    sett = self.config.get(section, setting)
+                    # print(type(sett), setting)
+                    if isinstance(sett, dict) or isinstance(sett, list):
+                        self.config.set(section, setting, value)  # Save setting value.
+                except configparser.NoOptionError as err:  # Check for missing setting, add if needed.
+                    print(err)
+                    self.config.set(section, setting, value)  # Save setting value.
+            else:
+                self.config.set(section, setting, value)  # Save setting value.
+        except configparser.NoSectionError as err:  # Check for missing section, add if needed.
+            print(err)
+            self.config.add_section(section)
+            self.config = self.update_setting(filename, section, setting,
+                                              value)  # Loop to go back and add settings to the newly added section.
+        return self.config
 
     def load(self, defaults=None):
         """
@@ -199,11 +183,7 @@ class BuildSettings:
     def save(self, upgrade=False):
         """
         Saves the current settings model to file.
-        TODO: We need to thread this out so it can retry in the event we have another thread saving information.
         """
-        # success = False
-        # while not success:
-        #     try:
         if upgrade:
             self.load()
             store_old = self.settings
@@ -212,6 +192,8 @@ class BuildSettings:
         else:
             store_old = None
             store = self.settings
+        print('saving settings')
+        self.config.read(self.filename, encoding='utf-8-sig')  # Read settings file.
         for key in store:  # We need to get to the bottom of this changing size during operation.
             if upgrade:
                 # print(store_old.keys())
@@ -239,19 +221,29 @@ class BuildSettings:
                     store[key] = str(storeset)
                 else:
                     print(key, 'not in settings')
-            update_setting(
+            self.update_setting(
                 self.filename,
                 'settings',
                 key,
                 store[key],
                 upgrade
             )
+        self.wait()
+        self.writing = True
+        self.fileswap()
+        self.writing = False
         self.load()
-        # success = True
-        #     except RuntimeError:
-        #         print('.')
-        #         pass
         return self
+
+    def wait(self):
+        """
+        This waits for the write flag to release before saving data.
+        Prevents conflicts.
+        """
+        if self.writing:
+            print('waiting')
+        while self.writing:
+            pass
 
     def add(self, setting, value):
         """
@@ -297,9 +289,7 @@ def get_time_secs(timestamp):
     :rtype: float
     """
     seconds = (  # Compare heartbeat times.
-            datetime.datetime.utcnow() - datetime.datetime.strptime(
-                timestamp, '%Y-%m-%d %H:%M:%S.%f'
-            )
+            datetime.datetime.utcnow() - datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S.%f')
     ).total_seconds()
     return seconds
 
@@ -370,4 +360,3 @@ def file_exists(file):
     :rtype: bool
     """
     return path.exists(file)
-

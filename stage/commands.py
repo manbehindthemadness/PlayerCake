@@ -81,12 +81,19 @@ class Command:
         """
         self.rt_self.settings.debug_screen_mode = mode
         self.setting_change('debug_screen_mode', mode)
+        self.settings.save()
 
     def setting_change(self, setting, value):
         """
         This makes a change to our real time settings.
         """
+        print('updating setting', setting, value)
         self.settings.set(setting, value)
+
+    def settings_save(self):
+        """
+        Saves the running settings to file.
+        """
         self.settings.save()
 
     def network_reset(self):

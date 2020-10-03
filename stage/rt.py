@@ -276,7 +276,7 @@ class Start:
                     time.sleep(1)
                     # print(self.rt_data['LISTENER'])
                     try:
-                        if self.rt_data['LISTENER'][self.settings.director_id]['STATUS'] == 'confirmed':  # TODO: This guy likes to give up problems when the server malfunctions...
+                        if self.rt_data['LISTENER'][self.settings.director_id]['STATUS'] == 'confirmed':  # TODO: This seems to be an issue where director stops broadcasting.
                             print('Handshake with director confirmed, starting heartbeat')
                             self.lines.append('handshake confirmed')
                             # self.lines.append('starting heartbeat')
@@ -325,7 +325,8 @@ class Start:
             self.command = commands['COMMAND']
             if self.command:  # Check for command.
                 Thread(target=self.execute, args=(self.command,)).start()
-                commands['COMMAND'] = ''  # Clear command after execution.
+                # commands['COMMAND'] = ''  # Clear command after execution.
+                del commands['COMMAND']
             time.sleep(0.1)
 
     def dump(self):
@@ -422,9 +423,9 @@ class Start:
         while not self.term:
             self.dof.read()
             time.sleep(self.settings.dof_cycle)
-            if rd == 1000:
+            if rd == 100000:
                 # print('saving calibration')
-                self.dof.save_calibration()
+                self.dof.save_calibration()  # TODO: Inspect for performance.
                 rd = 0
             else:
                 rd += 1
