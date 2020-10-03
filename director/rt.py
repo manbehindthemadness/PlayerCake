@@ -164,6 +164,8 @@ class Start:
 
     def confirm_ready_state(self):
         """This tells stages that we are ready for action"""
+
+        # TODO: I this is where our weird disconnects are coming from, when a stage reconnects before we know it disco.
         while not self.term:
             tprint(self.settings, 'ready')
             stages = self.rt_data['LISTENER']

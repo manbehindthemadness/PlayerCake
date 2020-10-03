@@ -3220,7 +3220,7 @@ def config_stagelist_button(element, bad=False, width=10):
         justify=LEFT,
         image=im
     )
-    el.image=im
+    el.image = im
     if bad:
         el.configure(
             fg=theme['badfiletext']
@@ -3288,6 +3288,7 @@ def config_button_text(element, text):
 def safe_raise(controller, fraise, fsource, chain=None):
     """
     This safly rases widgets so they don't stack.
+    TODO: we may need to set the last_frame flag here in the future.
 
     :param controller: Passed instance of the master controller.
     :param fraise: The name of the frame to raise.

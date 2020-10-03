@@ -249,63 +249,6 @@ class NetCom:
             sock.close()  # Close socket.
         return self
 
-    # def tcpclient(self, message, address=None, fail=0):
-    #     """
-    #     Launches a TCP client.
-    #
-    #     TODO: Find a way to cache the upstream server info.
-    #
-    #     :param message: Data to transmit
-    #     :type message:
-    #     :param address: Optional server address and port: 1.2.3.4:5.
-    #     ::type address: str
-    #     :param fail:  This is a reconnect failure count, it will allow us to trigger additional measures for reconnect.
-    #     :type fail: int
-    #     :return: Self.
-    #     """
-    #     # dprint(self.settings, ('connection init',))
-    #     server_info = None
-    #     if address:  # Use server address where able.
-    #         server_info = address.split(':')
-    #     while not server_info:  # Look for upstream server.
-    #         dprint(self.settings, ('searching for connection...',))
-    #         server_info = self.udpclient()
-    #     # dprint(self.settings, ('connection found:', server_info))
-    #     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
-    #     sock.settimeout(self.settings.networktimeout)
-    #     if address:
-    #         server_address = server_info[0], int(server_info[1])
-    #     else:
-    #         server_address = (server_info[3], int(server_info[4]))  # Collect server connection string.
-    #     # print('connecting to %s port %s' % server_address,)
-    #     try:
-    #         sock.connect(server_address)  # Connect the socket to the port where the server is listening.
-    #     except OSError as err:
-    #         print('connection failed, retrying', err)
-    #         time.sleep(1)
-    #         fail += 1
-    #         sock.close()  # Close socket.
-    #         self.tcpclient(message, address, fail)  # Retry connection.
-    #     message = self.encode(message).message
-    #     try:
-    #         sock.sendall(message)  # Send message.
-    #         # Look for the response
-    #         amount_received = 0
-    #         amount_expected = len(message)
-    #         while amount_received < amount_expected:  # Loop until expected data is recieved.
-    #             data = sock.recv(4096)  # Break data into chunks.
-    #             amount_received += len(data)  # Count collected data.
-    #         self.address = tuple(server_address)
-    #     except (BrokenPipeError, OSError):
-    #         print('connection failed, broken pipe, retrying')
-    #         time.sleep(1)
-    #         fail += 1
-    #         sock.close()  # Close socket.
-    #         self.tcpclient(message, address, fail)  # Retry connection.
-    #     finally:
-    #         sock.close()  # Close socket.
-    #     return self
-
     def test(self):
         """
         Tests the tcpclient.
