@@ -13,6 +13,8 @@ Good REf: https://stackoverflow.com/questions/7546050/switch-between-two-frames-
 TODO: NOTE!! Buttons and Labels are sized by the number of chars UNLESS they have an image!
 
 TODO: We seriously need to break these inits down into classes...
+
+TODO: Once we are satisfied with the operations we should really create a master class to clean up the inheritance.
 """
 import os
 import tkinter as tk
@@ -68,6 +70,15 @@ class Page(Frame):
         This will lift us into view
         """
         self.lift()
+
+
+class Widget(Frame):
+    """
+    This is a frame inheritor experiment to relax the complexity of the inits.
+    """
+    def __init__(self, controller):
+        Frame.__init__(self)
+        self.controller = controller
 
 
 class Home(Frame):
@@ -1625,6 +1636,9 @@ class Calibrations(Frame):
         self.send_command = self.controller.director.send_command
         self.command = self.controller.command
         self.settings = self.controller.settings
+        self.remote_settings = None
+        self.show_frame = self.controller.show_frame
+        self.editvar = self.remote_settings
         self.rt_data = controller.rt_data
         self.temp = self.rt_data['temp']
         self.error_message = self.temp['error_message'] = StringVar()
@@ -1632,6 +1646,7 @@ class Calibrations(Frame):
         self.stage_id = None
         self.stage_buttons = []
         self.target = self.controller.target
+        self.dummy = None
         #  ##############
         #  Configure base
         #  ##############
@@ -1773,7 +1788,7 @@ class Calibrations(Frame):
             lambda: self.command_event('Calibrations', 'selftest()'),
             lambda: self.command_event('Calibrations', 'network_reset()'),
             '',
-            '',
+            lambda: self.edit_setting(),
             ''
         ]
         button_array(
@@ -1787,11 +1802,15 @@ class Calibrations(Frame):
 
         self.refresh()
 
-    def refresh(self):
+    def refresh(self, page=None):
         """
         This will refresh our stage related data.
         """
         self.list_stages(self, self.stage_list)
+        if page:
+            self.controller.refresh(page)
+        # if self.stage_id:  # We may need to move this.
+        #     self.refresh_remote_settings()
 
     def command_event(self, target, command):
         """
@@ -1804,7 +1823,30 @@ class Calibrations(Frame):
             self.controller.target = target
             self.controller.temp['error_message'].set('please select a stage')
             self.controller.show_frame('ErrorWidget')
-            # ErrorWidget(self.base, self)
+
+    def edit_setting(self):
+        """
+        This will launch the settings editor.
+        """
+        if self.stage_id:  # We may need to move this.
+            self.refresh_remote_settings()
+            self.editvar = self.remote_settings
+            editor = Editor(self.base, self)
+
+    def refresh_remote_settings(self):
+        """
+        This will grab our remote settings from the selected stage.
+        """
+        self.command_event('Calibrations', 'send_settings()')
+        rty = 0
+        while not self.remote_settings and rty < 5:
+            time.sleep(1)
+            try:
+                self.editvar = self.remote_settings = self.rt_data['LISTENER'][self.stage_id]['SETTINGS']
+                print(self.editvar['role'])
+            except KeyError:
+                rty += 1
+        # print(self.rt_data)
 
 
 class Audience(Frame):
@@ -1834,6 +1876,7 @@ class MainView(tk.Tk):
         for sett in self.defaults:  # Populate defaults
             self.rt_data[sett] = StringVar()
             self.rt_data[sett].set(str(self.defaults[sett]))
+        self.editvar = self.settings.settings
         self.target = self.temp['targetframe'] = 'Writer'  # This is the page we will raise after a widget is closed.
         self.entertext = self.temp['entertext'] = 'enter'
         self.stagedata = self.temp['stagedata'] = dict()
@@ -2010,6 +2053,162 @@ class MainView(tk.Tk):
             Notifier,
             self.notification_timeout
         )
+
+
+class Editor(Frame):
+    """
+    This is our file editor widget.
+    """
+    def __init__(self, parent, controller):
+        Frame.__init__(self, parent)
+        # global rt_data
+        # self.rt_data = rt_data
+        self.controller = controller
+        self.rt_data = self.controller.rt_data
+        self.temp = self.rt_data['temp']
+        self.command = None
+        self.command_event = controller.command_event
+        self.show_frame = self.controller.show_frame
+        self.target = self.controller.target
+        self.def_text = self.temp['default_keyboard_text']
+        self.def_val = ''
+        self.rt_data['edit'] = StringVar()  # Set pickup variable.
+        self.editvar = self.controller.editvar
+        self.buttons = dict()
+        self.rename = None
+        self.var = None
+        # ##############
+        # Configure base
+        # ##############
+        self.base = Frame(
+            parent,
+            width=prx(75),
+            height=pry(80),
+            bg=theme['entrybackground'],
+            borderwidth=pry(1),
+        )
+        self.base.place(
+            x=cp(prx(37.5), prx(75)),
+            y=0
+        )
+        self.add_scroller(var=self.editvar)
+
+    def exit(self):
+        """
+        This kills our widget.
+        """
+        self.controller.target = ['Writer', 'CloseWidget']
+        self.base.destroy()
+
+    def refresh(self):
+        """
+        This re-creates the editor, updating it's contents.
+        """
+        self.exit()
+        self.add_scroller(var=self.editvar)
+
+    @staticmethod
+    def create_text(item, value):
+        """
+        This just returns a text var from whatever type we send.
+        """
+        text = StringVar()
+        try:
+            value = eval(value)
+        except (NameError, SyntaxError):
+            pass
+        if isinstance(value, str):
+            text.set(item + ' = ' + value)
+        elif isinstance(value, int) or isinstance(value, float):
+            text.set(item + ' = ' + str(value))
+        elif isinstance(value, list) or isinstance(value, dict) or isinstance(value, tuple):
+            text.set(item + '= ...')
+        return text
+
+    def edit(self, rename='', def_text='', def_val=''):
+        """
+        This will raise a keyboard allowing for an item to be altered.
+
+        TODO: THis will be passed to the list buttons.
+        """
+        print('def_text', def_text)
+        self.def_text.set(def_text)  # Set default keyboard text.
+        self.def_val = def_val
+        self.temp['default_keyboard_text'].set(def_text)
+        self.temp['word'].set('edit')  # Define out pickup variable.
+        # self.controller.command = self.edit_event()  # Set keyboard command event.
+        ctrl = self.controller.controller
+        ctrl.target = ['Writer', 'Calibrations', 'CloseWidget']  # Set frame raise sequence.
+        ctrl.command = lambda: self.edit_event()
+        ctrl.refresh('Keyboard')
+        ctrl.show_frame('Keyboard')  # Show keyboard.
+
+    def edit_event(self):
+        """
+        This will save the items new value.
+
+        TODO: This will be passed to the keyboard widget and triggered on save.
+        """
+        value = self.rt_data['edit'].get()
+        setting = self.def_val
+        print('saving remote setting:', setting, 'value:', value)
+        if self.def_val:
+            SaveRemoteSetting(self, setting, value)
+        return self
+
+    @staticmethod
+    def add_edit_button(parent, buttons, text, command=None):
+        """
+        This adds a button to our editor.
+        """
+        buttons.append(
+            config_editor_button(
+                Button(
+                    parent,
+                    command=command
+                ),
+                text=text,
+                size=2,
+                width=30
+            )
+        )
+        buttons[-1].pack()
+        return buttons
+
+    def add_scroller(self, col=0, var=None):
+        """
+        This will ad a vertical scroll window to the settings selection screen.
+        TODO: we probably want to change this to a placement instead of grid.
+        """
+        self.var = var
+        key = str(col)
+        if key not in self.buttons.keys():  # Confirm we have an array.
+            self.buttons[key] = list()
+            self.buttons[key + '_values'] = dict()
+        else:
+            for button in self.buttons[key]:  # If there are old buttons destroy them.
+                button.destroy()
+            del self.buttons[key + '_values']
+        buttons = self.buttons[key]
+        textvars = self.buttons[key + '_values']
+        scroller = VerticalScrolledFrame(self.base, prx(30), pry(80))
+        scroller.grid(row=0, column=col)
+        buttons = self.add_edit_button(  # Add close button.
+            scroller.interior,
+            buttons,
+            '...',
+            lambda: self.exit()
+        )
+        for item in var:  # Add editor configuration lines.
+            value = var[item]
+            text = self.create_text(item, value)
+            buttons = self.add_edit_button(
+                scroller.interior,
+                buttons,
+                text,
+                lambda q=value, w=item: self.edit(def_text=q, def_val=w),  # Wait...this won't work...
+            )
+            textvars[item] = text
 
 
 class Notifier(Frame):
@@ -2315,7 +2514,8 @@ class Keyboard(Frame):
         if self.wordvar.get():  # Prevent returning nulls.
             self.get_word().set(self.wordvar.get())
             self.temp['number'].set('0')
-        self.controller.show_frame(self.controller.target)
+        print('raising target', self.controller.target)
+        self.controller.show_frame(self.controller.target)  # Im wondering if this need to be at the end...
         self.wordvar.set('')
         self.word = ''
         if self.controller.command:
@@ -2968,6 +3168,17 @@ class GifAnimation(Frame):
         return self
 
 
+class SaveRemoteSetting:
+    """
+    This will save a new or updated setting to a downstream stage.
+    """
+    def __init__(self, controller, setting, value):
+        self.controller = controller
+        self.command_event = self.controller.command_event
+        self.command_event('Calibrations', 'setting_change("' + str(setting) + '", "' + str(value) + '")')
+        # TODO: We need to call a refresh of the remote data here.
+
+
 def center_weights(parent, row=True, rows=1, col=True, cols=1):
     """
     This centers the pparent's grid weights
@@ -2985,7 +3196,10 @@ def list_stages(controller, parent):
     This produces the list of stages that we have been paired with.
     """
     for button in controller.stage_buttons:
-        button.destroy()
+        try:
+            button.destroy()
+        except TclError:
+            del button
     for stage_entry in controller.settings.stages:
         s_id = stage_entry
         if stage_entry in controller.rt_data['LISTENER']:
@@ -3246,6 +3460,36 @@ def config_rehearsallist_button(element, bad=False):
     if bad:
         el.configure(
             fg=theme['badfiletext']
+        )
+    return element
+
+
+def config_editor_button(element, text, bad=False, size=3, width=20):
+    """
+        This styles the buttons on the rehearsal list.
+        """
+    spacer = get_spacer()
+    el = config_button(element)
+    el.configure(
+        font=(theme['font'], str(pointsy(size))),
+        anchor=W,
+        width=prx(width),
+        pady=pry(2),
+        justify=LEFT,
+        image=spacer,
+    )
+    el.image = spacer
+    if bad:
+        el.configure(
+            fg=theme['badfiletext']
+        )
+    if isinstance(text, StringVar):
+        el.configure(
+            textvariable=text
+        )
+    else:
+        el.configure(
+            text=text
         )
     return element
 

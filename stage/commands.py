@@ -30,7 +30,9 @@ class Command:
         self.output = None
         self.whitelist = [
             'debug_mode("adc")',
+            'send_settings()'
         ]
+        self.dummy = None
 
     def verify(self):
         """
@@ -62,12 +64,13 @@ class Command:
         """
         self.command = command
         valid = self.verify()
-        if valid:
+        if valid and command:
             try:
                 exec(self.command)
             except NameError:
                 exec('self.' + self.command)
             dprint(self.settings, ('Command executed:', self.command,))
+        # self.command = ''
 
     def close(self):
         """
@@ -101,6 +104,35 @@ class Command:
         This triggers a network reset of the stage instance.
         """
         self.rt_self.netcom.reconnect()
+
+    def reset_imu(self):
+        """
+        This resets the IMU calibrations.
+        """
+        for setting in [
+            'magxmin',
+            'magxmax',
+            'magymin',
+            'magymax',
+            'magzmin',
+            'magzmax'
+        ]:
+            self.dummy = setting
+            exec('self.settings.' + self.dummy + ' = 0')
+            self.settings.save()
+
+    def reset_gyro(self):
+        """
+        This resets the calibrations of the BNO055 9DOF.
+        """
+        self.rt_self.dof.reset_calibration()
+
+    def send_settings(self):
+        """
+        This will transmit our settings to director.
+        """
+        print('sending settings', self.settings.settings['role'])
+        self.rt_self.send({'SENDER': self.settings.stage_id, 'DATA': {'SETTINGS': self.settings.settings}})
 
 
 def command_test():

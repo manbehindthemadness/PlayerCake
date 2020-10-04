@@ -253,14 +253,14 @@ Phase_1:
     Goal: Create basic software functionality and confirm the rendering technique will accommodate the processing hardware available.
     Create project repositories and development resources. - Complete
 
-    Establish a connection and data exchange between Director and Stage. - In progress
+    Establish a connection and data exchange between Director and Stage. - Complete
         Connections should discover the tcp address of the target member using UDP broadcast. - Complete
-        Each application should be able to accept and initiate connections. - In progress
+        Each application should be able to accept and initiate connections. - Complete
         Connections should be secured using key pairs and member identification UUIDs. - In progress
-        Data transfer should have disconnect and resume tolerance in the event of poor connections. - Pending
-        Create Heckle functionality allowing for direct command interrupts to members for troubleshooting. - Pending
+        Data transfer should have disconnect and resume tolerance in the event of poor connections. - Complete
+        Create Heckle functionality allowing for direct command interrupts to members for troubleshooting. - Complete
 
-    Create initial script render capability within Writer. - Pending
+    Create initial script render capability within Writer. - Complete
         Script should calculate all required kinematics for basic operations.
         Script should calculate known trim offsets for a configurable number of Actors.
         Script needs to have configurable resolution.
