@@ -612,6 +612,7 @@ class Writer(Frame):
         """
         This will raise the calibrations frame.
         """
+        self.controller.refresh('Calibrations')  # This clamps duplicate stage entries.
         safe_raise(self.controller, 'Calibrations', 'Writer')
         self.controller.show_frame('CloseWidget')
 
@@ -1690,7 +1691,7 @@ class Calibrations(Frame):
         self.stage_list = VerticalScrolledFrame(self.stage_selector, width=prx(20), height=pry(75))
         self.stage_list.pack()
         self.list_stages = list_stages
-        self.list_stages(self, self.stage_list)
+        # self.list_stages(self, self.stage_list)
         self.selected_stage_frame = Frame(
             self.base,
             width=prx(23),
@@ -1801,7 +1802,7 @@ class Calibrations(Frame):
             vert=True
         )
 
-        self.refresh()
+        # self.refresh()
 
     def refresh(self, page=None):
         """
@@ -1832,13 +1833,14 @@ class Calibrations(Frame):
         if self.stage_id:  # We may need to move this.
             self.refresh_remote_settings()
             self.editvar = self.remote_settings
-            editor = Editor(self.base, self)
+            Editor(self.base, self)
 
     def refresh_remote_settings(self):
         """
         This will grab our remote settings from the selected stage.
         """
         self.command_event('Calibrations', 'send_settings()')
+        self.remote_settings = None
         rty = 0
         while not self.remote_settings and rty < 5:
             time.sleep(1)
@@ -2079,6 +2081,8 @@ class Editor(Frame):
         self.buttons = dict()
         self.rename = None
         self.var = None
+        self.title = StringVar()
+        self.title.set('cancel')
         # ##############
         # Configure base
         # ##############
@@ -2093,7 +2097,7 @@ class Editor(Frame):
             x=cp(prx(37.5), prx(75)),
             y=0
         )
-        self.add_scroller(var=self.editvar)
+        self.refresh()
 
     def exit(self):
         """
@@ -2128,13 +2132,13 @@ class Editor(Frame):
             text.set(item + '= ...')
         return text
 
-    def edit(self, def_text='', def_val=''):
+    def edit(self, def_text='', def_val='', col=0):
         """
         This will raise a keyboard allowing for an item to be altered.
 
         TODO: THis will be passed to the list buttons.
         """
-        print('def_text', def_text)
+        # print('def_text', def_text)
         self.def_text.set(def_text)  # Set default keyboard text.
         self.def_val = def_val
         self.temp['default_keyboard_text'].set(def_text)
@@ -2142,22 +2146,33 @@ class Editor(Frame):
         # self.controller.command = self.edit_event()  # Set keyboard command event.
         ctrl = self.controller.controller
         ctrl.target = ['Writer', 'Calibrations', 'CloseWidget']  # Set frame raise sequence.
-        ctrl.command = lambda: self.edit_event()
+        ctrl.command = lambda q=col: self.edit_event(q)
         ctrl.refresh('Keyboard')
         ctrl.show_frame('Keyboard')  # Show keyboard.
 
-    def edit_event(self):
+    def edit_event(self, col):
         """
         This will save the items new value.
 
         TODO: This will be passed to the keyboard widget and triggered on save.
         """
         value = self.rt_data['edit'].get()
-        setting = self.def_val
-        if self.def_val:
-            self.editvar[setting] = value
-            self.refresh()
+        if not col:
+            setting = self.def_val
+            if self.def_val:
+                self.editvar[setting] = value
+                self.refresh()
+                self.title.set('save')
+        ctrl = self.controller.controller
+        ctrl.target = ['Writer', 'CloseWidget']  # Set frame raise sequence.
         return self
+
+    @staticmethod
+    def back_event(col):
+        """
+        This destroys a sub-scroller.
+        """
+        exec('self.scroller_' + str(col) + '.destroy()')
 
     def add_edit_button(self, parent, buttons, text, command=None):
         """
@@ -2188,14 +2203,23 @@ class Editor(Frame):
             width=30
         )
 
+    def add_child_scroller(self, col, var):
+        """
+        This will open a sub-scroller so we can edit inside dicts and arrays.
+        """
+        self.add_scroller(col, var)
+
     def add_scroller(self, col=0, var=None):
         """
         This will ad a vertical scroll window to the settings selection screen.
         TODO: we probably want to change this to a placement instead of grid.
 
         TODO: Add functionality for child_arrays/dicts
+
+        NOTE: Editing within arrays and dicts is disabled for now as I haven't found a good way to handle that.
         """
         self.var = var
+        # print(var)
         key = str(col)
         if key not in self.buttons.keys():  # Confirm we have an array.
             self.buttons[key] = list()
@@ -2219,12 +2243,20 @@ class Editor(Frame):
         )
         save_button_frame.grid(row=0, column=0)
         center_weights(save_button_frame)
-        save_button = self.add_button(  # Add close button.
-            save_button_frame,
-            'save',
-            lambda: self.exit(),
-            size=4
-        )
+        if not col:
+            save_button = self.add_button(  # Add save button.
+                save_button_frame,
+                self.title,
+                lambda: self.exit(),
+                size=4
+            )
+        else:
+            save_button = self.add_button(  # Add save button.
+                save_button_frame,
+                'back',
+                lambda q=col: self.back_event(q),
+                size=4
+            )
         save_button.configure(
             anchor=CENTER,
         )
@@ -2235,13 +2267,22 @@ class Editor(Frame):
         for item in var:  # Add editor configuration lines.
             value = var[item]
             text = self.create_text(item, value)
-            buttons = self.add_edit_button(
-                scroller.interior,
-                buttons,
-                text,
-                lambda q=value, w=item: self.edit(def_text=q, def_val=w),  # Wait...this won't work...
-            )
+            if '...' not in text.get():  # Check for child array.
+                buttons = self.add_edit_button(
+                    scroller.interior,
+                    buttons,
+                    text,
+                    lambda q=value, w=item, r=col: self.edit(def_text=q, def_val=w, col=r),  # Add normal edit button.
+                )
+            # else:
+            #     buttons = self.add_edit_button(
+            #         scroller.interior,
+            #         buttons,
+            #         text,
+            #         lambda q=(col + 1), w=eval(value): self.add_child_scroller(col=q, var=w),  # Add sub-key edit button.
+            #     )
             textvars[item] = text
+        exec('self.scroller_' + str(col) + ' = scroller')
 
 
 class Notifier(Frame):
@@ -3216,7 +3257,7 @@ class SaveRemoteSettings:
     def __init__(self, controller):
         self.controller = controller
         self.command_event = self.controller.command_event
-        print('sending new settings', self.controller.editvar['debug_screen_mode'])
+        print('sending new settings')
         self.controller.send(  # Transmit new settings.
             self.controller.stage_id,
             {
