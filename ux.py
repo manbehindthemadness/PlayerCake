@@ -2162,7 +2162,7 @@ class Editor(Frame):
             borderwidth=pry(1),
         )
         self.base.place(
-            x=cp(prx(37.5), prx(75)),
+            x=cp(prx(37.5), prx(40)),
             y=0
         )
         self.refresh()
@@ -2301,7 +2301,7 @@ class Editor(Frame):
             self.base,
             width=prx(30),
             height=pry(80),
-            bg='green',
+            bg=theme['main'],
         )
         save_button_frame = Frame(
             scroll_frame,
