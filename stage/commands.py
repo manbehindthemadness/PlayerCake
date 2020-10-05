@@ -99,13 +99,9 @@ class Command:
         """
         Saves the running settings to file.
         """
-        new_settings = self.rt_self.rt_data['LISTENER'][self.settings.director_id]['SETTINGS']
-        while not new_settings:  # Retry in case the settings haven't had time to transmit.
-            new_settings = self.rt_self.rt_data['LISTENER'][self.settings.director_id]['SETTINGS']
-        print('saving new settings')
-        self.settings.settings = new_settings
+        print(self.rt_self.rt_data['LISTENER'])
+
         self.settings.save()
-        del new_settings
 
     def network_reset(self):
         """
@@ -139,9 +135,9 @@ class Command:
         """
         This will transmit our settings to director.
         """
-        print('sending settings')
+        print('sending settings', self.settings.settings['debug_screen_mode'])
         self.rt_self.send({'SENDER': self.settings.stage_id, 'DATA': {'SETTINGS': self.settings.settings}})
-        self.rt_self.rt_data['LISTENER'][self.settings.director_id]['SETTINGS'] = dict()
+        # TODO: Update settings model here and save to file.
 
 
 def command_test():
