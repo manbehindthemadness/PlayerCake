@@ -1654,15 +1654,9 @@ class Calibrations(Frame):
         #  ##############
         self.base = Frame(
             self,
-            width=prx(74),
-            height=pry(88),
-            bg=theme['main'],
-            # bg='green',
+            bg=theme['main']
         )
-        self.base.place(
-            x=0,
-            y=0
-        )
+        self.base.grid(row=0, column=0)
         center_weights(
             self.base,
             rows=3,
@@ -1691,13 +1685,12 @@ class Calibrations(Frame):
         self.stage_list = VerticalScrolledFrame(self.stage_selector, width=prx(20), height=pry(75))
         self.stage_list.pack()
         self.list_stages = list_stages
-        # self.list_stages(self, self.stage_list)
         self.selected_stage_frame = Frame(
             self.base,
             width=prx(23),
             height=pry(4)
         )
-        self.selected_stage_frame.grid(row=3, column=0)
+        self.selected_stage_frame.grid(row=2, column=0)
         self.selected_stage = config_text(
             Label(
                 self.selected_stage_frame,
@@ -1708,13 +1701,13 @@ class Calibrations(Frame):
         self.selected_stage.pack()
         self.options = Frame(
             self.base,
-            width=prx(50),
             height=pry(88),
             bg=theme['main'],
         )
-        self.options.grid(row=0, column=1, rowspan=3)
+        self.options.grid(row=0, column=1, rowspan=3, sticky='nsew')
         center_weights(
-            self.options
+            self.options,
+            cols=4
         )
         # ###########
         # debug modes
@@ -1781,7 +1774,7 @@ class Calibrations(Frame):
             'selftest',
             'wifi reset',
             'run command',
-            'edit setting',
+            'edit settings',
             'report',
         ]
         commands = [
@@ -1799,6 +1792,80 @@ class Calibrations(Frame):
             commands,
             rw=1,
             col=1,
+            vert=True
+        )
+        # ############
+        # calibrations
+        # ############
+        self.calibrations_title_frame = Frame(
+            self.options,
+            width=prx(23),
+            height=pry(8)
+        )
+        self.calibrations_title_frame.grid(row=0, column=2, columnspan=2)
+        self.cal_title = config_text(
+            Label(
+                self.calibrations_title_frame,
+            ),
+            text='calibrations'
+        )
+        self.cal_title.pack()
+
+        names = [
+            'set gyros',
+            'vision',
+            'echolocation',
+            'balance/accel',
+            'speeds',
+            'bounce',
+            'physical'
+        ]
+
+        commands = [
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            ''
+        ]
+
+        button_array(
+            self.options,
+            names,
+            commands,
+            rw=1,
+            col=2,
+            vert=True
+        )
+
+        names = [
+            'gimbal',
+            'timing',
+            'feedback',
+            'leg 1',
+            'leg 2',
+            'leg 3',
+            'leg 4'
+        ]
+
+        commands = [
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            ''
+        ]
+
+        button_array(
+            self.options,
+            names,
+            commands,
+            rw=1,
+            col=3,
             vert=True
         )
 
@@ -1985,8 +2052,9 @@ class MainView(tk.Tk):
                 frame.grid(row=0, column=0)
             elif page_name == 'Calibrations':
                 frame.configure(
-                    width=prx(75),
-                    height=pry(90),
+                    width=prx(71),
+                    height=pry(91),
+                    bg=theme['main'],
                     highlightthickness=pry(1),
                     highlightbackground=theme['entrybackground']
                 )
@@ -3519,7 +3587,6 @@ def config_stagelist_button(element, bad=False, width=10):
         anchor=W,
         width=width,
         pady=pry(2),
-        padx=0,
         justify=LEFT,
         image=im
     )
