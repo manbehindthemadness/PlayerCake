@@ -612,6 +612,7 @@ class Writer(Frame):
         """
         This will raise the calibrations frame.
         """
+        self.controller.refresh('Calibrations')  # This clamps duplicate stage entries.
         safe_raise(self.controller, 'Calibrations', 'Writer')
         self.controller.show_frame('CloseWidget')
 
@@ -1690,7 +1691,7 @@ class Calibrations(Frame):
         self.stage_list = VerticalScrolledFrame(self.stage_selector, width=prx(20), height=pry(75))
         self.stage_list.pack()
         self.list_stages = list_stages
-        self.list_stages(self, self.stage_list)
+        # self.list_stages(self, self.stage_list)
         self.selected_stage_frame = Frame(
             self.base,
             width=prx(23),
@@ -1801,7 +1802,7 @@ class Calibrations(Frame):
             vert=True
         )
 
-        self.refresh()
+        # self.refresh()
 
     def refresh(self, page=None):
         """
@@ -1832,7 +1833,7 @@ class Calibrations(Frame):
         if self.stage_id:  # We may need to move this.
             self.refresh_remote_settings()
             self.editvar = self.remote_settings
-            editor = Editor(self.base, self)
+            Editor(self.base, self)
 
     def refresh_remote_settings(self):
         """
@@ -2096,7 +2097,7 @@ class Editor(Frame):
             x=cp(prx(37.5), prx(75)),
             y=0
         )
-        self.add_scroller(var=self.editvar)
+        self.refresh()
 
     def exit(self):
         """
@@ -2162,6 +2163,8 @@ class Editor(Frame):
                 self.editvar[setting] = value
                 self.refresh()
                 self.title.set('save')
+        ctrl = self.controller.controller
+        ctrl.target = ['Writer', 'CloseWidget']  # Set frame raise sequence.
         return self
 
     @staticmethod
