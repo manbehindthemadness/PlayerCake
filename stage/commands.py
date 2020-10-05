@@ -30,7 +30,8 @@ class Command:
         self.output = None
         self.whitelist = [
             'debug_mode("adc")',
-            'send_settings()'
+            'send_settings()',
+            'settings_save()'
         ]
         self.dummy = None
 
@@ -92,11 +93,14 @@ class Command:
         """
         print('updating setting', setting, value)
         self.settings.set(setting, value)
+        self.settings.save()
 
     def settings_save(self):
         """
         Saves the running settings to file.
         """
+        print(self.rt_self.rt_data['LISTENER'])
+
         self.settings.save()
 
     def network_reset(self):
@@ -131,8 +135,9 @@ class Command:
         """
         This will transmit our settings to director.
         """
-        print('sending settings', self.settings.settings['role'])
+        print('sending settings', self.settings.settings['debug_screen_mode'])
         self.rt_self.send({'SENDER': self.settings.stage_id, 'DATA': {'SETTINGS': self.settings.settings}})
+        # TODO: Update settings model here and save to file.
 
 
 def command_test():

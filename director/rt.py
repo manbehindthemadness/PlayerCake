@@ -138,6 +138,7 @@ class Start:
                     if self.sender not in listener.keys():
                         listener[self.sender] = dict()
                     listener[self.sender] = update_dict(listener[self.sender], self.received_data['DATA'])
+                    # print('recieved_data', listener[self.sender])
 
                     addresses[self.sender] = address  # Store client address for future connections.
                 else:

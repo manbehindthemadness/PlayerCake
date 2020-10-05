@@ -1634,6 +1634,7 @@ class Calibrations(Frame):
         Frame.__init__(self, parent)
         self.controller = controller
         self.send_command = self.controller.director.send_command
+        self.send = self.controller.director.send
         self.command = self.controller.command
         self.settings = self.controller.settings
         self.remote_settings = None
@@ -2061,11 +2062,12 @@ class Editor(Frame):
     """
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
-        # global rt_data
-        # self.rt_data = rt_data
         self.controller = controller
+        self.settings = self.controller.settings
         self.rt_data = self.controller.rt_data
         self.temp = self.rt_data['temp']
+        self.stage_id = self.controller.stage_id
+        self.send = self.controller.send
         self.command = None
         self.command_event = controller.command_event
         self.show_frame = self.controller.show_frame
@@ -2097,14 +2099,15 @@ class Editor(Frame):
         """
         This kills our widget.
         """
-        self.controller.target = ['Writer', 'CloseWidget']
-        self.base.destroy()
+        SaveRemoteSettings(self)  # Save remote settings.
+        self.controller.target = ['Writer', 'CloseWidget']  # Set target for closure raise.
+        self.base.destroy()  # Destroy widget.
 
     def refresh(self):
         """
         This re-creates the editor, updating it's contents.
         """
-        self.exit()
+        # self.exit()
         self.add_scroller(var=self.editvar)
 
     @staticmethod
@@ -2125,7 +2128,7 @@ class Editor(Frame):
             text.set(item + '= ...')
         return text
 
-    def edit(self, rename='', def_text='', def_val=''):
+    def edit(self, def_text='', def_val=''):
         """
         This will raise a keyboard allowing for an item to be altered.
 
@@ -2151,54 +2154,84 @@ class Editor(Frame):
         """
         value = self.rt_data['edit'].get()
         setting = self.def_val
-        print('saving remote setting:', setting, 'value:', value)
         if self.def_val:
-            SaveRemoteSetting(self, setting, value)
+            self.editvar[setting] = value
+            self.refresh()
         return self
 
-    @staticmethod
-    def add_edit_button(parent, buttons, text, command=None):
+    def add_edit_button(self, parent, buttons, text, command=None):
         """
         This adds a button to our editor.
         """
         buttons.append(
-            config_editor_button(
-                Button(
-                    parent,
-                    command=command
-                ),
-                text=text,
-                size=2,
-                width=30
+            self.add_button(
+                parent,
+                text,
+                command
             )
         )
         buttons[-1].pack()
         return buttons
 
+    @staticmethod
+    def add_button(parent, text, command=None, size=2):
+        """
+        This will add a single unpacked edit button.
+        """
+        return config_editor_button(
+            Button(
+                parent,
+                command=command
+            ),
+            text=text,
+            size=size,
+            width=30
+        )
+
     def add_scroller(self, col=0, var=None):
         """
         This will ad a vertical scroll window to the settings selection screen.
         TODO: we probably want to change this to a placement instead of grid.
+
+        TODO: Add functionality for child_arrays/dicts
         """
         self.var = var
         key = str(col)
         if key not in self.buttons.keys():  # Confirm we have an array.
             self.buttons[key] = list()
-            self.buttons[key + '_values'] = dict()
         else:
             for button in self.buttons[key]:  # If there are old buttons destroy them.
                 button.destroy()
-            del self.buttons[key + '_values']
+        self.buttons[key + '_values'] = dict()
         buttons = self.buttons[key]
         textvars = self.buttons[key + '_values']
-        scroller = VerticalScrolledFrame(self.base, prx(30), pry(80))
-        scroller.grid(row=0, column=col)
-        buttons = self.add_edit_button(  # Add close button.
-            scroller.interior,
-            buttons,
-            '...',
-            lambda: self.exit()
+        scroll_frame = Frame(
+            self.base,
+            width=prx(30),
+            height=pry(80),
+            bg='green',
         )
+        save_button_frame = Frame(
+            scroll_frame,
+            width=prx(30),
+            bg=theme['entrybackground'],
+            bd=1
+        )
+        save_button_frame.grid(row=0, column=0)
+        center_weights(save_button_frame)
+        save_button = self.add_button(  # Add close button.
+            save_button_frame,
+            'save',
+            lambda: self.exit(),
+            size=4
+        )
+        save_button.configure(
+            anchor=CENTER,
+        )
+        save_button.pack()
+        scroll_frame.grid(row=0, column=0)
+        scroller = VerticalScrolledFrame(scroll_frame, prx(30), pry(80))
+        scroller.grid(row=1, column=col)
         for item in var:  # Add editor configuration lines.
             value = var[item]
             text = self.create_text(item, value)
@@ -2730,7 +2763,11 @@ class VerticalScrolledFrame(Frame):
                 self.scrollposition = 1
             elif self.scrollposition > self.canvasheight:
                 self.scrollposition = self.canvasheight
-            canvas.yview_moveto(self.scrollposition / self.canvasheight)
+            try:
+                canvas.yview_moveto(self.scrollposition / self.canvasheight)
+            except TclError:
+                print('on press movement invalid.')
+                pass
 
         def on_touch_scroll(event):
             """
@@ -2748,7 +2785,11 @@ class VerticalScrolledFrame(Frame):
             self.prevy = nowy
 
             self.scrollposition += event.delta
-            canvas.yview_moveto(self.scrollposition / self.canvasheight)
+            try:
+                canvas.yview_moveto(self.scrollposition / self.canvasheight)
+            except TclError:
+                print('scroll movement invalid.')
+                pass
 
         self.bind("<Enter>", lambda _: self.bind_all('<Button-1>', on_press), '+')
         self.bind("<Leave>", lambda _: self.unbind_all('<Button-1>'), '+')
@@ -3168,15 +3209,22 @@ class GifAnimation(Frame):
         return self
 
 
-class SaveRemoteSetting:
+class SaveRemoteSettings:
     """
     This will save a new or updated setting to a downstream stage.
     """
-    def __init__(self, controller, setting, value):
+    def __init__(self, controller):
         self.controller = controller
         self.command_event = self.controller.command_event
-        self.command_event('Calibrations', 'setting_change("' + str(setting) + '", "' + str(value) + '")')
-        # TODO: We need to call a refresh of the remote data here.
+        print('sending new settings', self.controller.editvar['debug_screen_mode'])
+        self.controller.send(  # Transmit new settings.
+            self.controller.stage_id,
+            {
+                'SENDER': self.controller.settings.director_id,
+                'DATA': {'SETTINGS': self.controller.editvar}
+            }
+        )
+        self.command_event('Calibrations', 'settings_save()')  # Inform the stage to update accordingly.
 
 
 def center_weights(parent, row=True, rows=1, col=True, cols=1):
