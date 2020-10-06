@@ -1884,16 +1884,14 @@ class Calibrations(Frame):
         """
         This will open a stats stream windows.
         """
-        boot_time = StringVar()
-        cpu_load = StringVar()
-        values = {
-            'BOOT_TIME': boot_time,
-            'CPU_LOAD': cpu_load
-        }
+        values = dict()
+        for key in range(8):
+            exec('values[\'s_' + str(key + 1) + '\'] = StringVar()')
         self.str_wdo = stream_window(
             self,
             self.base,
-            "['SYS']['STATS']",
+            # "['SYS']['STATS']",
+            "['SUB_STATS']",
             1,
             self.stream_term,
             'Calibrations',
@@ -1902,8 +1900,8 @@ class Calibrations(Frame):
             lambda q=self: self.close_streamer()
         )
         self.str_wdo.place(
-            x=prx(50),
-            y=pry(50)
+            x=prx(25),
+            y=pry(5)
         )
 
     def calibrate_gyros(self):
@@ -3395,27 +3393,37 @@ def stream_window(controller, parent, requested_data, requested_cycletime, termi
     time.sleep(1)  # Wait for values
     base = Frame(
         parent,
-        bg=theme['main']
+        bg=theme['main'],
+        highlightthickness=pry(1),
+        highlightbackground=theme['entrybackground']
     )
     left = Frame(
         base,
-        bg=theme['main']
+        bg=theme['main'],
+        padx=pry(1),
+        pady=pry(1)
     )
     left.grid(row=0, column=0)
     right = Frame(
         base,
-        bg=theme['main']
+        bg=theme['main'],
+        padx=pry(1),
+        pady=pry(1)
     )
     right.grid(row=0, column=1)
     idx = 0
     for idx, var in enumerate(varss):  # Create rows of values.
+        if 's_' in var:  # Exclude dummy labels.
+            text = ''
+        else:
+            text = var
         lbll = config_text(
             Label(
                 left,
                 anchor="w",
                 justify=LEFT
             ),
-            text=var
+            text=text
         )
         lbll.grid(row=idx, column=0, sticky="W")
         lblr = config_text(
@@ -3472,8 +3480,8 @@ def streamer(controller, requested_data, requested_cycletime, terminator, target
             tm = ct.stream_term
             # print(tm)
             try:
-                rds = rd.split("[")
-                key = '[' + rds[-1]
+                rds = rd.split("[")  # Split string of keys
+                key = '[' + rds[-1]  # Extract Last Key
                 dta = eval('ct.rt_data[\'LISTENER\'][ct.stage_id]' + key)
                 for vr in vrs:
                     var = vrs[vr]
