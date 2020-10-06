@@ -1635,6 +1635,7 @@ class Calibrations(Frame):
         Frame.__init__(self, parent)
         self.controller = controller
         self.stream_term = False
+        self.str_wdo = None
         self.send_command = self.controller.director.send_command
         self.send = self.controller.director.send
         self.command = self.controller.command
@@ -1872,6 +1873,13 @@ class Calibrations(Frame):
 
         # self.refresh()
 
+    def close_streamer(self):
+        """
+        This destroys a streamer window and closes its thread.
+        """
+        self.stream_term = True
+        self.str_wdo.destroy()
+
     def stats(self):
         """
         This will open a stats stream windows.
@@ -1882,17 +1890,18 @@ class Calibrations(Frame):
             'BOOT_TIME': boot_time,
             'CPU_LOAD': cpu_load
         }
-        sw = stream_window(
+        self.str_wdo = stream_window(
             self,
             self.base,
             "['SYS']['STATS']",
-            0.3,
+            1,
             self.stream_term,
             'Calibrations',
             values,
-            'stats'
+            'stats',
+            lambda q=self: self.close_streamer()
         )
-        sw.place(
+        self.str_wdo.place(
             x=prx(50),
             y=pry(50)
         )
@@ -3377,7 +3386,7 @@ class SaveRemoteSettings:
         self.command_event('Calibrations', 'settings_save()')  # Inform the stage to update accordingly.
 
 
-def stream_window(controller, parent, requested_data, requested_cycletime, terminator, target, varss, mode=None):
+def stream_window(controller, parent, requested_data, requested_cycletime, terminator, target, varss, mode=None, command=None):
     """
     This will create a simple frame listing titles on the left and values on the right.
     This data will be updated from a streamer thread in real time.
@@ -3426,7 +3435,8 @@ def stream_window(controller, parent, requested_data, requested_cycletime, termi
     exit_button = config_button(
         Button(
             exit_frame,
-            text='close'
+            text='close',
+            command=command
         ),
         size=4
     )
@@ -3459,7 +3469,8 @@ def streamer(controller, requested_data, requested_cycletime, terminator, target
         fail = 0
         key = None
         while not tm and fail < 10:
-            # print('receiving stream')
+            tm = ct.stream_term
+            # print(tm)
             try:
                 rds = rd.split("[")
                 key = '[' + rds[-1]
@@ -3483,6 +3494,7 @@ def streamer(controller, requested_data, requested_cycletime, terminator, target
                 print(ct.rt_data['LISTENER'])
                 time.sleep(1)
                 pass
+        ct.stream_term = False
         ct.command_event(tg, 'close_stream()')  # Close stream when we are finished.
         print(ct.rt_data['LISTENER'])
         print('requesting stream closure')
