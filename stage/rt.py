@@ -325,8 +325,8 @@ class Start:
             """
             This is our transmitter loop.
             """
-            while not slf.datastream_term:  # Loop to transmit data stream.
-                print('transmitting stream')
+            while not slf.datastream_term and not self.reconnecting:  # Loop to transmit data stream.
+                # print('transmitting stream')
                 tm = 0
                 while tm <= 10 and slf.reconnecting:  # Pause with timeout if we lose connection.
                     time.sleep(1)
@@ -335,7 +335,7 @@ class Start:
                         break  # Break loop and close thread.
                     else:
                         tm += 1
-                print('EVALUATION', 'self.rt_data' + str(msg))
+                # print('EVALUATION', 'self.rt_data' + str(msg))
                 msgs = msg.split("[")[-1][1:-2]  # Pull out remote key name.
                 slf.send({'SENDER': slf.settings.stage_id, 'DATA': {msgs: eval('slf.rt_data' + str(msg))}})  # Send data.
                 time.sleep(ct)  # Wait for cycle time.

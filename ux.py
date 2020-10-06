@@ -1876,21 +1876,25 @@ class Calibrations(Frame):
         """
         This will open a stats stream windows.
         """
-        self.command_event('Calibrations', 'debug_mode("stats")')  # Set remote debugging mode.
         boot_time = StringVar()
         cpu_load = StringVar()
         values = {
             'BOOT_TIME': boot_time,
             'CPU_LOAD': cpu_load
         }
-        stream_window(
+        sw = stream_window(
             self,
             self.base,
             "['SYS']['STATS']",
-            1,
+            0.3,
             self.stream_term,
             'Calibrations',
-            values
+            values,
+            'stats'
+        )
+        sw.place(
+            x=prx(50),
+            y=pry(50)
         )
 
     def calibrate_gyros(self):
@@ -3373,58 +3377,70 @@ class SaveRemoteSettings:
         self.command_event('Calibrations', 'settings_save()')  # Inform the stage to update accordingly.
 
 
-def stream_window(controller, parent, requested_data, requested_cycletime, terminator, target, varss):
+def stream_window(controller, parent, requested_data, requested_cycletime, terminator, target, varss, mode=None):
     """
     This will create a simple frame listing titles on the left and values on the right.
     This data will be updated from a streamer thread in real time.
     """
-    print('HERE')
-    streamer(controller, requested_data, requested_cycletime, terminator, target, varss)  # Start stream
+    streamer(controller, requested_data, requested_cycletime, terminator, target, varss, mode)  # Start stream
     time.sleep(1)  # Wait for values
     base = Frame(
         parent,
-    )
-    base.place(
-        x=0,
-        y=0
+        bg=theme['main']
     )
     left = Frame(
         base,
+        bg=theme['main']
     )
     left.grid(row=0, column=0)
     right = Frame(
         base,
+        bg=theme['main']
     )
     right.grid(row=0, column=1)
-
+    idx = 0
     for idx, var in enumerate(varss):  # Create rows of values.
         lbll = config_text(
             Label(
                 left,
+                anchor="w",
+                justify=LEFT
             ),
             text=var
         )
-        lbll.grid(row=idx, column=0)
+        lbll.grid(row=idx, column=0, sticky="W")
         lblr = config_text(
             Label(
-                right
+                right,
+                anchor="w",
+                justify=LEFT
             ),
             text=varss[var]
         )
-        lblr.grid(row=idx, column=0)
+        lblr.grid(row=idx, column=1, sticky="W")
 
     exit_frame = Frame(
         base,
     )
-    exit_frame.grid(row=1, columnspan=2)
+    exit_frame.grid(row=idx + 1, columnspan=2)
+    exit_button = config_button(
+        Button(
+            exit_frame,
+            text='close'
+        ),
+        size=4
+    )
+    exit_button.pack()
+
+    return base
 
 
-def streamer(controller, requested_data, requested_cycletime, terminator, target, varss):
+def streamer(controller, requested_data, requested_cycletime, terminator, target, varss, mode=None):
     """
     This will send a "send_stream" request to a target stage. then launch a thread to update a series of tkinter variables.
     NOTE this will use the send_command method within our controller.
 
-    TODO: Change requested_data into a list so we can call sub keys.
+    TODO: We need to be avle to pass a termination command...
 
     Example:
         requested_data = "IMU" - This will set up a stream sending the "IMU" key from the remote real time model
@@ -3443,7 +3459,7 @@ def streamer(controller, requested_data, requested_cycletime, terminator, target
         fail = 0
         key = None
         while not tm and fail < 10:
-            print('receiving stream')
+            # print('receiving stream')
             try:
                 rds = rd.split("[")
                 key = '[' + rds[-1]
@@ -3464,6 +3480,7 @@ def streamer(controller, requested_data, requested_cycletime, terminator, target
             except KeyError:
                 fail += 1
                 print('waiting for data', '[' + ct.stage_id + ']' + key)
+                print(ct.rt_data['LISTENER'])
                 time.sleep(1)
                 pass
         ct.command_event(tg, 'close_stream()')  # Close stream when we are finished.
@@ -3484,7 +3501,7 @@ def streamer(controller, requested_data, requested_cycletime, terminator, target
     )
     t.start()
     requested_data = '"' + requested_data + '"'
-    controller.command_event(target, 'send_stream(' + requested_data + ', ' + str(requested_cycletime) + ')')
+    controller.command_event(target, 'send_stream(' + requested_data + ', ' + str(requested_cycletime) + ', "' + str(mode) + '")')
 
 
 def center_weights(parent, row=True, rows=1, col=True, cols=1):

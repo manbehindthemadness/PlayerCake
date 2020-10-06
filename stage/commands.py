@@ -82,13 +82,14 @@ class Command:
         """
         self.rt_self.close()
 
-    def debug_mode(self, mode):
+    def debug_mode(self, mode, skip=False):
         """
         Here we will change our screen debugging mode.
         """
         self.rt_self.settings.debug_screen_mode = mode
         self.setting_change('debug_screen_mode', mode)
-        self.settings.save()
+        if skip:
+            self.settings.save()
 
     def setting_change(self, setting, value):
         """
@@ -141,12 +142,14 @@ class Command:
         print('sending settings', self.settings.settings['debug_screen_mode'])
         self.rt_self.send({'SENDER': self.settings.stage_id, 'DATA': {'SETTINGS': self.settings.settings}})
 
-    def send_stream(self, requested_data, requested_cycletime):
+    def send_stream(self, requested_data, requested_cycletime, mode=None):
         """
         This will initiate a datastream to the director.
 
         NOTE: Requested data represents the key in the stages realtime model that will be transmitted.
         """
+        if mode:
+            self.debug_mode(mode, True)
         self.rt_self.send_datastream(requested_data, requested_cycletime)
 
     def close_stream(self):
