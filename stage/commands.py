@@ -6,6 +6,7 @@ NOTE: We will evaluate the imports to a list so we can cross check the ingress a
 """
 
 import sys
+import time
 from warehouse.system import system_command
 from warehouse.utils import split_string
 from warehouse.loggers import dprint
@@ -150,6 +151,7 @@ class Command:
         """
         if mode:
             self.debug_mode(mode, True)
+            time.sleep(1)
         self.rt_self.send_datastream(requested_data, requested_cycletime)
 
     def close_stream(self):

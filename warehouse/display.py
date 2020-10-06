@@ -198,6 +198,10 @@ class Display:
                 text = template[str(idx + 1)]['message']
                 draw.text((0, inc), str(text), font=self.font2, fill="white")
                 inc += 7
+        # Build model for director stream.
+        ss = self.controller.rt_data['SUB_STATS'] = dict()
+        for key in template:
+            ss['s_' + key] = template[key]['message']
 
     def adc(self):
         """
