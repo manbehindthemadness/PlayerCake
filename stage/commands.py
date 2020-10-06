@@ -67,10 +67,13 @@ class Command:
         valid = self.verify()
         if valid and command:
             try:
-                exec(self.command)
-            except NameError:
-                exec('self.' + self.command)
-            dprint(self.settings, ('Command executed:', self.command,))
+                try:
+                    exec(self.command)
+                except NameError:
+                    exec('self.' + self.command)
+                dprint(self.settings, ('Command executed:', self.command,))
+            except TypeError as err:
+                print('exec + ', self.command, err)
         # self.command = ''
 
     def close(self):
@@ -99,7 +102,7 @@ class Command:
         """
         Saves the running settings to file.
         """
-        print(self.rt_self.rt_data['LISTENER'])
+        # print(self.rt_self.rt_data['LISTENER'])
 
         self.settings.save()
 
@@ -137,7 +140,20 @@ class Command:
         """
         print('sending settings', self.settings.settings['debug_screen_mode'])
         self.rt_self.send({'SENDER': self.settings.stage_id, 'DATA': {'SETTINGS': self.settings.settings}})
-        # TODO: Update settings model here and save to file.
+
+    def send_stream(self, requested_data, requested_cycletime):
+        """
+        This will initiate a datastream to the director.
+
+        NOTE: Requested data represents the key in the stages realtime model that will be transmitted.
+        """
+        self.rt_self.send_datastream(requested_data, requested_cycletime)
+
+    def close_stream(self):
+        """
+        This will close an outgoing datastream.
+        """
+        self.rt_self.datastream_term = True
 
 
 def command_test():

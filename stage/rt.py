@@ -119,6 +119,7 @@ class Start:
     def __init__(self):
         global rt_data
         global term
+        self.datastream_term = False
         self.scanning = False
         self.sending = False
         self.lines = ['system init']
@@ -315,6 +316,34 @@ class Start:
             elif self.rt_data['LISTENER'][self.settings.director_id]['STATUS'] == 'ready':  # This will allow us to re-confirm after connection dropouts.
                 self.connected = False
             time.sleep(1)
+
+    def send_datastream(self, message, cycle_time):
+        """
+        This will initiate a real time datastream upload to the director.
+        """
+        def transmitter(slf, msg, ct):
+            """
+            This is our transmitter loop.
+            """
+            while not slf.datastream_term:  # Loop to transmit data stream.
+                print('transmitting stream')
+                tm = 0
+                while tm <= 10 and slf.reconnecting:  # Pause with timeout if we lose connection.
+                    time.sleep(1)
+                    if tm == 10:
+                        slf.datastream_term = True  # Send termination signal.
+                        break  # Break loop and close thread.
+                    else:
+                        tm += 1
+                print('EVALUATION', 'self.rt_data' + str(msg))
+                msgs = msg.split("[")[-1][1:-2]  # Pull out remote key name.
+                slf.send({'SENDER': slf.settings.stage_id, 'DATA': {msgs: eval('slf.rt_data' + str(msg))}})  # Send data.
+                time.sleep(ct)  # Wait for cycle time.
+            slf.datastream_term = False  # Reset term signal and close.
+            print('closing datastream')
+        print('starting datastream')
+        t = Thread(target=transmitter, args=(self, message, cycle_time,))
+        t.start()
 
     def command_parser(self):
         """

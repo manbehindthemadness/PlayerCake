@@ -192,7 +192,7 @@ class BuildSettings:
         else:
             store_old = None
             store = self.settings
-        print('saving settings')
+        # print('saving settings')
         self.config.read(self.filename, encoding='utf-8-sig')  # Read settings file.
         for key in store:  # We need to get to the bottom of this changing size during operation.
             if upgrade:

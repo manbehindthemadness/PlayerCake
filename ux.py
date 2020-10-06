@@ -33,7 +33,7 @@ from warehouse.system import system_command
 from warehouse.utils import percent_of, percent_in, file_rename
 from warehouse.uxutils import image_resize
 from writer.plot import pymesh_stl
-from director.rt import Start
+
 
 scr_x, scr_y = settings.screensize
 
@@ -1634,6 +1634,7 @@ class Calibrations(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         self.controller = controller
+        self.stream_term = False
         self.send_command = self.controller.director.send_command
         self.send = self.controller.director.send
         self.command = self.controller.command
@@ -1737,7 +1738,7 @@ class Calibrations(Frame):
         ]
         commands = [
             lambda: self.command_event('Calibrations', 'debug_mode("text")'),
-            lambda: self.command_event('Calibrations', 'debug_mode("stats")'),
+            lambda: self.stats(),
             lambda: self.command_event('Calibrations', 'debug_mode("pwm")'),
             lambda: self.command_event('Calibrations', 'debug_mode("adc")'),
             lambda: self.command_event('Calibrations', 'debug_mode("gyro")'),
@@ -1871,6 +1872,47 @@ class Calibrations(Frame):
 
         # self.refresh()
 
+    def stats(self):
+        """
+        This will open a stats stream windows.
+        """
+        self.command_event('Calibrations', 'debug_mode("stats")')  # Set remote debugging mode.
+        boot_time = StringVar()
+        cpu_load = StringVar()
+        values = {
+            'BOOT_TIME': boot_time,
+            'CPU_LOAD': cpu_load
+        }
+        stream_window(
+            self,
+            self.base,
+            "['SYS']['STATS']",
+            1,
+            self.stream_term,
+            'Calibrations',
+            values
+        )
+
+    def calibrate_gyros(self):
+        """
+        This will open a datastream allowing for realtime monitoring of gyro calibration status
+        """
+
+    def check_for_stage(self, target=None):
+        """
+        This checks that we have a stage selected, if not shows an error.
+        """
+        if not target:
+            target = self.controller.target
+        result = False
+        if self.stagename and self.stage_id:
+            result = True
+        else:
+            self.controller.target = target
+            self.controller.temp['error_message'].set('please select a stage')
+            self.controller.show_frame('ErrorWidget')
+        return result
+
     def refresh(self, page=None):
         """
         This will refresh our stage related data.
@@ -1885,19 +1927,14 @@ class Calibrations(Frame):
         """
         This issues a command to the selected stage. will show an error if no stage is selected.
         """
-
-        if self.stagename and self.stage_id:
+        if self.check_for_stage(target):
             self.send_command(self.stage_id, command)
-        else:
-            self.controller.target = target
-            self.controller.temp['error_message'].set('please select a stage')
-            self.controller.show_frame('ErrorWidget')
 
     def edit_setting(self):
         """
         This will launch the settings editor.
         """
-        if self.stage_id:  # We may need to move this.
+        if self.check_for_stage('Calibrations'):
             self.refresh_remote_settings()
             self.editvar = self.remote_settings
             Editor(self.base, self)
@@ -1963,7 +2000,7 @@ class MainView(tk.Tk):
         self.rt_data['key_test'].set('')
         self.spacer = get_spacer()
         self.update()  # I wish I had thought of this sooner...
-
+        from director.rt import Start  # Attempts to keep ourselves somewhat thread safe...
         self.director = Start(self)  # online director.
 
         container = tk.Frame(self)
@@ -3336,6 +3373,120 @@ class SaveRemoteSettings:
         self.command_event('Calibrations', 'settings_save()')  # Inform the stage to update accordingly.
 
 
+def stream_window(controller, parent, requested_data, requested_cycletime, terminator, target, varss):
+    """
+    This will create a simple frame listing titles on the left and values on the right.
+    This data will be updated from a streamer thread in real time.
+    """
+    print('HERE')
+    streamer(controller, requested_data, requested_cycletime, terminator, target, varss)  # Start stream
+    time.sleep(1)  # Wait for values
+    base = Frame(
+        parent,
+    )
+    base.place(
+        x=0,
+        y=0
+    )
+    left = Frame(
+        base,
+    )
+    left.grid(row=0, column=0)
+    right = Frame(
+        base,
+    )
+    right.grid(row=0, column=1)
+
+    for idx, var in enumerate(varss):  # Create rows of values.
+        lbll = config_text(
+            Label(
+                left,
+            ),
+            text=var
+        )
+        lbll.grid(row=idx, column=0)
+        lblr = config_text(
+            Label(
+                right
+            ),
+            text=varss[var]
+        )
+        lblr.grid(row=idx, column=0)
+
+    exit_frame = Frame(
+        base,
+    )
+    exit_frame.grid(row=1, columnspan=2)
+
+
+def streamer(controller, requested_data, requested_cycletime, terminator, target, varss):
+    """
+    This will send a "send_stream" request to a target stage. then launch a thread to update a series of tkinter variables.
+    NOTE this will use the send_command method within our controller.
+
+    TODO: Change requested_data into a list so we can call sub keys.
+
+    Example:
+        requested_data = "IMU" - This will set up a stream sending the "IMU" key from the remote real time model
+        requested_cycletime = 1 - Send the data once a second.
+        terminator = <stream termination variable>
+        target = Target frame to raise.
+        varss = {
+            'tiltcompensatedheading': tk.StringVar(),  - we pass a string var instance used elsewhere.
+        }
+        Note: the keys within the vars dictionary will be looked up as such: controller.rt_data['LISTENER'][<requested_data>][<key>].
+    """
+    def updater(ct, rd, rc, tm, tg, vrs):
+        """
+        This is our threaded realtime update loop.
+        """
+        fail = 0
+        key = None
+        while not tm and fail < 10:
+            print('receiving stream')
+            try:
+                rds = rd.split("[")
+                key = '[' + rds[-1]
+                dta = eval('ct.rt_data[\'LISTENER\'][ct.stage_id]' + key)
+                for vr in vrs:
+                    var = vrs[vr]
+                    try:
+                        var.set(dta[vr])  # Update vars with new data.
+                    except KeyError:  # Handle delays in transmission.
+                        if isinstance(var, StringVar):
+                            var.set('waiting')
+                        elif isinstance(var, IntVar):
+                            var.set(0)
+                        elif isinstance(var, BooleanVar):
+                            var.set(0.0)
+                time.sleep(rc)  # Wait for cycle time.
+                fail = 0
+            except KeyError:
+                fail += 1
+                print('waiting for data', '[' + ct.stage_id + ']' + key)
+                time.sleep(1)
+                pass
+        ct.command_event(tg, 'close_stream()')  # Close stream when we are finished.
+        print(ct.rt_data['LISTENER'])
+        print('requesting stream closure')
+
+    print('requesting stream')
+    t = Thread(
+        target=updater,
+        args=(
+            controller,
+            requested_data,
+            requested_cycletime,
+            terminator,
+            target,
+            varss
+        )
+    )
+    t.start()
+    requested_data = '"' + requested_data + '"'
+    controller.command_event(target, 'send_stream(' + requested_data + ', ' + str(requested_cycletime) + ')')
+
+
 def center_weights(parent, row=True, rows=1, col=True, cols=1):
     """
     This centers the pparent's grid weights
@@ -3728,11 +3879,11 @@ def open_window(parent):
     return Toplevel(parent)
 
 
-def cp(value, offset):
+def cp(to_move, to_correct):
     """
     This offsets the position of an object from the the side to the middle.
     """
-    return value - (offset / 2)
+    return to_move - (to_correct / 2)
 
 
 def prx(percent, use_float=False):
@@ -3820,4 +3971,5 @@ app.geometry(
     str(scr_x) + 'x' + str(scr_y) + '+0+0'
 )
 
+# if __name__ == '__main__':
 app.mainloop()

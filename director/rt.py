@@ -67,9 +67,6 @@ class Start:
             self.threads.append(Thread(target=self.debug, args=()))
 
         for thread in self.threads:  # Launch threads.
-            # thread.setDaemon(True)
-            # f __name__ == '__main__':
-            print(__name__)
             thread.start()
 
     def debug(self):
