@@ -32,7 +32,8 @@ class Command:
         self.whitelist = [
             'debug_mode("adc")',
             'send_settings()',
-            'settings_save()'
+            'settings_save()',
+            'send_stream("[\'SUB_ADC\']", 0.05, "adc")'
         ]
         self.dummy = None
 

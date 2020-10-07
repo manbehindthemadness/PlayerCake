@@ -163,8 +163,9 @@ class Display:
                             inc += 7
                             if inc <= 49:
                                 draw.text((0, inc), tx, font=self.font2, fill="white")
-                # print(len(txt), txt)
-                # time.sleep(1)
+        ss = self.controller.rt_data['SUB_TEXT'] = dict()
+        for idx, line in enumerate(lines[:7]):
+            ss['s_' + str(idx)] = line + '\t'
 
     def stats(self):
         """
@@ -223,6 +224,10 @@ class Display:
                     draw.text((0, inc), str(ll), font=self.font2, fill="white")
                     draw.text((64, inc), str(r), font=self.font2, fill="white")
                     inc += 7
+            # build model for director stream.
+            ss = self.controller.rt_data['SUB_ADC'] = dict()
+            for idx, (ll, r) in enumerate(zip(col_1, col_2)):
+                ss['s_' + str(idx)] = ll + '\t' + r + '\t'
         except KeyError:
             self.wait()
 

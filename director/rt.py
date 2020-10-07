@@ -191,7 +191,7 @@ class Start:
                         # TODO: start heartbeat thread here.
                         thread = Thread(target=self.heartbeat, args=(stage,))
                         thread.start()
-            except (KeyError, ConnectionRefusedError) as err:
+            except (KeyError, ConnectionRefusedError, RuntimeError) as err:
                 track = traceback.format_exc()  # Show full stack.
                 self.notification.set('client ' + client + ' failed to connect')
                 self.notify()

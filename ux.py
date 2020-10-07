@@ -1738,10 +1738,10 @@ class Calibrations(Frame):
             'sonar'
         ]
         commands = [
-            lambda: self.command_event('Calibrations', 'debug_mode("text")'),
+            lambda: self.text(),
             lambda: self.stats(),
             lambda: self.command_event('Calibrations', 'debug_mode("pwm")'),
-            lambda: self.command_event('Calibrations', 'debug_mode("adc")'),
+            lambda: self.adc(),
             lambda: self.command_event('Calibrations', 'debug_mode("gyro")'),
             '',
             lambda: self.command_event('Calibrations', 'debug_mode("sonar")'),
@@ -1880,24 +1880,72 @@ class Calibrations(Frame):
         self.stream_term = True
         self.str_wdo.destroy()
 
+    def text(self):
+        """
+        This allows us to view the remote console.
+        """
+        self.stream_term = False
+        values = dict()
+        for key in range(8):
+            exec('values[\'s_' + str(key) + '\'] = StringVar()')
+        self.str_wdo = stream_window(
+            controller=self,
+            parent=self.base,
+            requested_data="['SUB_TEXT']",
+            requested_cycletime=1,
+            terminator=self.stream_term,
+            target='Calibrations',
+            varss=values,
+            mode='text',
+            command=lambda q=self: self.close_streamer()
+        )
+        self.str_wdo.place(
+            x=prx(25),
+            y=pry(5)
+        )
+
     def stats(self):
         """
         This will open a stats stream windows.
         """
+        self.stream_term = False
         values = dict()
         for key in range(8):
             exec('values[\'s_' + str(key + 1) + '\'] = StringVar()')
         self.str_wdo = stream_window(
-            self,
-            self.base,
-            # "['SYS']['STATS']",
-            "['SUB_STATS']",
-            1,
-            self.stream_term,
-            'Calibrations',
-            values,
-            'stats',
-            lambda q=self: self.close_streamer()
+            controller=self,
+            parent=self.base,
+            requested_data="['SUB_STATS']",
+            requested_cycletime=1,
+            terminator=self.stream_term,
+            target='Calibrations',
+            varss=values,
+            mode='stats',
+            command=lambda q=self: self.close_streamer()
+        )
+        self.str_wdo.place(
+            x=prx(25),
+            y=pry(5)
+        )
+
+    def adc(self):
+        """
+        This will open a datastream showing the ADC activity.
+        """
+        self.stream_term = False
+        values = dict()
+        for key in range(8):
+            exec('values[\'s_' + str(key) + '\'] = StringVar()')
+        self.str_wdo = stream_window(
+            controller=self,
+            parent=self.base,
+            requested_data="['SUB_ADC']",
+            requested_cycletime=0.05,
+            terminator=self.stream_term,
+            target='Calibrations',
+            varss=values,
+            mode='adc',
+            command=lambda q=self: self.close_streamer()
         )
         self.str_wdo.place(
             x=prx(25),
@@ -3499,13 +3547,18 @@ def streamer(controller, requested_data, requested_cycletime, terminator, target
             except KeyError:
                 fail += 1
                 print('waiting for data', '[' + ct.stage_id + ']' + key)
-                print(ct.rt_data['LISTENER'])
+                # print(ct.rt_data['LISTENER'])
                 time.sleep(1)
                 pass
         ct.stream_term = False
         ct.command_event(tg, 'close_stream()')  # Close stream when we are finished.
-        print(ct.rt_data['LISTENER'])
-        print('requesting stream closure')
+        # print(ct.rt_data['LISTENER'])
+        msg = ''
+        if tm:
+            msg = 'termination signal recieved'
+        elif not fail < 10:
+            msg = 'retry limit exceeded'
+        print('requesting stream closure', msg)
 
     print('requesting stream')
     t = Thread(

@@ -325,7 +325,7 @@ class Start:
             """
             This is our transmitter loop.
             """
-            while not slf.datastream_term and not self.reconnecting:  # Loop to transmit data stream.
+            while not slf.datastream_term and self.connected:  # Loop to transmit data stream.
                 # print('transmitting stream')
                 tm = 0
                 while tm <= 10 and slf.reconnecting:  # Pause with timeout if we lose connection.
@@ -340,7 +340,9 @@ class Start:
                 slf.send({'SENDER': slf.settings.stage_id, 'DATA': {msgs: eval('slf.rt_data' + str(msg))}})  # Send data.
                 time.sleep(ct)  # Wait for cycle time.
             slf.datastream_term = False  # Reset term signal and close.
-            print('closing datastream')
+            if not self.connected:
+                print('connection lost')
+            print('closing datastream\n', 'term', slf.datastream_term, 'status', slf.connected)
         print('starting datastream')
         t = Thread(target=transmitter, args=(self, message, cycle_time,))
         t.start()
