@@ -33,7 +33,8 @@ class Command:
             'debug_mode("adc")',
             'send_settings()',
             'settings_save()',
-            'send_stream("[\'SUB_ADC\']", 0.05, "adc")'
+            'send_stream("[\'SUB_ADC\']", 0.05, "adc")',
+            'send_stream("[\'SUB_PWM\']", 0.05, "pwm")'
         ]
         self.dummy = None
 

@@ -1635,6 +1635,7 @@ class Calibrations(Frame):
         Frame.__init__(self, parent)
         self.controller = controller
         self.stream_term = False
+        self.stream_ready = False
         self.str_wdo = None
         self.send_command = self.controller.director.send_command
         self.send = self.controller.director.send
@@ -1733,17 +1734,17 @@ class Calibrations(Frame):
             'stats',
             'PWM',
             'ADC',
+            'PWM/ADC',
             'IMU/9DOF',
-            'GPS',
             'sonar'
         ]
         commands = [
             lambda: self.text(),
             lambda: self.stats(),
-            lambda: self.command_event('Calibrations', 'debug_mode("pwm")'),
+            lambda: self.pwm(),
             lambda: self.adc(),
-            lambda: self.command_event('Calibrations', 'debug_mode("gyro")'),
-            '',
+            lambda: self.pwmadc(),
+            lambda: self.gyro(),
             lambda: self.command_event('Calibrations', 'debug_mode("sonar")'),
         ]
         button_array(
@@ -1883,74 +1884,154 @@ class Calibrations(Frame):
     def text(self):
         """
         This allows us to view the remote console.
+
+        TODO: These debugging states are expected to change in the future and have been left exploded for ease of editing.
         """
-        self.stream_term = False
-        values = dict()
-        for key in range(8):
-            exec('values[\'s_' + str(key) + '\'] = StringVar()')
-        self.str_wdo = stream_window(
-            controller=self,
-            parent=self.base,
-            requested_data="['SUB_TEXT']",
-            requested_cycletime=1,
-            terminator=self.stream_term,
-            target='Calibrations',
-            varss=values,
-            mode='text',
-            command=lambda q=self: self.close_streamer()
-        )
-        self.str_wdo.place(
-            x=prx(25),
-            y=pry(5)
-        )
+        if self.check_for_stage('Calibrations'):
+            self.stream_term = False
+            values = dict()
+            for key in range(8):
+                exec('values[\'s_' + str(key) + '\'] = StringVar()')
+            self.str_wdo = stream_window(
+                controller=self,
+                parent=self.base,
+                requested_data="['SUB_TEXT']",
+                requested_cycletime=1,
+                terminator=self.stream_term,
+                target='Calibrations',
+                varss=values,
+                mode='text',
+                command=lambda q=self: self.close_streamer()
+            )
+            self.str_wdo.place(
+                x=prx(25),
+                y=pry(5)
+            )
 
     def stats(self):
         """
         This will open a stats stream windows.
         """
-        self.stream_term = False
-        values = dict()
-        for key in range(8):
-            exec('values[\'s_' + str(key + 1) + '\'] = StringVar()')
-        self.str_wdo = stream_window(
-            controller=self,
-            parent=self.base,
-            requested_data="['SUB_STATS']",
-            requested_cycletime=1,
-            terminator=self.stream_term,
-            target='Calibrations',
-            varss=values,
-            mode='stats',
-            command=lambda q=self: self.close_streamer()
-        )
-        self.str_wdo.place(
-            x=prx(25),
-            y=pry(5)
-        )
+        if self.check_for_stage('Calibrations'):
+            self.stream_term = False
+            values = dict()
+            for key in range(8):
+                exec('values[\'s_' + str(key + 1) + '\'] = StringVar()')
+            self.str_wdo = stream_window(
+                controller=self,
+                parent=self.base,
+                requested_data="['SUB_STATS']",
+                requested_cycletime=1,
+                terminator=self.stream_term,
+                target='Calibrations',
+                varss=values,
+                mode='stats',
+                command=lambda q=self: self.close_streamer()
+            )
+            self.str_wdo.place(
+                x=prx(25),
+                y=pry(5)
+            )
 
     def adc(self):
         """
         This will open a datastream showing the ADC activity.
         """
-        self.stream_term = False
-        values = dict()
-        for key in range(8):
-            exec('values[\'s_' + str(key) + '\'] = StringVar()')
-        self.str_wdo = stream_window(
-            controller=self,
-            parent=self.base,
-            requested_data="['SUB_ADC']",
-            requested_cycletime=0.05,
-            terminator=self.stream_term,
-            target='Calibrations',
-            varss=values,
-            mode='adc',
-            command=lambda q=self: self.close_streamer()
-        )
-        self.str_wdo.place(
-            x=prx(25),
-            y=pry(5)
-        )
+        if self.check_for_stage('Calibrations'):
+            self.stream_term = False
+            values = dict()
+            for key in range(8):
+                exec('values[\'s_' + str(key) + '\'] = StringVar()')
+            self.str_wdo = stream_window(
+                controller=self,
+                parent=self.base,
+                requested_data="['SUB_ADC']",
+                requested_cycletime=0.05,
+                terminator=self.stream_term,
+                target='Calibrations',
+                varss=values,
+                mode='adc',
+                command=lambda q=self: self.close_streamer()
+            )
+            self.str_wdo.place(
+                x=prx(25),
+                y=pry(5)
+            )
+
+    def pwm(self):
+        """
+        This will open a datastream showing the ADC activity.
+        """
+        if self.check_for_stage('Calibrations'):
+            self.stream_term = False
+            values = dict()
+            for key in range(8):
+                exec('values[\'s_' + str(key) + '\'] = StringVar()')
+            self.str_wdo = stream_window(
+                controller=self,
+                parent=self.base,
+                requested_data="['SUB_PWM']",
+                requested_cycletime=0.05,
+                terminator=self.stream_term,
+                target='Calibrations',
+                varss=values,
+                mode='pwm',
+                command=lambda q=self: self.close_streamer()
+            )
+            self.str_wdo.place(
+                x=prx(25),
+                y=pry(5)
+            )
+
+    def pwmadc(self):
+        """
+        This will open a datastream showing the ADC activity.
+        """
+        if self.check_for_stage('Calibrations'):
+            self.stream_term = False
+            values = dict()
+            for key in range(8):
+                exec('values[\'s_' + str(key) + '\'] = StringVar()')
+            self.str_wdo = stream_window(
+                controller=self,
+                parent=self.base,
+                requested_data="['SUB_PWMADC']",
+                requested_cycletime=0.05,
+                terminator=self.stream_term,
+                target='Calibrations',
+                varss=values,
+                mode='pwmadc',
+                command=lambda q=self: self.close_streamer()
+            )
+            self.str_wdo.place(
+                x=prx(25),
+                y=pry(5)
+            )
+
+    def gyro(self):
+        """
+        This will open a datastream showing the ADC activity.
+        """
+        if self.check_for_stage('Calibrations'):
+            self.stream_term = False
+            values = dict()
+            for key in range(8):
+                exec('values[\'s_' + str(key) + '\'] = StringVar()')
+            self.str_wdo = stream_window(
+                controller=self,
+                parent=self.base,
+                requested_data="['SUB_GYRO']",
+                requested_cycletime=0.05,
+                terminator=self.stream_term,
+                target='Calibrations',
+                varss=values,
+                mode='gyro',
+                command=lambda q=self: self.close_streamer()
+            )
+            self.str_wdo.place(
+                x=prx(5),
+                y=pry(5)
+            )
 
     def calibrate_gyros(self):
         """
@@ -3437,8 +3518,12 @@ def stream_window(controller, parent, requested_data, requested_cycletime, termi
     This will create a simple frame listing titles on the left and values on the right.
     This data will be updated from a streamer thread in real time.
     """
-    streamer(controller, requested_data, requested_cycletime, terminator, target, varss, mode)  # Start stream
-    time.sleep(1)  # Wait for values
+    good = controller.check_for_stage(target)
+    if good:
+        streamer(controller, requested_data, requested_cycletime, terminator, target, varss, mode)  # Start stream
+    while not controller.stream_ready:  # Wait for values
+        time.sleep(0.1)
+        pass
     base = Frame(
         parent,
         bg=theme['main'],
@@ -3524,32 +3609,36 @@ def streamer(controller, requested_data, requested_cycletime, terminator, target
         """
         fail = 0
         key = None
-        while not tm and fail < 10:
-            tm = ct.stream_term
-            # print(tm)
-            try:
-                rds = rd.split("[")  # Split string of keys
-                key = '[' + rds[-1]  # Extract Last Key
-                dta = eval('ct.rt_data[\'LISTENER\'][ct.stage_id]' + key)
-                for vr in vrs:
-                    var = vrs[vr]
-                    try:
-                        var.set(dta[vr])  # Update vars with new data.
-                    except KeyError:  # Handle delays in transmission.
-                        if isinstance(var, StringVar):
-                            var.set('waiting')
-                        elif isinstance(var, IntVar):
-                            var.set(0)
-                        elif isinstance(var, BooleanVar):
-                            var.set(0.0)
-                time.sleep(rc)  # Wait for cycle time.
-                fail = 0
-            except KeyError:
-                fail += 1
-                print('waiting for data', '[' + ct.stage_id + ']' + key)
-                # print(ct.rt_data['LISTENER'])
-                time.sleep(1)
-                pass
+        if ct.stage_id:
+            while not tm and fail < 10:
+                tm = ct.stream_term
+                # print(tm)
+                try:
+                    rds = rd.split("[")  # Split string of keys
+                    key = '[' + rds[-1]  # Extract Last Key
+                    dta = eval('ct.rt_data[\'LISTENER\'][ct.stage_id]' + key)
+                    ct.stream_ready = True  # TODO: WHy the hell isn't this getting called??
+                    # print('setting controller ready')
+                    for vr in vrs:
+                        var = vrs[vr]
+                        try:
+                            var.set(dta[vr])  # Update vars with new data.
+                        except KeyError:  # Handle delays in transmission.
+                            if isinstance(var, StringVar):
+                                var.set('waiting')
+                            elif isinstance(var, IntVar):
+                                var.set(0)
+                            elif isinstance(var, BooleanVar):
+                                var.set(0.0)
+                    time.sleep(rc)  # Wait for cycle time.
+                    fail = 0
+                except KeyError:
+                    ct.stream_ready = False
+                    fail += 1
+                    print('waiting for data', '[' + ct.stage_id + ']' + key)
+                    # print(ct.rt_data['LISTENER'])
+                    time.sleep(1)
+                    pass
         ct.stream_term = False
         ct.command_event(tg, 'close_stream()')  # Close stream when we are finished.
         # print(ct.rt_data['LISTENER'])

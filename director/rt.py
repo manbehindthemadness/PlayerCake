@@ -195,6 +195,10 @@ class Start:
                 track = traceback.format_exc()  # Show full stack.
                 self.notification.set('client ' + client + ' failed to connect')
                 self.notify()
+                if self.controller.stage == client:
+                    print('removing target stage, disconnected')
+                    self.controller.stagename.set('')
+                    self.controller.stage_id = None
                 client['STATUS'] = 'disconnected'
                 dprint(self.settings, ('Ready state for client:', client, 'not found, retrying', err))
                 del stages[client]

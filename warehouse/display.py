@@ -11,7 +11,7 @@ from textwrap import wrap
 # import logging
 from luma.core import cmdline, error
 import os
-from warehouse.utils import percent_in, percent_of
+from warehouse.utils import percent_in, percent_of, check_dict
 
 
 # # logging
@@ -120,6 +120,13 @@ class Display:
         meth = eval('self.' + self.mode)
         meth()
 
+    @staticmethod
+    def stm_prefix(value):
+        """
+        This just makes a handy stream key prefix.
+        """
+        return 's_' + str(value)
+
     def text(self):
         """
         This is the micro-console debug mode.
@@ -163,7 +170,7 @@ class Display:
                             inc += 7
                             if inc <= 49:
                                 draw.text((0, inc), tx, font=self.font2, fill="white")
-        ss = self.controller.rt_data['SUB_TEXT'] = dict()
+        ss = check_dict(self.controller.rt_data, 'SUB_TEXT')
         for idx, line in enumerate(lines[:7]):
             ss['s_' + str(idx)] = line + '\t'
 
@@ -200,7 +207,7 @@ class Display:
                 draw.text((0, inc), str(text), font=self.font2, fill="white")
                 inc += 7
         # Build model for director stream.
-        ss = self.controller.rt_data['SUB_STATS'] = dict()
+        ss = check_dict(self.controller.rt_data, 'SUB_STATS')
         for key in template:
             ss['s_' + key] = template[key]['message']
 
@@ -225,7 +232,7 @@ class Display:
                     draw.text((64, inc), str(r), font=self.font2, fill="white")
                     inc += 7
             # build model for director stream.
-            ss = self.controller.rt_data['SUB_ADC'] = dict()
+            ss = check_dict(self.controller.rt_data, 'SUB_ADC')
             for idx, (ll, r) in enumerate(zip(col_1, col_2)):
                 ss['s_' + str(idx)] = ll + '\t' + r + '\t'
         except KeyError:
@@ -256,6 +263,10 @@ class Display:
                     draw.text((0, inc), str(ll), font=self.font2, fill="white")
                     draw.text((64, inc), str(r), font=self.font2, fill="white")
                     inc += 7
+                # build model for director stream.
+                ss = check_dict(self.controller.rt_data, 'SUB_PWM')
+                for idx, (ll, r) in enumerate(zip(col_1, col_2)):
+                    ss['s_' + str(idx)] = ll + '\t' + r + '\t'
         except KeyError:
             self.wait()
 
@@ -324,12 +335,15 @@ class Display:
                 make_cols(col_1, col_2, l_vals)
                 make_cols(col_3, col_4, r_vals)
             inc = 0
+            # build model for director stream.
+            ss = check_dict(self.controller.rt_data, 'SUB_PWMADC')
             with canvas(self.device) as draw:
-                for l1, l2, l3, l4 in zip(col_1, col_2, col_3, col_4):
+                for idx, (l1, l2, l3, l4) in enumerate(zip(col_1, col_2, col_3, col_4)):
                     draw.text((0, inc), str(l1), font=self.font2, fill="white")
                     draw.text((32, inc), str(l2), font=self.font2, fill="white")
                     draw.text((64, inc), str(l3), font=self.font2, fill="white")
                     draw.text((96, inc), str(l4), font=self.font2, fill="white")
+                    ss['s_' + str(idx)] = str(l1) + '\t' + str(l2) + '\t' + str(l3) + '\t' + str(l4) + '\t'
                     inc += 7
         except KeyError as err:
             print(err)
@@ -384,22 +398,35 @@ class Display:
         imu_data = self.controller.rt_data['IMU']
         sensor_data = self.controller.rt_data['9DOF']
         inc = 0
+        # build model for director stream.
+        ss = check_dict(self.controller.rt_data, 'SUB_GYRO')
+        ss_idx = 0
         with canvas(self.device) as draw:
             for sensor in sensor_data:
-                draw.text((0, inc), str(sensor)[0:5] + ':    ', font=self.font2, fill="white")
+                snc = str(sensor)[0:5]
+                draw.text((0, inc), snc + ':    ', font=self.font2, fill="white")
                 data = sensor_data[sensor]
+                dta = snc + ':'  # update stream model.
+
                 if isinstance(data, tuple):
                     idx = 36
                     for val in list(data):
                         draw.text((idx, inc), str(round(val, 2)), font=self.font2,
                                   fill="white")
                         idx += 23
+                        dta += '\t' + str(round(val, 2)) + '\t'  # Update stream model.
                 else:
                     draw.text((36, inc), str(round(sensor_data[sensor], 2)), font=self.font2, fill="white")
+                    dta += str(round(sensor_data[sensor], 2))
                 inc += 8
+                ss[self.stm_prefix(ss_idx)] = dta
+                ss_idx += 1
             for value in um:
-                draw.text((0, inc), value + ': ' + str(imu_data[value])[0:5] + ':    ', font=self.font2, fill="white")
+                dta = value + ': ' + str(imu_data[value])[0:5]
+                draw.text((0, inc), dta + ':    ', font=self.font2, fill="white")
                 inc += 8
+                ss[self.stm_prefix(ss_idx)] = dta  # Update stream model.
+                ss_idx += 1
 
     def gyro_calibrate(self):
         """
