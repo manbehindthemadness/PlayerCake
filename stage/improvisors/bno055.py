@@ -18,6 +18,7 @@ class BNO055:
     def __init__(self, controller):
         self.controller = controller
         self.data = self.controller.rt_data['9DOF']
+        self.calibration_status = None
         s = self.sensor = BNO.BNO055()
         # print(type(self.controller.settings.dof_remap), self.controller.settings.dof_remap)
         mapp, sign = self.controller.settings.dof_remap
@@ -47,12 +48,12 @@ class BNO055:
         This pulls static data from the chip
         """
         self.status = self.sensor.get_system_status()
-        calibration_status = self.sensor.get_calibration_status()
-        if calibration_status == (3, 3, 3, 3):
+        self.calibration_status = self.sensor.get_calibration_status()
+        if self.calibration_status == (3, 3, 3, 3):
             self.is_calibrated = True
         else:
             self.is_calibrated = False
-        sys, gyr, acc, mag = calibration_status
+        sys, gyr, acc, mag = self.calibration_status
         self.calibration_status = 'sy: ' + str(sys) + ' gy: ' + str(gyr) + ' ac: ' + str(acc) + ' ma: ' + str(mag)
 
     def reset_calibration(self):

@@ -433,13 +433,23 @@ class Display:
         This performs calibrations on our backup IMU and the real time 9DOF.
         """
         calibrate = self.controller.calibrate.track()
+        # build model for director stream.
+        ss = check_dict(self.controller.rt_data, 'SUB_GYRO_CALIBRATE')
         with canvas(self.device) as draw:
             inc = 0
+            cnt = 0
             draw.text((100, inc), 'IMU', font=self.font2, fill="white")
+            ss['s_' + str(cnt)] = 'BerryGPS - IMU'  # Update stream model.
+            cnt += 1
             for line in calibrate.report:
+                ss['s_' + str(cnt)] = line  # Update stream model.
                 draw.text((0, inc), line, font=self.font2, fill="white")
                 inc += 7
+                cnt += 1
             draw.text((0, inc), str(calibrate.calibration_status), font=self.font2, fill="white")
             draw.text((100, inc), '9DOF', font=self.font2, fill="white")
             draw.text((0, inc + 7), str(calibrate.status), font=self.font2, fill="white")
-            time.sleep(2)
+            ss['s_' + str(cnt)] = 'BNO055 - 9DOF'  # Update stream model.
+            ss['s_' + str(cnt + 1)] = calibrate.calibration_status  # Update stream model.
+            ss['s_' + str(cnt + 2)] = calibrate.status  # Update stream model.
+            # time.sleep(2)

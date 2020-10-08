@@ -43,13 +43,6 @@ class SetGyros:
         if MAGz < self.magZmin:
             self.magZmin = MAGz
 
-        sett = self.controller.settings
-        sett.set('magXmin', self.magXmin)
-        sett.set('magXmax', self.magXmax)
-        sett.set('magYmin', self.magYmin)
-        sett.set('magYmax', self.magYmax)
-        sett.set('magZmin', self.magZmin)
-        sett.set('magZmax', self.magZmax)
         self.report = [
             'xmi: ' + str(self.magXmin),
             'xma: ' + str(self.magXmax),
@@ -62,3 +55,21 @@ class SetGyros:
         self.calibration_status = self.dof.calibration_status
         self.status = self.dof.status
         return self
+
+    def reset_bno055(self):
+        """
+        This resets the calibrations on the bno055 9DOF unit.
+        """
+        self.controller.dof.reset_calibration()
+
+    def reset_imu(self):
+        """
+        This resets the calibrations on the berry IMU.
+        """
+        sett = self.controller.settings
+        sett.set('magXmin', self.magXmin)
+        sett.set('magXmax', self.magXmax)
+        sett.set('magYmin', self.magYmin)
+        sett.set('magYmax', self.magYmax)
+        sett.set('magZmin', self.magZmin)
+        sett.set('magZmax', self.magZmax)
