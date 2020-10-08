@@ -172,7 +172,7 @@ class Start:
         # TODO: I this is where our weird disconnects are coming from, when a stage reconnects before we know it disco.
         while not self.term:
             tprint(self.settings, 'ready')
-            stages = self.rt_data['LISTENER']
+            stages = check_dict(self.rt_data, 'LISTENER')
             # if 'STATUS' in stages.keys():
             # print(stages)
             client = None
@@ -225,7 +225,7 @@ class Start:
         """
         try:
             del self.connected_stages[stage]
-            self.rt_data['LISTENER'][stage]['STATUS'] = 'disconnected'
+            # self.rt_data['LISTENER'][stage]['STATUS'] = 'disconnected'
         except KeyError:
             pass
 
@@ -254,14 +254,12 @@ class Start:
                             listener[stage_id]['STATUS'] = 'disconected'
                             dprint(self.settings, ('Client:', stage_id, 'has disconnected'))
                             self.disconnect_stage(stage_id)
-                            self.netcom.close()
-                            self.net_term = True
+                            # self.netcom.close()
+                            # self.net_term = True
                             self.temp['datastream_term'] = True
-                            time.sleep(2)
-                            self.net_term = False
-                            self.netcom = NetCom(self)
-                            self.netclient = self.netcom.tcpclient  # Get client,
-                            self.netserver = self.netcom.tcpserver  # Get server.
-                        # self.send_command(stage_id, 'network_reset()')  # Trigger reset if possible.
-                    # print('beat age', beat_time)
+                            # time.sleep(2)
+                            # self.net_term = False
+                            # self.netcom = NetCom(self)
+                            # self.netclient = self.netcom.tcpclient  # Get client,
+                            # self.netserver = self.netcom.tcpserver  # Get server.
             time.sleep(1)

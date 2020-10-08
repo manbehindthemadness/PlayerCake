@@ -3689,19 +3689,21 @@ def list_stages(controller, parent):
             del button
     for stage_entry in controller.settings.stages:
         s_id = stage_entry
-        if stage_entry in controller.rt_data['LISTENER']:
-            s_name = controller.settings.stages[stage_entry]['name']
-            controller.stage_buttons.append(
-                config_stagelist_button(
-                    Button(
-                        parent.interior,
-                        text=s_name,
-                        command=lambda q=(s_id, s_name): select_stage(controller, *q)
-                    ),
-                    width=prx(20)
+        stages = controller.rt_data['LISTENER']  # Get stages data model.
+        if stage_entry in stages:
+            if stages[stage_entry]['STATUS'] == 'confirmed':  # If connected, show in selector.
+                s_name = controller.settings.stages[stage_entry]['name']
+                controller.stage_buttons.append(
+                    config_stagelist_button(
+                        Button(
+                            parent.interior,
+                            text=s_name,
+                            command=lambda q=(s_id, s_name): select_stage(controller, *q)
+                        ),
+                        width=prx(20)
+                    )
                 )
-            )
-            controller.stage_buttons[-1].pack()
+                controller.stage_buttons[-1].pack()
 
 
 def select_stage(controller, s_id, s_name):
