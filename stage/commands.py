@@ -128,9 +128,9 @@ class Command:
             'magzmin',
             'magzmax'
         ]:
-            self.dummy = setting
-            exec('self.settings.' + self.dummy + ' = 0')
-            self.settings.save()
+            exec('self.settings.' + setting + ' = 0')
+            print('self.settings.' + setting + ' = 0')
+        self.settings.save()
 
     def reset_gyro(self):
         """

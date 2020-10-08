@@ -117,8 +117,12 @@ class Display:
         """
         self.mode = self.controller.settings.debug_screen_mode
         # print('changing screen to mode:', self.mode)
-        meth = eval('self.' + self.mode)
-        meth()
+        try:
+            meth = eval('self.' + self.mode)
+            meth()
+        except TypeError:
+            print('invalid settings detected!', self.mode)
+            raise TypeError
 
     @staticmethod
     def stm_prefix(value):
@@ -439,17 +443,28 @@ class Display:
             inc = 0
             cnt = 0
             draw.text((100, inc), 'IMU', font=self.font2, fill="white")
-            ss['s_' + str(cnt)] = 'BerryGPS - IMU'  # Update stream model.
-            cnt += 1
+            st_line_1 = str()
+            st_line_2 = str()
+            st_line_3 = str()
             for line in calibrate.report:
-                ss['s_' + str(cnt)] = line  # Update stream model.
                 draw.text((0, inc), line, font=self.font2, fill="white")
+                ln = line.strip()
+                if cnt in [0, 1]:
+                    st_line_1 += '' + ln + ' '
+                elif cnt in [2, 3]:
+                    st_line_2 += '' + ln + '\t'
+                else:
+                    st_line_3 += '' + ln + '\t'
                 inc += 7
                 cnt += 1
             draw.text((0, inc), str(calibrate.calibration_status), font=self.font2, fill="white")
             draw.text((100, inc), '9DOF', font=self.font2, fill="white")
             draw.text((0, inc + 7), str(calibrate.status), font=self.font2, fill="white")
-            ss['s_' + str(cnt)] = 'BNO055 - 9DOF'  # Update stream model.
-            ss['s_' + str(cnt + 1)] = calibrate.calibration_status  # Update stream model.
-            ss['s_' + str(cnt + 2)] = calibrate.status  # Update stream model.
+            ss['s_0'] = 'BerryGPS - IMU'  # Update stream model.
+            ss['s_1'] = st_line_1  # Update stream model.
+            ss['s_2'] = st_line_2  # Update stream model.
+            ss['s_3'] = st_line_3  # Update stream model.
+            ss['s_4'] = 'BNO055 - 9DOF'  # Update stream model.
+            ss['s_5'] = calibrate.calibration_status  # Update stream model.
+            ss['s_6'] = calibrate.status  # Update stream model.
             time.sleep(0.5)

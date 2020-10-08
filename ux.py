@@ -9,6 +9,7 @@ NOTE: Copy the .Xauthority file from root to pi.
 NOTE: THE X-SERVER MUST BE RUNNING!
 
 Good REf: https://stackoverflow.com/questions/7546050/switch-between-two-frames-in-tkinter
+Disable Screen blank: https://raspberrypi.stackexchange.com/questions/2059/disable-screen-blanking-in-x-windows-on-raspbian
 
 TODO: NOTE!! Buttons and Labels are sized by the number of chars UNLESS they have an image!
 
@@ -44,6 +45,10 @@ os.environ['DISPLAY'] = settings.display
 os.environ['XAUTHORITY'] = '/home/pi/.Xauthority'
 system_command(['/usr/bin/xhost', '+'])
 system_command(['echo', '$DISPLAY'])
+if 'localhost' not in settings.display:  # This will disable screen blackouts.
+    system_command(['xset', 's', 'off', '-display', settings.display])
+    system_command(['xset', '-dpms', '-display', settings.display])
+    system_command(['xset', 's', 'noblank', '-display', settings.display])
 
 rt_data = dict()
 
@@ -1665,7 +1670,8 @@ class Calibrations(Frame):
         self.stage_selector = Frame(
             self.base,
             width=prx(23),
-            height=pry(70)
+            height=pry(70),
+            bg=theme['main']
         )
         self.stage_selector.grid(row=1, column=0)
         self.stage_list = VerticalScrolledFrame(self.stage_selector, width=prx(20), height=pry(75))
@@ -1674,7 +1680,8 @@ class Calibrations(Frame):
         self.selected_stage_frame = Frame(
             self.base,
             width=prx(23),
-            height=pry(4)
+            height=pry(4),
+            bg=theme['main']
         )
         self.selected_stage_frame.grid(row=2, column=0)
         self.selected_stage = config_text(
@@ -1857,11 +1864,13 @@ class Calibrations(Frame):
 
         # self.refresh()
 
-    def close_streamer(self):
+    def close_streamer(self, container=None):
         """
         This destroys a streamer window and closes its thread.
         """
         self.stream_term = True
+        if container:  # This allows us to clean up more complex stream windows.
+            container.destroy()
         self.str_wdo.destroy()
 
     def text(self):
@@ -2020,26 +2029,54 @@ class Calibrations(Frame):
         """
         This will open a datastream allowing for realtime monitoring of gyro calibration status
         """
+        gyro_cal_frame = Frame(
+            self.base,
+            width=prx(42),
+            height=pry(80),
+            bg=theme['main'],
+            highlightthickness=pry(1),
+            highlightbackground=theme['entrybackground']
+        )
+        gyro_cal_frame.place(
+            x=prx(15),
+            y=pry(8)
+        )
         if self.check_for_stage('Calibrations'):
             self.stream_term = False
             values = dict()
-            for key in range(10):
+            for key in range(6):
                 exec('values[\'s_' + str(key) + '\'] = StringVar()')
             self.str_wdo = stream_window(
                 controller=self,
-                parent=self.base,
+                parent=gyro_cal_frame,
                 requested_data="['SUB_GYRO_CALIBRATE']",
                 requested_cycletime=0.05,
                 terminator=self.stream_term,
                 target='Calibrations',
                 varss=values,
                 mode='gyro_calibrate',
-                command=lambda q=self: self.close_streamer()
+                command=lambda q=self: self.close_streamer(gyro_cal_frame),
+                no_border=True,
+                center=True
             )
-            self.str_wdo.place(
-                x=prx(15),
-                y=pry(5)
-            )
+            self.str_wdo.grid(row=0, columnspan=3)
+        labels = [
+            'reset IMU',
+            'save',
+            'reset 9DOF',
+        ]
+        commands = [
+            lambda: self.command_event(self.stage_id, 'reset_imu()'),
+            lambda: self.command_event(self.stage_id, 'settings_save()'),
+            lambda: self.command_event(self.stage_id, 'reset_gyro()')
+        ]
+        button_array(
+            gyro_cal_frame,
+            labels,
+            commands,
+            rw=1,
+            # vert=True
+        )
 
     def check_for_stage(self, target=None):
         """
@@ -2131,6 +2168,7 @@ class MainView(tk.Tk):
         self.entertext = self.temp['entertext'] = 'enter'
         self.stagedata = self.temp['stagedata'] = dict()
         self.stagetarget = self.temp['stagetarget'] = str()
+        self.stage = None
         self.datastream_term = self.temp['datastream_term'] = False
         self.rehersals = rt_data['rehearsals'] = settings.rehearsals
         self.num_max = 100  # Maximum default number for the num pad.
@@ -3517,7 +3555,20 @@ class SaveRemoteSettings:
         self.command_event('Calibrations', 'settings_save()')  # Inform the stage to update accordingly.
 
 
-def stream_window(controller, parent, requested_data, requested_cycletime, terminator, target, varss, mode=None, command=None):
+def stream_window(
+        controller,
+        parent,
+        requested_data,
+        requested_cycletime,
+        terminator,
+        target,
+        varss,
+        mode=None,
+        command=None,
+        no_border=False,
+        center=False
+
+):
     """
     This will create a simple frame listing titles on the left and values on the right.
     This data will be updated from a streamer thread in real time.
@@ -3531,9 +3582,12 @@ def stream_window(controller, parent, requested_data, requested_cycletime, termi
     base = Frame(
         parent,
         bg=theme['main'],
-        highlightthickness=pry(1),
-        highlightbackground=theme['entrybackground']
     )
+    if not no_border:
+        base.configure(
+            highlightthickness=pry(1),
+            highlightbackground=theme['entrybackground']
+        )
     left = Frame(
         base,
         bg=theme['main'],
@@ -3554,38 +3608,49 @@ def stream_window(controller, parent, requested_data, requested_cycletime, termi
             text = ''
         else:
             text = var
+        just = LEFT
+        an = 'w'
+        if center:
+            just = CENTER
+            an = None
         lbll = config_text(
             Label(
                 left,
-                anchor="w",
-                justify=LEFT
+                anchor=an,
+                justify=just
             ),
             text=text
         )
-        lbll.grid(row=idx, column=0, sticky="W")
+        lbll.grid(row=idx, column=0, sticky=an)
         lblr = config_text(
             Label(
                 right,
-                anchor="w",
-                justify=LEFT
+                anchor=an,
+                justify=just
             ),
             text=varss[var]
         )
-        lblr.grid(row=idx, column=1, sticky="W")
+        lblr.grid(row=idx, column=1, sticky=an)
 
     exit_frame = Frame(
         base,
     )
     exit_frame.grid(row=idx + 1, columnspan=2)
-    exit_button = config_button(
-        Button(
-            exit_frame,
-            text='close',
-            command=command
-        ),
-        size=4
+    # exit_button = config_button(
+    #     Button(
+    #         exit_frame,
+    #         text='close',
+    #         command=command
+    #     ),
+    #     size=4
+    # )
+    # exit_button.pack()
+
+    button_array(
+        exit_frame,
+        ['close'],
+        [command],
     )
-    exit_button.pack()
 
     return base
 

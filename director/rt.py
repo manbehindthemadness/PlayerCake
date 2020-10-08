@@ -196,17 +196,22 @@ class Start:
                         thread.start()
                         thread.join(1)
             except (KeyError, ConnectionRefusedError, RuntimeError) as err:
-                track = traceback.format_exc()  # Show full stack.
-                self.notification.set('client ' + client + ' failed to connect')
-                self.notify()
-                if self.controller.stage == client:
-                    print('removing target stage, disconnected')
-                    self.controller.stagename.set('')
-                    self.controller.stage_id = None
-                client['STATUS'] = 'disconnected'
-                dprint(self.settings, ('Ready state for client:', client, 'not found, retrying', err))
-                del stages[client]
-                print(track)
+                if isinstance(client, str):
+                    track = traceback.format_exc()  # Show full stack.
+                    try:
+                        self.notification.set('client ' + client + ' failed to connect')
+                        self.notify()
+                    except TypeError:
+                        pass
+                    # if self.controller.stage == client:
+                    #     print('removing target stage, disconnected')
+                    #     self.controller.stagename.set('')
+                    #     self.controller.stage_id = None
+                    self.disconnect_stage(client)
+                    client['STATUS'] = 'disconnected'
+                    dprint(self.settings, ('Ready state for client:', client, 'not found, retrying', err))
+                    del stages[client]
+                    print(track)
 
             time.sleep(0.3)
 
