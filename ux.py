@@ -20,10 +20,9 @@ import os
 import tkinter as tk
 import uuid
 import time
-from threading import Thread
+from warehouse.threading import Thread
 from tkinter import *
 from tkinter.filedialog import askopenfilename
-
 import pyqrcode
 from PIL import Image as PilImage, ImageTk as PilImageTk
 
@@ -1634,9 +1633,6 @@ class Calibrations(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         self.controller = controller
-        self.stream_term = False
-        self.stream_ready = False
-        self.str_wdo = None
         self.send_command = self.controller.director.send_command
         self.send = self.controller.director.send
         self.command = self.controller.command
@@ -1649,6 +1645,9 @@ class Calibrations(Frame):
         self.error_message = self.temp['error_message'] = StringVar()
         self.stagename = StringVar()
         self.stage_id = None
+        self.stream_term = self.temp['datastream_term']
+        self.stream_ready = False
+        self.str_wdo = None
         self.stage_buttons = []
         self.target = self.controller.target
         self.dummy = None
@@ -2128,6 +2127,7 @@ class MainView(tk.Tk):
         self.entertext = self.temp['entertext'] = 'enter'
         self.stagedata = self.temp['stagedata'] = dict()
         self.stagetarget = self.temp['stagetarget'] = str()
+        self.datastream_term = self.temp['datastream_term'] = False
         self.rehersals = rt_data['rehearsals'] = settings.rehearsals
         self.num_max = 100  # Maximum default number for the num pad.
         self.scripts = rt_data['scripts'] = settings.scripts
@@ -3591,8 +3591,6 @@ def streamer(controller, requested_data, requested_cycletime, terminator, target
     This will send a "send_stream" request to a target stage. then launch a thread to update a series of tkinter variables.
     NOTE this will use the send_command method within our controller.
 
-    TODO: We need to be avle to pass a termination command...
-
     Example:
         requested_data = "IMU" - This will set up a stream sending the "IMU" key from the remote real time model
         requested_cycletime = 1 - Send the data once a second.
@@ -3617,7 +3615,7 @@ def streamer(controller, requested_data, requested_cycletime, terminator, target
                     rds = rd.split("[")  # Split string of keys
                     key = '[' + rds[-1]  # Extract Last Key
                     dta = eval('ct.rt_data[\'LISTENER\'][ct.stage_id]' + key)
-                    ct.stream_ready = True  # TODO: WHy the hell isn't this getting called??
+                    ct.stream_ready = True
                     # print('setting controller ready')
                     for vr in vrs:
                         var = vrs[vr]
@@ -3640,6 +3638,7 @@ def streamer(controller, requested_data, requested_cycletime, terminator, target
                     time.sleep(1)
                     pass
         ct.stream_term = False
+        ct.rt_data['temp']['datastream_term'] = False
         ct.command_event(tg, 'close_stream()')  # Close stream when we are finished.
         # print(ct.rt_data['LISTENER'])
         msg = ''
@@ -3651,6 +3650,7 @@ def streamer(controller, requested_data, requested_cycletime, terminator, target
 
     print('requesting stream')
     t = Thread(
+        name=requested_data,
         target=updater,
         args=(
             controller,
@@ -3718,7 +3718,7 @@ def timed_element(parent, controller, element, timeout):
     """
     This presents a timed UX element that will distroy itself after the timeout has been reached.
     """
-    def thread_instance(pr, ct, el, tm):
+    def timed_thread_instance(pr, ct, el, tm):
         """
         This creates out element.
         """
@@ -3733,7 +3733,7 @@ def timed_element(parent, controller, element, timeout):
             _timeout = tm.get()
         ele.destroy()
 
-    th = Thread(target=thread_instance, args=(parent, controller, element, timeout,))
+    th = Thread(target=timed_thread_instance, args=(parent, controller, element, timeout,))
     th.start()
 
 

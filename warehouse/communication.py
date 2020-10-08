@@ -21,7 +21,6 @@ import re
 import os
 import psutil
 from cbor2 import loads, dumps, CBORDecodeEOF
-from threading import Thread
 from warehouse.system import system_command
 from warehouse.loggers import dprint
 
@@ -36,10 +35,18 @@ class NetCom:
     def __init__(self, controller):
         self.controller = controller
         self.reconnecting = self.controller.reconnecting
-        self.term = False
+        self.term = self.controller.net_term
         self.address = None
         self.message = None
         self.settings = self.controller.settings
+
+        if self.settings.role == 'director':  # This loads our thread saftey tkinter workaround.
+            from warehouse.threading import Thread
+        else:
+            from threading import Thread
+
+        self.thread = Thread
+
         self.types = (bytes, bytearray)
         self.data = bytes()
         self.output = None
@@ -56,7 +63,7 @@ class NetCom:
         system_command(['firewall-cmd', '--zone=public', '--add-port=' + str(self.settings.tcpbindport) + '/tcp'])
         system_command(['firewall-cmd', '--zone=public', '--add-port=' + str(self.settings.udpbindport) + '/udp'])
 
-        announcethread = Thread(target=self.udpserver, args=())  # Create transmitter thread.
+        announcethread = self.thread(name='udp_server', target=self.udpserver, args=())  # Create transmitter thread.
         announcethread.start()  # Launch UDP transmitter.
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
@@ -75,7 +82,7 @@ class NetCom:
         """
         This restarts the networking services in the event we have a bad wifi connection.
         """
-        if not self.reconnecting:
+        if not self.reconnecting and not self.term:
             self.reconnecting = True
             print('network dropout detected, reconnecting')
             time.sleep(5)
@@ -205,48 +212,51 @@ class NetCom:
         :type fail: int
         :return: Self.
         """
-        message = self.encode(message_enc).message
-        # dprint(self.settings, ('connection init',))
-        server_info = None
-        if address:  # Use server address where able.
-            server_info = address.split(':')
-        while not server_info:  # Look for upstream server.
-            dprint(self.settings, ('searching for connection...',))
-            server_info = self.udpclient()
-        # dprint(self.settings, ('connection found:', server_info))
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
-        sock.settimeout(self.settings.networktimeout)
-        if address:
-            server_address = server_info[0], int(server_info[1])
-        else:
-            server_address = (server_info[3], int(server_info[4]))  # Collect server connection string.
-        # print('connecting to %s port %s' % server_address,)
-        try:
-            sock.connect(server_address)  # Connect the socket to the port where the server is listening.
-        except OSError as err:
-            print('connection failed, retrying', err)
-            time.sleep(1)
-            fail += 1
-            sock.close()  # Close socket.
-            self.tcpclient(message_enc, address, fail)  # Retry connection.
+        if fail < 3:
+            message = self.encode(message_enc).message
+            # dprint(self.settings, ('connection init',))
+            server_info = None
+            if address:  # Use server address where able.
+                server_info = address.split(':')
+            while not server_info:  # Look for upstream server.
+                dprint(self.settings, ('searching for connection...',))
+                server_info = self.udpclient()
+            # dprint(self.settings, ('connection found:', server_info))
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP/IP socket.
+            sock.settimeout(self.settings.networktimeout)
+            if address:
+                server_address = server_info[0], int(server_info[1])
+            else:
+                server_address = (server_info[3], int(server_info[4]))  # Collect server connection string.
+            # print('connecting to %s port %s' % server_address,)
+            try:
+                sock.connect(server_address)  # Connect the socket to the port where the server is listening.
+            except OSError as err:
+                print('connection failed, retrying', err)
+                time.sleep(1)
+                fail += 1
+                sock.close()  # Close socket.
+                self.tcpclient(message_enc, address, fail)  # Retry connection.
 
-        try:
-            sock.sendall(message)  # Send message.
-            # Look for the response
-            amount_received = 0
-            amount_expected = len(message)
-            while amount_received < amount_expected:  # Loop until expected data is recieved.
-                data = sock.recv(4096)  # Break data into chunks.
-                amount_received += len(data)  # Count collected data.
-            self.address = tuple(server_address)
-        except (BrokenPipeError, OSError) as err:
-            print('connection failed, broken pipe, retrying', err)
-            time.sleep(1)
-            fail += 1
-            sock.close()  # Close socket.
-            self.tcpclient(message_enc, address, fail)  # Retry connection.
-        finally:
-            sock.close()  # Close socket.
+            try:
+                sock.sendall(message)  # Send message.
+                # Look for the response
+                amount_received = 0
+                amount_expected = len(message)
+                while amount_received < amount_expected:  # Loop until expected data is recieved.
+                    data = sock.recv(4096)  # Break data into chunks.
+                    amount_received += len(data)  # Count collected data.
+                self.address = tuple(server_address)
+            except (BrokenPipeError, OSError) as err:
+                print('connection failed, broken pipe, retrying', err, fail)
+                time.sleep(1)
+                fail += 1
+                sock.close()  # Close socket.
+                self.tcpclient(message_enc, address, fail)  # Retry connection.
+            finally:
+                sock.close()  # Close socket.
+        else:
+            print('connection lost, aborting')
         return self
 
     def test(self):

@@ -142,6 +142,7 @@ class Start:
         self.stats = get_system_stats  # Read system info.
         self.reconnecting = False
         self.netscan = NetScan
+        self.net_term = False
         self.netcom = NetCom(self)
         self.netclient = self.netcom.tcpclient  # Get client,
         self.netserver = self.netcom.tcpserver  # Get server.

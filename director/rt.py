@@ -4,7 +4,7 @@ This holds our programs main loops.
 from warehouse.communication import NetCom
 from warehouse.utils import check_dict, update_dict, get_time_secs, fltr_al
 from settings import settings
-from threading import Thread
+from warehouse.threading import Thread
 from warehouse.loggers import dprint, tprint
 import traceback
 import pprint
@@ -47,8 +47,11 @@ class Start:
         global term
         self.controller = controller
         self.rt_data = self.controller.rt_data  # Pass real time data
+        self.temp = self.rt_data['temp']
         self.connected_stages = self.rt_data['connected_stages'] = dict()  # This will be used to select active stages in the UX.
         self.term = term  # Pass termination.
+        self.net_term = False
+        self.datastream_term = self.temp['datastream_term']
         self.settings = settings  # Pass settings.
         self.notify = self.controller.notify
         self.notification = controller.notification
@@ -60,11 +63,11 @@ class Start:
         self.sender = None
         self.command = None
         self.threads = [
-            Thread(target=self.listen, args=()),
-            Thread(target=self.confirm_ready_state, args=())
+            Thread('tcp_server', target=self.listen, args=()),
+            Thread('ready_state', target=self.confirm_ready_state, args=())
         ]
         if settings.debug:
-            self.threads.append(Thread(target=self.debug, args=()))
+            self.threads.append(Thread(name='debugger', target=self.debug, args=()))
 
         for thread in self.threads:  # Launch threads.
             thread.start()
@@ -175,6 +178,7 @@ class Start:
             client = None
             try:
                 for stage in stages:
+                    # print('STAGES', len(stages))
                     client = stages[stage]
                     if 'STATUS' not in client.keys():
                         client['STATUS'] = 'ready'  # Handle state check for sudden disconnects.
@@ -188,9 +192,9 @@ class Start:
                         exec('self.' + fltr_al(stage) + ' = True')  # Create a dynamic connection variable.
                         if stage not in self.connected_stages.keys():
                             self.connected_stages[stage] = 'self.' + fltr_al(stage)  # Add stage to connected clients list.
-                        # TODO: start heartbeat thread here.
-                        thread = Thread(target=self.heartbeat, args=(stage,))
+                        thread = Thread(name='heartbeat_' + stage, target=self.heartbeat, args=(stage,))
                         thread.start()
+                        thread.join(1)
             except (KeyError, ConnectionRefusedError, RuntimeError) as err:
                 track = traceback.format_exc()  # Show full stack.
                 self.notification.set('client ' + client + ' failed to connect')
@@ -221,7 +225,7 @@ class Start:
         """
         try:
             del self.connected_stages[stage]
-            del self.rt_data['LISTENER'][stage]
+            self.rt_data['LISTENER'][stage]['STATUS'] = 'disconnected'
         except KeyError:
             pass
 
@@ -250,6 +254,14 @@ class Start:
                             listener[stage_id]['STATUS'] = 'disconected'
                             dprint(self.settings, ('Client:', stage_id, 'has disconnected'))
                             self.disconnect_stage(stage_id)
+                            self.netcom.close()
+                            self.net_term = True
+                            self.temp['datastream_term'] = True
+                            time.sleep(2)
+                            self.net_term = False
+                            self.netcom = NetCom(self)
+                            self.netclient = self.netcom.tcpclient  # Get client,
+                            self.netserver = self.netcom.tcpserver  # Get server.
                         # self.send_command(stage_id, 'network_reset()')  # Trigger reset if possible.
                     # print('beat age', beat_time)
             time.sleep(1)

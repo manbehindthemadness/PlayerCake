@@ -360,3 +360,4 @@ def file_exists(file):
     :rtype: bool
     """
     return path.exists(file)
+
