@@ -40,6 +40,7 @@ class Thread:
             print('launching', self.name)
             self.target(*args)  # Launch thread target.
             mc.delete(key)
+            print('closing', self.name)
         else:
             mc.touch(key)  # Refresh key expiry.
 

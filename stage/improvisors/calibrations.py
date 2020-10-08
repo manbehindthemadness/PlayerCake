@@ -73,3 +73,9 @@ class SetGyros:
         sett.set('magYmax', self.magYmax)
         sett.set('magZmin', self.magZmin)
         sett.set('magZmax', self.magZmax)
+
+    def save(self):
+        """
+        This just saves all the settings we habe updated.
+        """
+        self.controller.settings.save()

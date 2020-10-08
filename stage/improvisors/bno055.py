@@ -60,7 +60,6 @@ class BNO055:
         """
         We can use this to recover the state after we fail to load an invalid calibration.
         """
-        # self.calibrations = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 252, 255, 251, 255, 1, 0, 232, 3, 0, 0]
         self.calibrations = [128, 0, 0, 0, 0, 0, 15, 0, 207, 1, 161, 253, 5, 0, 0, 0, 255, 255, 232, 3, 178, 3]
         self.sensor.set_calibration(
             self.calibrations
@@ -91,16 +90,19 @@ class BNO055:
         """
         This reads the 9dof data and adds it into the real time data model.
         """
-        for idx, reading in enumerate(self.readings):
-            exec('self.reading = self.sensor.read_' + reading + '()')
-            # print(self.reading)
-            self.data[reading] = self.reading
-        readings = list()
-        for reading in self.data:
-            data = self.data[reading]
-            if isinstance(data, tuple):
-                for value in list(data):
-                    if value:
-                        readings.append(value)
-        if not readings:
-            self.reset_calibration()
+        try:
+            for idx, reading in enumerate(self.readings):
+                exec('self.reading = self.sensor.read_' + reading + '()')
+                # print(self.reading)
+                self.data[reading] = self.reading
+            readings = list()
+            for reading in self.data:
+                data = self.data[reading]
+                if isinstance(data, tuple):
+                    for value in list(data):
+                        if value:
+                            readings.append(value)
+            if not readings:
+                self.reset_calibration()
+        except OSError as err:
+            print('Unable to read 9DOF, skipping')

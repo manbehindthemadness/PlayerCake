@@ -7,7 +7,6 @@ TODO: This is waaaaaaay too slow to actualy use for rt measurement, so we will a
 import math
 import datetime
 import smbus2 as smbus
-from stage.settings import settings
 from stage.improvisors import IMU
 
 
@@ -15,9 +14,11 @@ class ReadIMU(object):
     """
     Fetches and filters IMU data.
     """
-    def __init__(self):
+    def __init__(self, controller):
         IMU.detectIMU()  # Detect if BerryIMUv1 or BerryIMUv2 is connected.
         IMU.initIMU()  # Initialise the accelerometer, gyroscope and compass
+        self.controller = controller
+        self.settings = self.controller.settings
         self.imu = IMU
         self.cycle_start_time = datetime.datetime.now()
         self.cycle_time = 0.1
@@ -43,39 +44,39 @@ class ReadIMU(object):
         self.magYcomp = None
         self.tiltCompensatedHeading = None
         # Pull stuff from settings file (we do this so we can easily adjust calibration settings).
-        self.magXmin = settings.magxmin
-        self.magYmin = settings.magymin
-        self.magZmin = settings.magzmin
-        self.magXmax = settings.magxmax
-        self.magYmax = settings.magymax
-        self.magZmax = settings.magzmax
-        self.G_GAIN = settings.g_gain
-        self.gyroXangle = settings.gyroxangle
-        self.gyroYangle = settings.gyroyangle
-        self.gyroZangle = settings.gyrozangle
-        self.IMU_UPSIDE_DOWN = settings.imu_upside_down
-        self.RAD_TO_DEG = settings.rad_to_deg
-        self.M_PI = settings.m_pi
-        self.AA = settings.aa
-        self.KFangleX = settings.kfanglex
-        self.KFangleY = settings.kfangley
-        self.CFangleX = settings.cfanglex
-        self.CFangleY = settings.cfangley
-        self.kalmanX = settings.kalmanx
-        self.kalmanY = settings.kalmany
-        self.Q_angle = settings.q_angle
-        self.Q_gyro = settings.q_gyro
-        self.R_angle = settings.r_angle
-        self.y_bias = settings.y_bias
-        self.x_bias = settings.x_bias
-        self.XP_00 = settings.xp_00
-        self.XP_01 = settings.xp_01
-        self.XP_10 = settings.xp_10
-        self.XP_11 = settings.xp_11
-        self.YP_00 = settings.yp_00
-        self.YP_01 = settings.yp_01
-        self.YP_10 = settings.yp_10
-        self.YP_11 = settings.yp_11
+        self.magXmin = self.settings.magxmin
+        self.magYmin = self.settings.magymin
+        self.magZmin = self.settings.magzmin
+        self.magXmax = self.settings.magxmax
+        self.magYmax = self.settings.magymax
+        self.magZmax = self.settings.magzmax
+        self.G_GAIN = self.settings.g_gain
+        self.gyroXangle = self.settings.gyroxangle
+        self.gyroYangle = self.settings.gyroyangle
+        self.gyroZangle = self.settings.gyrozangle
+        self.IMU_UPSIDE_DOWN = self.settings.imu_upside_down
+        self.RAD_TO_DEG = self.settings.rad_to_deg
+        self.M_PI = self.settings.m_pi
+        self.AA = self.settings.aa
+        self.KFangleX = self.settings.kfanglex
+        self.KFangleY = self.settings.kfangley
+        self.CFangleX = self.settings.cfanglex
+        self.CFangleY = self.settings.cfangley
+        self.kalmanX = self.settings.kalmanx
+        self.kalmanY = self.settings.kalmany
+        self.Q_angle = self.settings.q_angle
+        self.Q_gyro = self.settings.q_gyro
+        self.R_angle = self.settings.r_angle
+        self.y_bias = self.settings.y_bias
+        self.x_bias = self.settings.x_bias
+        self.XP_00 = self.settings.xp_00
+        self.XP_01 = self.settings.xp_01
+        self.XP_10 = self.settings.xp_10
+        self.XP_11 = self.settings.xp_11
+        self.YP_00 = self.settings.yp_00
+        self.YP_01 = self.settings.yp_01
+        self.YP_10 = self.settings.yp_10
+        self.YP_11 = self.settings.yp_11
 
         self.rt_values = [
             'AccXangle',
@@ -89,7 +90,7 @@ class ReadIMU(object):
             'tiltCompensatedHeading',
             'kalmanX',
             'kalmanY'
-        ] + settings.imu_rt_values
+        ] + self.settings.imu_rt_values
 
     def getvalues(self):
         """

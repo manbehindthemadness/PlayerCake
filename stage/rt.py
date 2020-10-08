@@ -134,7 +134,7 @@ class Start:
         self.term = term  # Pass termination.
         self.rt_data['9DOF'] = dict()
         self.dof = BNO055(self)  # Init DOF
-        self.gac = ReadIMU()  # Init IMU.
+        self.gac = ReadIMU(self)  # Init IMU.
         self.gps = ReadGPS()  # Init GPS.
         self.alt = ReadAlt()  # Init altimiter.
         self.calibrate = SetGyros(self)
@@ -422,7 +422,10 @@ class Start:
         self.rt_data['ADC'] = dict()
         mcp = MCP3008(self)
         while not self.term:
-            mcp.scan()
+            try:
+                mcp.scan()
+            except TypeError:
+                print('unable to read ADC, skipping')
 
     def read_imu(self):
         """

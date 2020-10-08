@@ -1808,7 +1808,7 @@ class Calibrations(Frame):
         ]
 
         commands = [
-            '',
+            lambda: self.calibrate_gyros(),
             '',
             '',
             '',
@@ -2020,6 +2020,26 @@ class Calibrations(Frame):
         """
         This will open a datastream allowing for realtime monitoring of gyro calibration status
         """
+        if self.check_for_stage('Calibrations'):
+            self.stream_term = False
+            values = dict()
+            for key in range(10):
+                exec('values[\'s_' + str(key) + '\'] = StringVar()')
+            self.str_wdo = stream_window(
+                controller=self,
+                parent=self.base,
+                requested_data="['SUB_GYRO_CALIBRATE']",
+                requested_cycletime=0.05,
+                terminator=self.stream_term,
+                target='Calibrations',
+                varss=values,
+                mode='gyro_calibrate',
+                command=lambda q=self: self.close_streamer()
+            )
+            self.str_wdo.place(
+                x=prx(15),
+                y=pry(5)
+            )
 
     def check_for_stage(self, target=None):
         """

@@ -75,7 +75,7 @@ class Command:
                 except NameError:
                     exec('self.' + self.command)
                 dprint(self.settings, ('Command executed:', self.command,))
-            except TypeError as err:
+            except (TypeError, NameError) as err:
                 print('exec + ', self.command, err)
         # self.command = ''
 

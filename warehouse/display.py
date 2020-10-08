@@ -452,4 +452,4 @@ class Display:
             ss['s_' + str(cnt)] = 'BNO055 - 9DOF'  # Update stream model.
             ss['s_' + str(cnt + 1)] = calibrate.calibration_status  # Update stream model.
             ss['s_' + str(cnt + 2)] = calibrate.status  # Update stream model.
-            # time.sleep(2)
+            time.sleep(0.5)
