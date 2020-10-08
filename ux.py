@@ -632,6 +632,7 @@ class Rehearsal(Frame):
         self.controller = controller
         self.rt_data = controller.rt_data
         self.temp = self.rt_data['temp']
+        self.settings = self.controller.settings
         self.rehearsaldata = self.temp['rehearsaldata'] = None
         self.rehearsalname = self.temp['rehearsalname'] = StringVar()
         self.rehearsal_buttons = list()
@@ -1115,30 +1116,13 @@ class Rehearsal(Frame):
         """
         This produces the list of stages that we have been paired with.
         """
-        for stage_entry in settings.stages:
-            s_id = stage_entry
-            if stage_entry in self.rt_data['LISTENER']:
-                s_name = settings.stages[stage_entry]['name']
-                self.stage_buttons.append(
-                    config_stagelist_button(
-                        Button(
-                            self.stage_list.interior,
-                            text=s_name,
-                            command=lambda q=(s_id, s_name): self.select_stage(*q)
-                        ),
-                        width=prx(20)
-                    )
-                )
-                self.stage_buttons[-1].pack()
+        list_stages(self, self.stage_list)
 
     def select_stage(self, s_id, s_name):
         """
         This is the stage selection event.
         """
-        self.stagename.set('selected stage: ' + s_name)
-        self.stage_id = s_id
-        self.stagetarget = self.stage_id
-        self.refresh()
+        select_stage(self, s_id, s_name)
 
     def class_selector(self):
         """

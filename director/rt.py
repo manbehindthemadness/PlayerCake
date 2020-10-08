@@ -208,7 +208,7 @@ class Start:
                 del stages[client]
                 print(track)
 
-            time.sleep(1)
+            time.sleep(0.3)
 
     def send_command(self, destination_id, command):
         """
