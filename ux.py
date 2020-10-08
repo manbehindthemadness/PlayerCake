@@ -3704,6 +3704,8 @@ def list_stages(controller, parent):
                     )
                 )
                 controller.stage_buttons[-1].pack()
+            elif stage_entry == controller.stage_id:  # We need to check and remove the selected_stage here so we don't send network requests to a disconnected client.
+                clear_selected_stage(controller)
 
 
 def select_stage(controller, s_id, s_name):
@@ -3714,6 +3716,17 @@ def select_stage(controller, s_id, s_name):
     controller.stage_id = s_id
     controller.stagetarget = controller.stage_id
     controller.refresh()
+
+
+def clear_selected_stage(controller, refresh=True):
+    """
+    This clears out a stage selection from the controller.
+    """
+    controller.stagename.set('')
+    controller.stage_id = None
+    controller.stage_target = None
+    if refresh:
+        controller.refresh()
 
 
 def timed_element(parent, controller, element, timeout):

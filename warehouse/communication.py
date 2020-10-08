@@ -249,7 +249,7 @@ class NetCom:
                 self.address = tuple(server_address)
             except (BrokenPipeError, OSError) as err:
                 print('connection failed, broken pipe, retrying', err, fail)
-                time.sleep(1)
+                time.sleep(0.3)
                 fail += 1
                 sock.close()  # Close socket.
                 self.tcpclient(message_enc, address, fail)  # Retry connection.
