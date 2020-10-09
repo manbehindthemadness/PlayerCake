@@ -85,6 +85,16 @@ def update_dict(old, new):
     return old
 
 
+def iterate_to_dict(keys, vals):
+    """
+    This iterates across two lists creating a dictionary.
+    """
+    result = dict()
+    for k, v in zip(keys, vals):
+        result[str(k)] = v
+    return result
+
+
 def open_file(filename):
     """
     Opens a text file.

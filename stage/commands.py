@@ -162,6 +162,11 @@ class Command:
         """
         self.rt_self.datastream_term = True
 
+    def servo(self, pwm_value):
+        """
+        This will move a servo from it's current position accounting for reverse settings.
+        """
+
 
 def command_test():
     """
