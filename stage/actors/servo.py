@@ -3,12 +3,12 @@ This is where we will hangle our servo control.
 Note that we are gointo have to use numpy over the C api in order to get the reaction times we want.
 
 """
-from adafruit_servokit import ServoKit
+# from adafruit_servokit import ServoKit
 from warehouse.utils import iterate_to_dict
-import numpy as np
+# import numpy as np
 
 
-class Move:
+class InitAxis:
     """
     This holds our servo movement logic.
 

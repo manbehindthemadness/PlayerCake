@@ -43,10 +43,10 @@ def grid_solver_xyz(x_origin, y_origin, z_origin, angle_xz, angle_yz, distance, 
     return Xfinal, Yfinal, Zfinal
 
 
-def grid_constructor(angles, pwm_angles, origin, resolution):
+def grid_constructor(angles, pwm_angles, origin):
     """
     This will construct a grid based on the angles and axis supplied.
-    NOTE: The accuracy of the grid is based on the passed resolution (in degrees.)
+    NOTE: The accuracy of the grid is based on the passed resolution (in degrees.) - Future enhancement.
     NOTE: Origin is the XYZ coordinate of XYZ pivot.
     NOTE: Angles is the range of PWM steps that we need to evaluate (derived from min/max in settings).
     NOTE: PWM angles are the same as above just with PWM keying.
@@ -72,20 +72,20 @@ def grid_constructor(angles, pwm_angles, origin, resolution):
                         solved_dict[mapping] = _x, _x, _z
         return solved_dict
 
-    unsolved_pwm = dict()
-    unsolved_xyz = dict()
-    for idx, (x, p) in enumerate(angles, pwm_angles):  # Create dinctionary of angle mappings in sequence.
-        unso_x = dict()
-        unso_p = dict()
-        for angle in angles[idx]:
-            unso_x[str(x)] = p
-            unso_p[str(p)] = x
-        unsolved_xyz[str(idx)] = unso_x
-        unsolved_pwm[str(idx)] = unso_p
+    # unsolved_pwm = dict()
+    # unsolved_xyz = dict()
+    # for idx, (x, p) in enumerate(angles, pwm_angles):  # Create dinctionary of angle mappings in sequence.
+    #     unso_x = dict()
+    #     unso_p = dict()
+    #     for angle in angles[idx]:  # TODO: look into this. Do we need it...
+    #         unso_x[str(x)] = p
+    #         unso_p[str(p)] = x
+    #     unsolved_xyz[str(idx)] = unso_x
+    #     unsolved_pwm[str(idx)] = unso_p
     # Here we will take the range of our angles and figure out what position on the above grid they fall into.
     solved_xyz = dict()
     solved_pwm = dict()
-    for idx, (angles, angles_pwm) in enumerate(zip(unsolved_xyz, unsolved_pwm)):  # This is wrong,..
-        solved_xyz = iterator(angles, solved_xyz)
-        solved_pwm = iterator(angles_pwm, solved_pwm)
+    for idx, (angles, angles_pwm) in enumerate(zip(angles, pwm_angles)):  # Iterate through angles and produce grid mappings.
+        solved_xyz = iterator(angles, solved_xyz)  # Create grid keyed by cordinates, valued by radial offsets.
+        solved_pwm = iterator(angles_pwm, solved_pwm)  # Create grid keyed by coordinates, valued by pwm settings.
     return solved_xyz, solved_pwm
