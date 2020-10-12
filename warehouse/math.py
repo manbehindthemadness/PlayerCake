@@ -223,6 +223,7 @@ class GridSolver:
         NOTE: Origin is caluculated from the values in leg_conf (length, travel, (min, nu, max))
         """
         # Find minimum and maximum ranges for each axis (this will be used to create our grid).
+        self.tc = TranslateCoordinates()
         self.range_x = fmm(range_x)
         self.range_y = fmm(range_y)
         self.range_z = fmm(range_z)  # TODO: This is what we are going to use to measure our grid boundaries.
@@ -233,31 +234,81 @@ class GridSolver:
         # TODO: In order to properly calculate origin we are going to need to calculate travel per step Z contrasted with leg length in mm.
         self.z_boundary = range_z  # TODO: We need to add the offset value of the figured origin to this.
         self.xyz_grid = {  # Init cartesian coordinates grid.
-            'x': dict(),
-            'y': dict(),
-            'z': dict()
+            'x': list(),
+            'y': list(),
+            'z': list(),  # TODO: We need to create all this using lists for easy transform, then render the results into a final set of grids.
+            'pol': list()
         }
-        self.pol_grid = {  # Init spherical coordinates grid.
-            'rad': dict(),
-            'theta': dict(),
-            'phi': dict()
-        }
+        self.pol_grid = dict()  # Init spherical coordinates grid.
+
         for z_point in range_z:  # Create dictionary representing our grid.
             for y_point in range_y:
                 for x_point in range_x:  # create the cartesian values.
-                    self.xyz_grid['z'][z_point] = 0
-                    self.xyz_grid['y'][y_point] = 0
-                    self.xyz_grid['x'][x_point] = 0
-
+                    self.xyz_grid['z'].append(z_point)
+                    self.xyz_grid['y'].append(y_point)
+                    self.xyz_grid['x'].append(x_point)
         """
         Here we rotate our grid on the yz (2, 3) axis so z_max is pointing to y_max was.
         The reason for this being 0x0x0 on our grid is leg neutral and 0x0x0 in polar coords is at our zenith.
         """
+        self.xyz_grid = rotate_grid(self.xyz_grid, 'x', 1)  # Rotate grid 90 degrees clockwise on X.
+        """
+        Now we iterate through zipped X, Y, and Z coordinates and calculate the angles to origin (0x0x0 because we haven't shifted yet).
+        It's important to note that we are keeping the X, Y, Z and polar coordinates in different lists. This will allow us to 
+            transform axis before we render the final grid objects.
+        """
+        xyz = self.xyz_grid
+        for x, y, z in zip(xyz['x'], xyz['y'], xyz['z']):
+            polar = self.tc.cartesian_to_spherical((x, y, z))  # calculate the polar coordinates
+            xyz['pol'].append(polar)
 
-        pprint.PrettyPrinter(indent=4).pprint(self.xyz_grid)
+        print('x', len(self.xyz_grid['x']))
+        print('y', len(self.xyz_grid['y']))
+        print('z', len(self.xyz_grid['z']))
+        print('polar', len(self.xyz_grid['pol']))
+        # pprint.PrettyPrinter(indent=4).pprint(self.xyz_grid)
         # print(self.xyz_grid)
         # for axis, gridline in zip(['x', 'y', 'z'], self.xyz_grid):
         #     print(axis, list(gridline))
+
+
+def swap_axis(grid, axis1, axis2):
+    """
+    This swaps two axis on the cartesian grid.
+    """
+    ax_1 = grid[axis1]
+    ax_2 = grid[axis2]
+    del grid[axis1]
+    del grid[axis2]
+    grid[axis1] = ax_2
+    grid[axis2] = ax_1
+    return grid
+
+
+def reverse_axis(grid, axis):
+    """
+    This reverses the cartesian coordinates on one grid axis.
+    """
+    grid[axis].reverse()
+    return grid
+
+
+def rotate_grid(grid, axis, count):
+    """
+    This will rotate a grid 90 degrees times count clockwise on the specified axis.
+    """
+    while count:  # TODO: This guy might need a little tuning.
+        if axis == 'x':
+            reverse_axis(grid, 'y')
+            swap_axis(grid, 'z', 'y')
+        elif axis == 'z':
+            reverse_axis(grid, 'x')
+            swap_axis(grid, 'x', 'y')
+        else:
+            reverse_axis(grid, 'x')
+            swap_axis(grid, 'x', 'z')
+        count -= 1
+    return grid
 
 
 def ls(boundary):
