@@ -95,6 +95,17 @@ def iterate_to_dict(keys, vals):
     return result
 
 
+def find_minmax(scope, reverse=False):
+    """
+    This takes a list of values and returns a tuple of the minimum and maximum value.
+    """
+    if reverse:
+        result = (max(scope), min(scope),)
+    else:
+        result = (min(scope), max(scope),)
+    return result
+
+
 def open_file(filename):
     """
     Opens a text file.
