@@ -427,7 +427,7 @@ class TranslateCoordinates:
         # fig = plt.figure()
         ax = plt.axes(projection="3d")
         ax.plot3D(*points, color='blue', linewidth=1)  # servo angle.
-        ax.plot3D([0, x], [0, y], [0, z], color='blue', linewidth=1)  # Zero point angle for reference.
+        ax.plot3D([0, x], [0, y], [0, z], color='grey', linewidth=1, linestyle='dotted')  # Zero point angle for reference.
         ax.plot3D(  # plot ground.
             [plotrange, plotrange, neg_plotrange, neg_plotrange, plotrange],
             [plotrange, neg_plotrange, neg_plotrange, plotrange, plotrange],
