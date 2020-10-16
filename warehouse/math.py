@@ -24,11 +24,9 @@ class TranslateCoordinates:
     θ/theta = yaw = Y
     ϕ/phi = pitch = X
 
-    TODO: We need to add polar coordinates into the gridmap so we can easily map motor offsets.
-
-    TODO: We have to stop using cartesian axis names for spherical coordinates, it's making it to damn confusing.
     """
-    def __init__(self, settings, leg):
+    def __init__(self, settings, leg, debug=False):
+        self.debug = debug
         self.settings = settings.settings
         # Get leg settings.
         self.leg = self.settings.legs[leg]
@@ -147,7 +145,6 @@ class TranslateCoordinates:
         origin_mm = self.length - ((rom_max - rom_nu) * mm_per_step)  # Locate origin in mm.
         origin_steps = (self.length / mm_per_step) - (rom_max - rom_nu)  # Locate origin in steps.
         offset_steps = rom_max / mm_per_step  # Locate offset in steps.
-        print('steps/offset/originmm/mmperstep', origin_steps, offset_steps, origin_mm, mm_per_step)
         self.origin_steps = int(origin_steps)
         self.offset_steps = int(offset_steps)
         self.origin_mm = origin_mm
@@ -181,26 +178,28 @@ class TranslateCoordinates:
         if origin:
             self.figure_origin()  # Discover origin offsets.
             org = self.origin_steps  # TODO: We might need to subtract 1 from travel to account for the zero point on a list.
-        print('min/nu/max', mi, nu, ma)
-        polararray = [org]  # Start spherical coordinate array at neutral accounting for origin offset is needed.
+        if self.debug:
+            print('min/nu/max', mi, nu, ma)
+        sphericalarray = [org]  # Start spherical coordinate array at neutral accounting for origin offset is needed.
         pwmarray = [int(nu)]  # Start PWM array from neutral range of motion.
         minimum = False
         maximum = False
         while not minimum and not maximum:  # Build arrays out from the neutral points until the boundaries match range of motion.
             if pwmarray[0] != int(mi):  # Check to see if minimum range has been reached.
-                polararray = prefix(polararray)
+                sphericalarray = prefix(sphericalarray)
                 pwmarray = prefix(pwmarray)
             else:
                 minimum = True
             if pwmarray[-1] != int(ma):  # Check to see if maximum has been reached.
-                polararray = suffix(polararray)
+                sphericalarray = suffix(sphericalarray)
                 pwmarray = suffix(pwmarray)
             else:
                 maximum = True
-        print('pol / pwm')  # TODO: This is just for checking the math, probably should add a debug switch later.
-        for pol, pwm in zip(polararray, pwmarray):
-            print(pol, pwm)
-        return polararray, pwmarray
+        if self.debug:
+            print('pol / pwm')
+            for pol, pwm in zip(sphericalarray, pwmarray):
+                print(pol, pwm)
+        return sphericalarray, pwmarray
 
     def normalize(self):
         """
@@ -240,20 +239,23 @@ class TranslateCoordinates:
             This math has been tested working:
                 https://keisan.casio.com/exec/system/1359533867
 
+            ρ/rho = distance = Z
+            θ/theta = yaw = Y
+            ϕ/phi = pitch = X
+
             """
             xy_squared = np.square(x) + np.square(y)
-            rho = np.sqrt(xy_squared + np.square(z))
-            phi = np.arctan2(np.sqrt(xy_squared), z)
-            theta = np.arctan2(y, x)
+            rho = np.sqrt(xy_squared + np.square(z))  # Calculate rho.
+            phi = np.arctan2(np.sqrt(xy_squared), z)  # Calculate phi.
+            theta = np.arctan2(y, x)  # Calculate theta.
             return rho, theta, phi
 
         self.coordinate = coordinate
         self.x, self.y, self.z = self.coordinate
-        self.rho, self.theta, self.phi = cart2sp(x=self.x, y=self.y, z=self.z)
-        self.theta, self.phi = self.rads2degs([self.theta, self.phi])
-        print('raw vector', self.rho, self.theta, self.phi)
-        self.vector_raw = self.rho, self.theta, self.phi
-        self.vector = its(self.vector_raw, ints)
+        self.rho, self.theta, self.phi = cart2sp(x=self.x, y=self.y, z=self.z)  # Convert cartesian ticks to spherical vector.
+        self.theta, self.phi = self.rads2degs([self.theta, self.phi])  # convert theta and phi from radians into degrees.
+        self.vector_raw = self.rho, self.theta, self.phi  # Store raw vector.
+        self.vector = its(self.vector_raw, ints)  # Store rounded vector.
         return self
 
     def spherical_to_cartesian(self, vector, ints=False):
@@ -276,27 +278,29 @@ class TranslateCoordinates:
             ϕ/phi = pitch = X
             """
             return [
-                np.multiply(np.multiply(rho, np.sin(phi)), np.cos(theta)),
-                np.multiply(np.multiply(rho, np.sin(phi)), np.sin(theta)),
-                np.multiply(rho, np.cos(phi))
+                np.multiply(np.multiply(rho, np.sin(phi)), np.cos(theta)),  # Calculate X.
+                np.multiply(np.multiply(rho, np.sin(phi)), np.sin(theta)),  # Calculate Y.
+                np.multiply(rho, np.cos(phi))  # Calculate Z.
             ]
         self.vector = vector
         self.rho, self.theta, self.phi = self.vector
-        self.theta, self.phi = self.degs2rads([self.theta, self.phi])  # Radians work with this commented out.
-        self.x, self.y, self.z = sp2cart(rho=self.rho, theta=self.theta, phi=self.phi)
-        print('raw coordinate', self.x, self.y, self.z)
-        self.coordinate_raw = self.x, self.y, self.z
-        self.coordinate = its(self.coordinate_raw, ints)
+        self.theta, self.phi = self.degs2rads([self.theta, self.phi])  # Convert theta and phi from degrees into radians.
+        self.x, self.y, self.z = sp2cart(rho=self.rho, theta=self.theta, phi=self.phi)  # Convert spherical vector into cartesian ticks.
+        self.coordinate_raw = self.x, self.y, self.z  # Store raw coordinate.
+        self.coordinate = its(self.coordinate_raw, ints)  # Store rounded coordinate.
         return self
 
     def test(self, vector):
         """
         This will draw a test coordinate.
         """
+        print('steps/offset/originmm/mmperstep', self.origin_steps, self.offset_steps, self.origin_mm, self.mm_per_step)
         self.spherical_to_cartesian(vector)
+        print('raw cartesian ticks', self.coordinate_raw)
         print('cartesian ticks', self.coordinate)
         print('spherical degrees input', self.vector)
         self.cartesian_to_spherical(self.coordinate)
+        print('raw spherical degrees output', self.vector_raw)
         print('spherical degrees output', self.vector)
         draw(self.coordinate, (self.origin_steps, 0, 0))
         # print('grimap:')
@@ -420,6 +424,7 @@ def draw(coordinate, origin):
         color='green'
     )
     ax.set_zlim(plotrange, neg_plotrange)
+    # noinspection PyUnresolvedReferences
     ax.scatter3D(*points, c=[1, 10], cmap=cm.jet, s=150)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
