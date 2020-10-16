@@ -62,7 +62,6 @@ class TranslateCoordinates:
         self.x = None
         self.y = None
         self.z = None
-        self.normalize()
 
     def refresh(self):
         """
@@ -70,62 +69,65 @@ class TranslateCoordinates:
         """
 
     @staticmethod
-    def range_scroller(ax_range, neutral):
+    def range_scroller(axis, distance):
         """
-        This takes an axis range array and scrolls it so the neutral point is at zero.
+        This takes an axis range array and scrolls it by distance
+        """
+        return np.add(axis, distance)
 
-        TODO: We need to place this action within normalize before we do any remapping.
+    def position_coordinate(self, grid, xm=0, ym=0, zm=0):
+        """
+        This repositions a coordinate or a grid.
 
-        TODO: We also need to revise build_range to take this into account instead of just extending the range into the positive.
+        TODO: This guy still needs some work...
+        """
+        x, y, z = grid
+        x = self.range_scroller(x, xm)
+        y = self.range_scroller(y, ym)
+        z = self.range_scroller(z, zm)
+        return x, y, z
 
-        TODO: We need to alter this so it can work with the gridmap model.
+    def rotate_grid(self, axis, grid, count):
         """
-        while neutral:
-            ax_range = [min(ax_range) - 1] + ax_range[:-1]
-            neutral -= 1
-        return ax_range
+        This will rotate a cartesian grid 90 degrees times count clockwise on the specified axis.
+        axis:
+        0 = X
+        1 = Y
+        2 = Z
+        """
+        x, y, z = grid
+        # x, y = self.swap_axis(x, y)
+        while count:  # TODO: This guy might need a little tuning.
+            if axis == 0:  # X
+                # z, y = self.swap_axis(z, y)
+                y = self.reverse_axis(y)
+                z, y = self.swap_axis(z, y)
+            elif axis == 2:  # Z
+                x = self.reverse_axis(x)
+                x, y = self.swap_axis(x, y)
+            else:  # Y
+                x = self.reverse_axis(x)
+                x, z = self.swap_axis(x, z)
+            count -= 1
+        return x, y, z
 
-    def rotate_grid(self, axis, count):
+    @staticmethod
+    def reverse_axis(axis):
         """
-        This will rotate a grid 90 degrees times count clockwise on the specified axis.
+        This will reverse an axis on the cartesian grid.
         """
-        # while count:  # TODO: This guy might need a little tuning.
-        #     if axis == 'x':
-        #         self.reverse_axis('y')
-        #         self.swap_axis('z', 'y')
-        #     elif axis == 'z':
-        #         self.reverse_axis('x')
-        #         self.swap_axis('x', 'y')
-        #     else:
-        #         self.reverse_axis('x')
-        #         self.swap_axis('x', 'z')
-        #     count -= 1
-        # return self
+        if isinstance(axis, np.ndarray):
+            np.flip(axis)
+        else:
+            axis = np.multiply(axis, -1)
+        return axis
 
-    def reverse_axis(self, axis):
+    @staticmethod
+    def swap_axis(axis1, axis2):
         """
-        This will reverse an axis on the cartesian gridmap.
+        This swaps two axis on the cartesian grid.
         """
-        # ax_points = list()
-        # for point in self.gridmap[axis]:
-        #     ax_points.append(point)
-        # index = list(ax_points)
-        # ax_points.reverse()
-        # for pointer, point in zip(index, ax_points):
-        #     self.gridmap[axis][pointer] = point
-        # return self
-
-    def swap_axis(self, axis1, axis2):
-        """
-        This swaps two axis on the cartesian gridmap.
-        """
-        # ax_1 = self.gridmap[axis1]
-        # ax_2 = self.gridmap[axis2]
-        # del self.gridmap[axis1]
-        # del self.gridmap[axis2]
-        # self.gridmap[axis1] = ax_2
-        # self.gridmap[axis2] = ax_1
-        # return self
+        return axis2, axis1
 
     def figure_origin(self):
         """
@@ -204,8 +206,16 @@ class TranslateCoordinates:
     def normalize(self):
         """
         This re-maps the cartesian coordinates to match our physical axis.
+
+        TODO: Remember we are going to have to reverse all this when we are reading trajectories.
         """
-        # self.rotate_grid('z', 1)
+        self.coordinate = self.rotate_grid(0, self.coordinate, 1)  # Rotate grid 90 degrees.
+        self.coordinate = self.position_coordinate(grid=self.coordinate, zm=self.origin_steps)  # Adjust for offset.
+        x = self.reverse_axis(self.coordinate[0])  # Mirror X.
+        y = self.reverse_axis(self.coordinate[1])  # Mirror Y.
+        x, y = self.swap_axis(x, y)  # Swap x and y.
+        z = self.coordinate[2]
+        self.coordinate = (x, y, z)
 
     @staticmethod
     def rads2degs(vector):
@@ -295,16 +305,145 @@ class TranslateCoordinates:
         This will draw a test coordinate.
         """
         print('steps/offset/originmm/mmperstep', self.origin_steps, self.offset_steps, self.origin_mm, self.mm_per_step)
-        self.spherical_to_cartesian(vector)
+        self.spherical_to_cartesian(vector, True)
         print('raw cartesian ticks', self.coordinate_raw)
         print('cartesian ticks', self.coordinate)
         print('spherical degrees input', self.vector)
-        self.cartesian_to_spherical(self.coordinate)
+        self.cartesian_to_spherical(self.coordinate, True)
         print('raw spherical degrees output', self.vector_raw)
         print('spherical degrees output', self.vector)
-        draw(self.coordinate, (self.origin_steps, 0, 0))
+        print('\n')
+        print('cartesian ticks', self.coordinate)
+        self.normalize()
+        print('normalized cartesian coordinate', self.coordinate)
+        self.draw(self.coordinate, (0, 0, self.origin_steps))
         # print('grimap:')
         # pprint.PrettyPrinter(indent=4).pprint(self.gridmap)
+
+    def draw(self, coordinate, origin):
+        """
+        This is a simple matplotlib test for our output
+        datad = {
+        'Blues': _Blues_data,
+        'BrBG': _BrBG_data,
+        'BuGn': _BuGn_data,
+        'BuPu': _BuPu_data,
+        'CMRmap': _CMRmap_data,
+        'GnBu': _GnBu_data,
+        'Greens': _Greens_data,
+        'Greys': _Greys_data,
+        'OrRd': _OrRd_data,
+        'Oranges': _Oranges_data,
+        'PRGn': _PRGn_data,
+        'PiYG': _PiYG_data,
+        'PuBu': _PuBu_data,
+        'PuBuGn': _PuBuGn_data,
+        'PuOr': _PuOr_data,
+        'PuRd': _PuRd_data,
+        'Purples': _Purples_data,
+        'RdBu': _RdBu_data,
+        'RdGy': _RdGy_data,
+        'RdPu': _RdPu_data,
+        'RdYlBu': _RdYlBu_data,
+        'RdYlGn': _RdYlGn_data,
+        'Reds': _Reds_data,
+        'Spectral': _Spectral_data,
+        'Wistia': _wistia_data,
+        'YlGn': _YlGn_data,
+        'YlGnBu': _YlGnBu_data,
+        'YlOrBr': _YlOrBr_data,
+        'YlOrRd': _YlOrRd_data,
+        'afmhot': _afmhot_data,
+        'autumn': _autumn_data,
+        'binary': _binary_data,
+        'bone': _bone_data,
+        'brg': _brg_data,
+        'bwr': _bwr_data,
+        'cool': _cool_data,
+        'coolwarm': _coolwarm_data,
+        'copper': _copper_data,
+        'cubehelix': _cubehelix_data,
+        'flag': _flag_data,
+        'gist_earth': _gist_earth_data,
+        'gist_gray': _gist_gray_data,
+        'gist_heat': _gist_heat_data,
+        'gist_ncar': _gist_ncar_data,
+        'gist_rainbow': _gist_rainbow_data,
+        'gist_stern': _gist_stern_data,
+        'gist_yarg': _gist_yarg_data,
+        'gnuplot': _gnuplot_data,
+        'gnuplot2': _gnuplot2_data,
+        'gray': _gray_data,
+        'hot': _hot_data,
+        'hsv': _hsv_data,
+        'jet': _jet_data,
+        'nipy_spectral': _nipy_spectral_data,
+        'ocean': _ocean_data,
+        'pink': _pink_data,
+        'prism': _prism_data,
+        'rainbow': _rainbow_data,
+        'seismic': _seismic_data,
+        'spring': _spring_data,
+        'summer': _summer_data,
+        'terrain': _terrain_data,
+        'winter': _winter_data,
+        # Qualitative
+        'Accent': {'listed': _Accent_data},
+        'Dark2': {'listed': _Dark2_data},
+        'Paired': {'listed': _Paired_data},
+        'Pastel1': {'listed': _Pastel1_data},
+        'Pastel2': {'listed': _Pastel2_data},
+        'Set1': {'listed': _Set1_data},
+        'Set2': {'listed': _Set2_data},
+        'Set3': {'listed': _Set3_data},
+        'tab10': {'listed': _tab10_data},
+        'tab20': {'listed': _tab20_data},
+        'tab20b': {'listed': _tab20b_data},
+        'tab20c': {'listed': _tab20c_data},
+        }
+        https://matplotlib.org/3.1.3/gallery/mplot3d/voxels_rgb.html#sphx-glr-gallery-mplot3d-voxels-rgb-py
+        """
+        x, y, z = coordinate
+        xo, yo, zo = origin
+        print('origin', origin)
+        offset = zo  # figure_origin(*origin)[0]
+        plotrange = offset
+        neg_plotrange = plotrange * -1
+        points = [
+            [x, xo],
+            [y, yo],
+            # shift_axis([z, 0], plotrange)
+            [z, zo]
+        ]
+        # print(points)
+        r = zo
+        u, v = np.mgrid[0:2 * np.pi:20j, 0:np.pi:10j]
+        xx = np.multiply(r, np.multiply(np.cos(u), np.sin(v)))
+        yy = np.multiply(r, np.multiply(np.sin(u), np.sin(v)))
+        zz = np.multiply(r, np.cos(v))
+        zz = self.range_scroller(zz, zo)
+        # TODO: Add range of motion clamp here.
+        # Draw output.
+        # fig = plt.figure()
+        ax = plt.axes(projection="3d")
+        ax.plot3D(*points, color='blue', linewidth=1)  # servo angle.
+        ax.plot3D([0, x], [0, y], [0, z], color='blue', linewidth=1)  # Zero point angle for reference.
+        ax.plot3D(  # plot ground.
+            [plotrange, plotrange, neg_plotrange, neg_plotrange, plotrange],
+            [plotrange, neg_plotrange, neg_plotrange, plotrange, plotrange],
+            [0, 0, 0, 0, 0],
+            color='green'
+        )
+        ax.set_zlim(neg_plotrange / 2, plotrange + plotrange / 6)
+        # noinspection PyUnresolvedReferences
+        ax.scatter3D(*points, c=[1, 10], cmap=cm.jet, s=150)
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+        # ax.plot_wireframe(xx, yy, zz, color="r")
+        ax.scatter3D(xx, yy, zz, c='r', s=1)
+
+        plt.show()
 
 
 def its(it, go=True):
@@ -319,115 +458,3 @@ def its(it, go=True):
     return it
 
 
-def draw(coordinate, origin):
-    """
-    This is a simple matplotlib test for our output
-    datad = {
-    'Blues': _Blues_data,
-    'BrBG': _BrBG_data,
-    'BuGn': _BuGn_data,
-    'BuPu': _BuPu_data,
-    'CMRmap': _CMRmap_data,
-    'GnBu': _GnBu_data,
-    'Greens': _Greens_data,
-    'Greys': _Greys_data,
-    'OrRd': _OrRd_data,
-    'Oranges': _Oranges_data,
-    'PRGn': _PRGn_data,
-    'PiYG': _PiYG_data,
-    'PuBu': _PuBu_data,
-    'PuBuGn': _PuBuGn_data,
-    'PuOr': _PuOr_data,
-    'PuRd': _PuRd_data,
-    'Purples': _Purples_data,
-    'RdBu': _RdBu_data,
-    'RdGy': _RdGy_data,
-    'RdPu': _RdPu_data,
-    'RdYlBu': _RdYlBu_data,
-    'RdYlGn': _RdYlGn_data,
-    'Reds': _Reds_data,
-    'Spectral': _Spectral_data,
-    'Wistia': _wistia_data,
-    'YlGn': _YlGn_data,
-    'YlGnBu': _YlGnBu_data,
-    'YlOrBr': _YlOrBr_data,
-    'YlOrRd': _YlOrRd_data,
-    'afmhot': _afmhot_data,
-    'autumn': _autumn_data,
-    'binary': _binary_data,
-    'bone': _bone_data,
-    'brg': _brg_data,
-    'bwr': _bwr_data,
-    'cool': _cool_data,
-    'coolwarm': _coolwarm_data,
-    'copper': _copper_data,
-    'cubehelix': _cubehelix_data,
-    'flag': _flag_data,
-    'gist_earth': _gist_earth_data,
-    'gist_gray': _gist_gray_data,
-    'gist_heat': _gist_heat_data,
-    'gist_ncar': _gist_ncar_data,
-    'gist_rainbow': _gist_rainbow_data,
-    'gist_stern': _gist_stern_data,
-    'gist_yarg': _gist_yarg_data,
-    'gnuplot': _gnuplot_data,
-    'gnuplot2': _gnuplot2_data,
-    'gray': _gray_data,
-    'hot': _hot_data,
-    'hsv': _hsv_data,
-    'jet': _jet_data,
-    'nipy_spectral': _nipy_spectral_data,
-    'ocean': _ocean_data,
-    'pink': _pink_data,
-    'prism': _prism_data,
-    'rainbow': _rainbow_data,
-    'seismic': _seismic_data,
-    'spring': _spring_data,
-    'summer': _summer_data,
-    'terrain': _terrain_data,
-    'winter': _winter_data,
-    # Qualitative
-    'Accent': {'listed': _Accent_data},
-    'Dark2': {'listed': _Dark2_data},
-    'Paired': {'listed': _Paired_data},
-    'Pastel1': {'listed': _Pastel1_data},
-    'Pastel2': {'listed': _Pastel2_data},
-    'Set1': {'listed': _Set1_data},
-    'Set2': {'listed': _Set2_data},
-    'Set3': {'listed': _Set3_data},
-    'tab10': {'listed': _tab10_data},
-    'tab20': {'listed': _tab20_data},
-    'tab20b': {'listed': _tab20b_data},
-    'tab20c': {'listed': _tab20c_data},
-    }
-    https://matplotlib.org/3.1.3/gallery/mplot3d/voxels_rgb.html#sphx-glr-gallery-mplot3d-voxels-rgb-py
-    """
-    x, y, z = coordinate
-    offset = 20  # figure_origin(*origin)[0]
-    plotrange = offset * 2.5  # z + offset
-    neg_plotrange = plotrange * -1
-    points = [
-        [x, 0],
-        [y, 0],
-        # shift_axis([z, 0], plotrange)
-        [z, 0]
-    ]
-    # print(points)
-    # Draw output.
-    # fig = plt.figure()
-    ax = plt.axes(projection="3d")
-    ax.plot3D(*points, color='blue', linewidth=1)  # servo angle.
-    ax.plot3D(  # plot ground.
-        [plotrange, plotrange, neg_plotrange, neg_plotrange, plotrange],
-        [plotrange, neg_plotrange, neg_plotrange, plotrange, plotrange],
-        [0, 0, 0, 0, 0],
-        color='green'
-    )
-    ax.set_zlim(plotrange, neg_plotrange)
-    # noinspection PyUnresolvedReferences
-    ax.scatter3D(*points, c=[1, 10], cmap=cm.jet, s=150)
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-
-    plt.show()
