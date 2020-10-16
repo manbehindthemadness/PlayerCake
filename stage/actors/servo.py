@@ -7,6 +7,8 @@ https://circuitpython.readthedocs.io/projects/servokit/en/latest/api.html#implem
 https://gis.stackexchange.com/questions/267084/tool-to-output-xy-from-an-input-xy-distant-and-angle
 
 feedback servo https://www.adafruit.com/product/1404
+
+TODO: After looking at how the coordinate transformer came together, this will have to be largely rewritten.
 """
 # from adafruit_servokit import ServoKit
 from warehouse.utils import iterate_to_dict
@@ -116,7 +118,7 @@ class InitLeg:
         xyz_a, xyz_b = self.build_coords(self.axis_xyz_conf)
         print('coords', xyz_a)
         print('mappings', xyz_b)
-        pwm_a, pwm_b = self.build_coords(self.axis_pwm_conf)
+        # pwm_a, pwm_b = self.build_coords(self.axis_pwm_conf)
         print('building local grid')
         # TODO: We need to figure out how to get an XYZ origin from servo angles...
         # self.xyz_grid, self.pwm_grid = self.constuctor(self.axis_xyz_conf, self.axis_pwm_conf, self.origin)  # We need to calculate the origin...
