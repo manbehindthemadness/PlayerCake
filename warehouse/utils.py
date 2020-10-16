@@ -5,6 +5,8 @@ import configparser
 import datetime
 import os
 import re
+import sys
+import pickle
 from os import path, rename, remove
 
 
@@ -382,3 +384,24 @@ def file_exists(file):
     """
     return path.exists(file)
 
+
+def bytesto(bts, to, bsize=1024):
+    """convert bytes to megabytes, etc.
+       sample code:
+           print('mb= ' + str(bytesto(314575262000000, 'm')))
+       sample output:
+           mb= 300002347.946
+    """
+
+    a = {'k': 1, 'm': 2, 'g': 3, 't': 4, 'p': 5, 'e': 6}
+    r = float(bts)
+    for i in range(a[to]):
+        r = r / bsize
+
+    return r
+
+
+def get_size(obj):
+    """Recursively finds size of objects"""
+    bts = sys.getsizeof(pickle.dumps(obj))  # I bet CBOR would be MUCH faster.
+    return round(bytesto(bts, 'm'), 2)

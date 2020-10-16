@@ -13,8 +13,7 @@ from stage.improvisors.adc import MCP3008
 from stage.improvisors.hcsr04 import Sonar
 from stage.improvisors.bno055 import BNO055
 from stage.improvisors.calibrations import SetGyros
-# from stage.improvisors.bmp280 import alt
-# from ADCPi import ADCPi, TimeoutError as ADCTimeout
+from stage.actors.servo import InitLeg
 import RPi.GPIO as GPIO
 from threading import Thread
 import time
@@ -50,71 +49,90 @@ class Start:
 
     Data model specifications:
 
-    {
-        "LISTENER": {
-            "<DIRECTOR_ID>": "<Recieved network data>" , TODO: We need to find a way to organize this.
-        },
-        "ADC": {"ADCPort1": "value", "ADCPort2": "value"},  # etc...
-        "IMU": {
-            "AccXangle": "value",
-            "AccYangle": "value",
-            "gyroXangle": "value",
-            "gyroYangle": "value",
-            "gyroZangle": "value",
-            "CFangleX": "value",
-            "CFangleY": "value",
-            "kalmanX": "value",
-            "kalmanY": "value",
-            "heading": "value",
-            "tiltCompensatedHeading": "value"
-        },
-        "GPS": {
-            "LAT": "value",
-            "LONG": "value",
-            "ALT": "value",
-            "PRESS": "value",
-            "TEMP": "value"
-        },
-        "SYS": {
-            "CPU_TEMP": "value",
-            "STATS": {
-                "BOOT_TIME": "value",
-                "CPU_LOAD": "value",
-                "DISK_IO": "value",
-                "SENSORS": {
-                    "BATTERY": "value",
-                    "FANS": "value",
-                    "TEMPS": ["value1", "value2"], - etc...
-                },
-                "SWAP_MEMORY": "value",
-                "VIRTUAL_MEMORY": "value"
-            },
-        },
-        "NETWORKS": {
-            "Cell1": {
-                "address": "value",
-                "Authentication Suites": "value",
-                "Bit Rates": "value",
-                "Channel": "value",
-                "ESSID": "value",
-                "Encryption key": "value",
-                "Extra": "value",
-                "Frequency": "value",
-                "Group Cipher": "value",
-                "IE": "value",
-                "Mode": "value",
-                "Pairwise Ciphers": "value",
-                "Quality": "value"
-            },
-            "Cell2"{.....), - etc...
-        },
-        "SCRIPTS": {
-            WIP - TBD...
-        },
-        "ACTORS": {
-            WIP - TBD...
-        },
-    }
+    {{   '9DOF': {   'accelerometer': (0.09, -0.45, 9.42),
+                'euler': (279.4375, -0.0625, 2.75),
+                'linear_acceleration': (0.12, 0.01, -0.34),
+                'quaternion': (   -0.0191650390625,
+                                  -0.01531982421875,
+                                  0.64617919921875,
+                                  0.7628173828125)},
+    'ADC': {   'ADCPort0': 172,
+               'ADCPort1': 99,
+               'ADCPort10': 351,
+               'ADCPort11': 332,
+               'ADCPort12': 237,
+               'ADCPort13': 311,
+               'ADCPort14': 363,
+               'ADCPort15': 334,
+               'ADCPort2': 144,
+               'ADCPort3': 142,
+               'ADCPort4': 100,
+               'ADCPort5': 117,
+               'ADCPort6': 143,
+               'ADCPort7': 139,
+               'ADCPort8': 135,
+               'ADCPort9': 140},
+    'ADDRESSES': {},
+    'GPS': {   'ALT': 45.833050081662506,
+               'LAT': 0.0,
+               'LONG': 0.0,
+               'PRESS': 100775.70756802488,
+               'TEMP': 25.735195895191282},
+    'IMU': {   'AccXangle': 2.5372963549633774,
+               'AccYangle': 0.6210704346177636,
+               'CFangleX': 2.4651977476566262,
+               'CFangleY': 0.46314554617227544,
+               'gyroXangle': -11.240688130000006,
+               'gyroYangle': -1.99744678,
+               'gyroZangle': -0.6516236999999999,
+               'heading': 176.88789014246944,
+               'kalmanX': 2.7539779783126717,
+               'kalmanY': 0.40895164392733435,
+               'tiltCompensatedHeading': 177.11464821569282},
+    'LISTENER': {   '6efc1846-d015-11ea-87d0-0242ac130003': {   'COMMAND': {},
+                                                                'STATUS': 'ready'},
+                    'a9b3cfb3-c72d-4efd-993d-6c8dccbb8609': {   'STATUS': 'ready'}},
+    'PWM': {   'GRIDS': {'1': {}, '2': {}, '3': {}, '4': {}},
+               'RAD': {   '0': 90,
+                          '1': 90,
+                          '10': 150,
+                          '12': 90,
+                          '13': 90,
+                          '14': 150,
+                          '2': 150,
+                          '4': 90,
+                          '5': 90,
+                          '6': 90,
+                          '8': 90,
+                          '9': 90},
+               'XYZ': {   '0': (0, 0, 0),
+                          '1': (0, 0, 0),
+                          '10': (0, 0, 0),
+                          '11': (0, 0, 0),
+                          '12': (0, 0, 0),
+                          '13': (0, 0, 0),
+                          '14': (0, 0, 0),
+                          '15': (0, 0, 0),
+                          '2': (0, 0, 0),
+                          '3': (0, 0, 0),
+                          '4': (0, 0, 0),
+                          '5': (0, 0, 0),
+                          '6': (0, 0, 0),
+                          '7': (0, 0, 0),
+                          '8': (0, 0, 0),
+                          '9': (0, 0, 0)}},
+    'SONAR': {'left': 10, 'rear': 23, 'right': 27},
+    'SYS': {   'CPU_TEMP': 39.2,
+               'STATS': {   'BOOT_TIME': 1602248660.0,
+                            'CPU_LOAD': 20.4,
+                            'CPU_TIMES': scputimes(user=2575.48, nice=0.56, system=910.82, idle=346323.84, iowait=16.83, irq=0.0, softirq=29.09, steal=0.0, guest=0.0, guest_nice=0.0),
+                            'DISK_IO': sdiskusage(total=31214379008, used=3633971200, free=26279493632, percent=12.1),
+                            'SENSORS': {   'BATTERY': None,
+                                           'FANS': searching for connection...{},
+                                           'TEMPS': {   'cpu_thermal': [   shwtemp(label='', current=39.166, high=None, critical=None)]}},
+                            'SWAP_MEMORY': sswap(total=104853504, used=0, free=104853504, percent=0.0, sin=0, sout=0),
+                            'VIRTUAL_MEMORY': svmem(total=1016561664, available=860155904, percent=15.4, used=87343104, free=684986368, active=218804224, inactive=46653440, buffers=65994752, cached=178237440, shared=6770688, slab=49090560)}}}
+
     """
     def __init__(self):
         global rt_data
@@ -174,6 +192,8 @@ class Start:
 
         for thread in self.threads:  # Launch threads.
             thread.start()
+
+        # self.init_leg = InitLeg(self, 1)  # This is for testing.
 
         self.lines.append('system init complete')
 
@@ -574,4 +594,5 @@ class Start:
 
 
 if __name__ == '__main__':
-    Start()
+    s = Start()
+    # s.dump()
