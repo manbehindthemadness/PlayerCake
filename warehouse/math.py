@@ -96,10 +96,8 @@ class TranslateCoordinates:
         2 = Z
         """
         x, y, z = grid
-        # x, y = self.swap_axis(x, y)
-        while count:  # TODO: This guy might need a little tuning.
+        while count:
             if axis == 0:  # X
-                # z, y = self.swap_axis(z, y)
                 y = self.reverse_axis(y)
                 z, y = self.swap_axis(z, y)
             elif axis == 2:  # Z
@@ -206,8 +204,6 @@ class TranslateCoordinates:
     def normalize(self):
         """
         This re-maps the cartesian coordinates to match our physical axis.
-
-        TODO: Remember we are going to have to reverse all this when we are reading trajectories.
         """
         self.coordinate = self.rotate_grid(0, self.coordinate, 1)  # Rotate grid 90 degrees.
         self.coordinate = self.position_coordinate(grid=self.coordinate, zm=self.origin_steps)  # Adjust for offset.
@@ -216,6 +212,19 @@ class TranslateCoordinates:
         x, y = self.swap_axis(x, y)  # Swap x and y.
         z = self.coordinate[2]
         self.coordinate = (x, y, z)
+
+    def denormalize(self):
+        """
+        This is literally the opposite of the normalize function.
+        It takes a normal cartesian coordinate on our grid, and transforms it so we can convert it into spherical coordinates in degrees.
+        """
+        x, y, z = self.coordinate
+        x, y = self.swap_axis(x, y)  # Swap x and y.
+        x = self.reverse_axis(x)  # Mirror x.
+        y = self.reverse_axis(y)  # Mirror y.
+        self.coordinate = x, y, z
+        self.coordinate = self.position_coordinate(grid=self.coordinate, zm=self.origin_steps * -1)  # Adjust for offset.
+        self.coordinate = self.rotate_grid(0, self.coordinate, 3)
 
     @staticmethod
     def rads2degs(vector):
@@ -317,6 +326,8 @@ class TranslateCoordinates:
         self.normalize()
         print('normalized cartesian coordinate', self.coordinate)
         self.draw(self.coordinate, (0, 0, self.origin_steps))
+        self.denormalize()
+        print('denormalized cartesian ticks', self.coordinate)
         # print('grimap:')
         # pprint.PrettyPrinter(indent=4).pprint(self.gridmap)
 
