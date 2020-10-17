@@ -9,6 +9,7 @@ https://github.com/numba/numba/issues/3670
 install numba using apt
 """
 import numpy as np
+from warehouse.utils import find_minmax as fmm, iterate_to_dict as i2d
 # import pprint
 from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
@@ -20,16 +21,20 @@ class TranslateCoordinates:
     """
     This allows us to convert between different coordinates, transform grids...etc.
 
+    TODO: We are going to have to bring in the reat time data model so we can adjust range of motion against \
+            gravity offsets with respect to balance and inclines... I think.
+
     ρ/rho = distance = Z
     θ/theta = yaw = Y
     ϕ/phi = pitch = X
 
     """
     def __init__(self, settings, leg, debug=False):
+        self.lg = leg
         self.debug = debug
         self.settings = settings.settings
         # Get leg settings.
-        self.leg = self.settings.legs[leg]
+        self.leg = self.settings.legs[self.lg]
         self.phiset = self.leg['x']
         self.thetaset = self.leg['y']
         self.rhoset = self.leg['z']
@@ -50,12 +55,14 @@ class TranslateCoordinates:
         self.thetaarray = self.build_range(self.theta_range)
         self.rhoarray = self.build_range(self.rho_range, origin=True)
         # Construct the polar grid map dictionary.
-        # self.gridmap = self.build_gridmap()
+        self.gridmap = None
+        self.build_map()
 
         self.vector = None
         self.vector_raw = None
         self.coordinate = tuple()
         self.coordinate_raw = None
+        self.pwm = None
         self.rho = None
         self.theta = None
         self.phi = None
@@ -67,6 +74,96 @@ class TranslateCoordinates:
         """
         We are going to move all the jazz from init into here so we can reload settings after modification.
         """
+        # Get leg settings.
+        self.leg = self.settings.legs[self.lg]
+        self.phiset = self.leg['x']
+        self.thetaset = self.leg['y']
+        self.rhoset = self.leg['z']
+        # Get minimum, neutral, and maximum PWM values.
+        self.phi_range = (self.phiset['min'], self.phiset['nu'], self.phiset['max'])
+        self.theta_range = (self.thetaset['min'], self.thetaset['nu'], self.thetaset['max'])
+        self.rho_range = (self.rhoset['min'], self.rhoset['nu'], self.rhoset['max'])
+        self.neutral = (self.rhoset['nu'], self.thetaset['nu'], self.phiset['nu'])
+        # Get radius range in mm so we can figure the offset for our pivot point.
+        self.length = self.leg['len']
+        self.travel = self.leg['trv']
+        # Create mapping arrays so the zero point on our output grid matches the PWM neutral point.
+        self.phiarray = self.build_range(self.phi_range)
+        self.thetaarray = self.build_range(self.theta_range)
+        self.rhoarray = self.build_range(self.rho_range, origin=True)
+        # Construct the polar grid map dictionary.
+        self.build_map()
+
+    def build_map(self):
+        """
+        This constructs a dictionary containing spherical axis mappings to pwm values for easy lookup.
+        """
+        def submap(ky, arys):
+            """
+            This chooses the correct array based on the keyname.
+            """
+            out = None
+            names = 'rho', 'theta', 'phi'
+            for idx, name in enumerate(names):
+                if name in ky:
+                    out = arys[idx]
+            return out
+
+        keys = ['sp2pwm_rho', 'sp2pwm_theta', 'sp2pwm_phi', 'pwm2sp_rho', 'pwm2sp_theta', 'pwm2sp_phi']
+        arrays = [self.rhoarray, self.thetaarray, self.phiarray]
+        self.gridmap = dict()
+        for ary in keys:
+            tar = submap(ary, arrays)
+            if 'sp2pwm' in ary:
+                self.gridmap[ary] = i2d(tar[0], tar[1])
+            if 'pwm2sp' in ary:
+                self.gridmap[ary] = i2d(tar[1], tar[0])
+        print(self.gridmap)
+        return self
+
+    def update_pwm(self):
+        """
+        This updates the pwm values to match the mapped value of our vector.
+        """
+        g = self.gridmap
+        r, t, p = its(self.vector)
+        # print('RTP', r, t, p)
+        p = g['sp2pwm_rho'][str(int(r))]
+        w = g['sp2pwm_theta'][str(int(t))]
+        m = g['sp2pwm_phi'][str(int(p))]
+        self.pwm = p, w, m
+        return self
+
+    def clamp(self, ints=True):
+        """
+        This clamps our spherical vector into our range of motion.
+        """
+        rho, theta, phi = self.vector
+        rho_sp_range = fmm(self.rhoarray[0])
+        theta_sp_range = fmm(self.thetaarray[0])
+        phi_sp_range = fmm(self.phiarray[0])
+        sp_ranges = (rho_sp_range, theta_sp_range, phi_sp_range)
+        out = list()
+        change = False
+        sp_rng = None
+        for ax, sp_rng in zip(
+                (rho, theta, phi),
+                sp_ranges
+        ):
+            if ax > sp_rng[1]:
+                ax = sp_rng[1]
+                change = True
+            if ax < sp_rng[0]:
+                ax = sp_rng[0]
+                change = True
+            out.append(its(ax, ints))  # Round to ints if desired.
+        if self.debug:
+            if change:
+                print('clamping vector', self.vector, 'to', out, 'from range:', sp_rng)
+        self.vector = out
+        self.rho, self.theta, self.phi = self.vector
+        self.update_pwm()
+        return self
 
     @staticmethod
     def range_scroller(axis, distance):
@@ -79,7 +176,6 @@ class TranslateCoordinates:
         """
         This repositions a coordinate or a grid.
 
-        TODO: This guy still needs some work...
         """
         x, y, z = grid
         x = self.range_scroller(x, xm)
@@ -156,9 +252,7 @@ class TranslateCoordinates:
         This will convert polar min/max to a set of lists accounting for the origin.
         One list will represent the pol
 
-        TODO: We really need to change polar to spherical to avoid confusion.
-
-        TODO: Math tested and passes tests, edit with care,
+        NOTE: *Math tested and passes tests, edit with care,*
         """
         def prefix(array):
             """
@@ -275,6 +369,7 @@ class TranslateCoordinates:
         self.theta, self.phi = self.rads2degs([self.theta, self.phi])  # convert theta and phi from radians into degrees.
         self.vector_raw = self.rho, self.theta, self.phi  # Store raw vector.
         self.vector = its(self.vector_raw, ints)  # Store rounded vector.
+        self.clamp()  # Ensure we are within the range of motion
         return self
 
     def spherical_to_cartesian(self, vector, ints=False):
@@ -302,6 +397,7 @@ class TranslateCoordinates:
                 np.multiply(rho, np.cos(phi))  # Calculate Z.
             ]
         self.vector = vector
+        self.clamp()  # Ensure we are within the range of motion
         self.rho, self.theta, self.phi = self.vector
         self.theta, self.phi = self.degs2rads([self.theta, self.phi])  # Convert theta and phi from degrees into radians.
         self.x, self.y, self.z = sp2cart(rho=self.rho, theta=self.theta, phi=self.phi)  # Convert spherical vector into cartesian ticks.
@@ -318,6 +414,7 @@ class TranslateCoordinates:
         print('raw cartesian ticks', self.coordinate_raw)
         print('cartesian ticks', self.coordinate)
         print('spherical degrees input', self.vector)
+        print('translated PWM values', self.pwm)
         self.cartesian_to_spherical(self.coordinate, True)
         print('raw spherical degrees output', self.vector_raw)
         print('spherical degrees output', self.vector)
@@ -328,8 +425,11 @@ class TranslateCoordinates:
         self.draw(self.coordinate, (0, 0, self.origin_steps))
         self.denormalize()
         print('denormalized cartesian ticks', self.coordinate)
+        print('real PWM values', self.pwm)
         # print('grimap:')
         # pprint.PrettyPrinter(indent=4).pprint(self.gridmap)
+
+        return self
 
     def draw(self, coordinate, origin):
         """
