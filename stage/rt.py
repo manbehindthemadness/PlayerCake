@@ -13,7 +13,7 @@ from stage.improvisors.adc import MCP3008
 from stage.improvisors.hcsr04 import Sonar
 from stage.improvisors.bno055 import BNO055
 from stage.improvisors.calibrations import SetGyros
-from stage.actors.servo import InitLeg
+from stage.actors.servo import Legs, Servos
 import RPi.GPIO as GPIO
 from threading import Thread
 import time
@@ -137,6 +137,7 @@ class Start:
     def __init__(self):
         global rt_data
         global term
+        self.init_complete = False  # We do this so we can launch the threads and get the real time model in place before calling dependents.
         self.datastream_term = False
         self.scanning = False
         self.sending = False
@@ -173,6 +174,7 @@ class Start:
         self.imud = None
         self.addresses = self.rt_data['ADDRESSES'] = check_dict(self.rt_data, 'ADDRESSES')
         self.sonar = Sonar(self)
+        # self.dump()
 
         self.threads = [  # Create threads.
             Thread(target=self.read_adc, args=(), daemon=True),
@@ -194,8 +196,10 @@ class Start:
             thread.start()
 
         # self.init_leg = InitLeg(self, 1)  # This is for testing.
-
+        self.legs = Legs(self, debug=None)  # Fire up coordinate solvers.
+        self.servos = Servos(self)  # Fire up servo controller.
         self.lines.append('system init complete')
+        self.init_complete = True  # Flag dependents as ready.
 
     def wait(self):
         """
@@ -559,20 +563,35 @@ class Start:
             1. We will have a section that stores the raw pwm values that are read to the controller.
             2. we will have pre-rendered local grids that sport the pwm values required to achieve a specific XYZ position.
             3. we will have a command section that contains the XYZ values that the plotter instructs so we follow our trajectory.
-        'PWM': {
-            'GRIDS': {
-                'LEG1': '<grid data>',  # dict
-                'LEG2': ...
-            },
-            'RAD': {
-                '0': '<pwm value>',  # int
-                '1': ...
-            },
-            'XYZ': {
-                '0': '(<x value>, <y value>, <z value>)',  # tuple of ints
-                '1': ...
-            }
-        }
+        'PWM': {GRIDS': {'1': {}, '2': {}, '3': {}, '4': {}},
+               'RAD': {   '0': 90,
+                          '1': 90,
+                          '10': 150,
+                          '12': 90,
+                          '13': 90,
+                          '14': 150,
+                          '2': 150,
+                          '4': 90,
+                          '5': 90,
+                          '6': 90,
+                          '8': 90,
+                          '9': 90},
+               'XYZ': {   '0': (0, 0, 0),
+                          '1': (0, 0, 0),
+                          '10': (0, 0, 0),
+                          '11': (0, 0, 0),
+                          '12': (0, 0, 0),
+                          '13': (0, 0, 0),
+                          '14': (0, 0, 0),
+                          '15': (0, 0, 0),
+                          '2': (0, 0, 0),
+                          '3': (0, 0, 0),
+                          '4': (0, 0, 0),
+                          '5': (0, 0, 0),
+                          '6': (0, 0, 0),
+                          '7': (0, 0, 0),
+                          '8': (0, 0, 0),
+                          '9': (0, 0, 0)}},
         """
         leg_defaults = self.settings.legs
         pwmdt = self.rt_data['PWM'] = dict()
@@ -591,6 +610,8 @@ class Start:
         xyz = pwmdt['XYZ'] = dict()  # Populate desired XYZ position.
         for pos in range(16):  # TODO: This is where we will need to translate the default nautral value from RAD.
             xyz[str(pos)] = (0, 0, 0)
+        if self.init_complete:
+            self.servos.set()  # Read realtime servo position to the hardware controller.
 
 
 if __name__ == '__main__':

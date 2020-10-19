@@ -24,6 +24,8 @@ class TranslateCoordinates:
     TODO: We are going to have to bring in the reat time data model so we can adjust range of motion against \
             gravity offsets with respect to balance and inclines... I think.
 
+    TODO: I think we have something backwords in the normalizers...
+
     ρ/rho = distance = Z
     θ/theta = yaw = Y
     ϕ/phi = pitch = X
@@ -32,7 +34,7 @@ class TranslateCoordinates:
     def __init__(self, settings, leg, debug=False):
         self.lg = leg
         self.debug = debug
-        self.settings = settings.settings
+        self.settings = settings
         # Get leg settings.
         self.leg = self.settings.legs[self.lg]
         self.phiset = self.leg['x']
@@ -58,11 +60,12 @@ class TranslateCoordinates:
         self.gridmap = None
         self.build_map()
 
+        # NOTE: Remember that our vectors are in translated PWM values NOT spherical vectors.
         self.vector = None
         self.vector_raw = None
         self.coordinate = tuple()
         self.coordinate_raw = None
-        self.pwm = None
+        self.last_vector = self.vector = self.rho_range[1], self.theta_range[1], self.phi_range[1]  # Init pwm vector to neutral.
         self.rho = None
         self.theta = None
         self.phi = None
@@ -118,51 +121,45 @@ class TranslateCoordinates:
                 self.gridmap[ary] = i2d(tar[0], tar[1])
             if 'pwm2sp' in ary:
                 self.gridmap[ary] = i2d(tar[1], tar[0])
-        print(self.gridmap)
+        if self.debug:
+            print(self.gridmap)
         return self
 
-    def update_pwm(self):
-        """
-        This updates the pwm values to match the mapped value of our vector.
-        """
-        g = self.gridmap
-        r, t, p = its(self.vector)
-        # print('RTP', r, t, p)
-        p = g['sp2pwm_rho'][str(int(r))]
-        w = g['sp2pwm_theta'][str(int(t))]
-        m = g['sp2pwm_phi'][str(int(p))]
-        self.pwm = p, w, m
-        return self
-
-    def clamp(self, ints=True):
+    def clamp(self, ints=True, go=True):
         """
         This clamps our spherical vector into our range of motion.
+
+        TODO: This is still acting up, It's because we need to remember that the input values in the test class are \
+                actual PWM values NOT spherical coordinates.
         """
-        rho, theta, phi = self.vector
-        rho_sp_range = fmm(self.rhoarray[0])
-        theta_sp_range = fmm(self.thetaarray[0])
-        phi_sp_range = fmm(self.phiarray[0])
-        sp_ranges = (rho_sp_range, theta_sp_range, phi_sp_range)
-        out = list()
-        change = False
-        sp_rng = None
-        for ax, sp_rng in zip(
-                (rho, theta, phi),
-                sp_ranges
-        ):
-            if ax > sp_rng[1]:
-                ax = sp_rng[1]
-                change = True
-            if ax < sp_rng[0]:
-                ax = sp_rng[0]
-                change = True
-            out.append(its(ax, ints))  # Round to ints if desired.
-        if self.debug:
-            if change:
-                print('clamping vector', self.vector, 'to', out, 'from range:', sp_rng)
-        self.vector = out
-        self.rho, self.theta, self.phi = self.vector
-        self.update_pwm()
+        if go:
+            rho, theta, phi = self.vector
+            rho_sp_range = fmm(self.rhoarray[1])
+            theta_sp_range = fmm(self.thetaarray[1])
+            phi_sp_range = fmm(self.phiarray[1])
+            sp_ranges = (rho_sp_range, theta_sp_range, phi_sp_range)
+            out = list()
+            change = False
+            sp_rng = None
+            for ax, sp_rng in zip(
+                    (rho, theta, phi),
+                    sp_ranges
+            ):
+                if ax > sp_rng[1]:
+                    ax = sp_rng[1]
+                    change = True
+                if ax < sp_rng[0]:
+                    ax = sp_rng[0]
+                    change = True
+                out.append(its(ax, ints))  # Round to ints if desired.
+            if self.debug:
+                if change:
+                    print('clamping vector', self.vector, 'to', out, 'from range:', sp_rng)
+            self.vector = out
+            self.rho, self.theta, self.phi = self.vector
+            if self.debug and change:  # TODO: Watch this one as it seems to work, but I am unsure how to prove it.
+                self.spherical_to_cartesian(self.vector, True)
+                # self.denormalize()
         return self
 
     @staticmethod
@@ -405,6 +402,24 @@ class TranslateCoordinates:
         self.coordinate = its(self.coordinate_raw, ints)  # Store rounded coordinate.
         return self
 
+    def get_coord(self, vector):
+        """
+        This is where movement solver will make it requests to convert a spherical vector into a fully transformed
+            cartesian coordinate.
+        """
+        self.spherical_to_cartesian(vector, True)
+        self.normalize()
+        return self
+
+    def get_vector(self, coordinate):
+        """
+        This is where the trajectory solver will make requests to convert a cartesian coordinate into a fully
+            de-normalized spherical vector translated into degrees for the PWM controller.
+        """
+        self.cartesian_to_spherical(coordinate, True)
+        self.denormalize()
+        return self
+
     def test(self, vector):
         """
         This will draw a test coordinate.
@@ -414,7 +429,6 @@ class TranslateCoordinates:
         print('raw cartesian ticks', self.coordinate_raw)
         print('cartesian ticks', self.coordinate)
         print('spherical degrees input', self.vector)
-        print('translated PWM values', self.pwm)
         self.cartesian_to_spherical(self.coordinate, True)
         print('raw spherical degrees output', self.vector_raw)
         print('spherical degrees output', self.vector)
@@ -425,7 +439,6 @@ class TranslateCoordinates:
         self.draw(self.coordinate, (0, 0, self.origin_steps))
         self.denormalize()
         print('denormalized cartesian ticks', self.coordinate)
-        print('real PWM values', self.pwm)
         # print('grimap:')
         # pprint.PrettyPrinter(indent=4).pprint(self.gridmap)
 
