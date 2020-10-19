@@ -12,7 +12,6 @@ feedback servo https://www.adafruit.com/product/1404
 from warehouse.math import TranslateCoordinates as Tc
 from stage.oem.adafruit_servokit import ServoKit
 # import numpy as np
-import time
 
 
 class Legs:
@@ -29,6 +28,7 @@ class Legs:
         self.debug = debug
         self.tc = Tc
         self.dummy = None
+        # TODO: Pack this into a loop so we can also populate the grid data into the real time model.
         self.l1 = self.tc(self.settings, 'LEG1', self.debug)
         self.l2 = self.tc(self.settings, 'LEG2', self.debug)
         self.l3 = self.tc(self.settings, 'LEG3', self.debug)
@@ -69,7 +69,9 @@ class Servos:
         This takes the pwm values in the real time model and assigns them to the servo controller.
 
         TODO: We are going to need to add some conditions here for saftey.
+
+        # TODO: This is where acceleration and backlash are going to come into play, \
+                In addition to biomemetic feedback constraints and gravitational offset.
         """
         for chan in self.pwm:
-            # print('setting channel', chan, 'to position', self.pwm[chan])
             self.servos.servo[int(chan)].angle = self.pwm[chan]
