@@ -9,7 +9,7 @@ https://gis.stackexchange.com/questions/267084/tool-to-output-xy-from-an-input-x
 feedback servo https://www.adafruit.com/product/1404
 
 """
-from warehouse.math import TranslateCoordinates as Tc
+from warehouse.math import TranslateCoordinates as Tc, raw_reverse as rr
 from stage.oem.adafruit_servokit import ServoKit
 # import numpy as np
 
@@ -49,6 +49,7 @@ class Servos:
     """
     def __init__(self, controller):
         self.controller = controller
+        self.settings = self.controller.settings
         self.rt_data = controller.rt_data
         # self.temp = self.rt_data['temp']
         self.settings = self.controller.settings
@@ -74,4 +75,7 @@ class Servos:
                 In addition to biomemetic feedback constraints and gravitational offset.
         """
         for chan in self.pwm:
-            self.servos.servo[int(chan)].angle = self.pwm[chan]
+            freq = self.pwm[chan]
+            if self.settings.pwm[chan]:  # Check for reversal.
+                freq = rr(freq, (0, 180))
+            self.servos.servo[int(chan)].angle = freq

@@ -169,6 +169,8 @@ class Command:
 
         NOTE: This is a relative movement, when we say move 10, it will move 10 from the current position.
 
+        TODO: We probably want to move this logic into servo.Legs...
+
         'RAD': {   '0': 90,
                   '1': 90,
                   '10': 150,
