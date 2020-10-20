@@ -609,7 +609,7 @@ def percent_of(percent, whole, use_float=False):
     """
     result = np.divide(np.multiply(percent, whole), 100.0)
     if not use_float:
-        result = its(result)
+        result = int(result)
     return result
 
 
@@ -619,7 +619,7 @@ def percent_in(part, whole, use_float=False):
     """
     result = np.multiply(100.0, np.divide(part, whole))
     if not use_float:
-        result = its(result)
+        result = int(result)
     return result
 
 
