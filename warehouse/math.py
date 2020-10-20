@@ -594,3 +594,30 @@ def raw_reverse(angle, ran):
     mima = np.add(mi, ma)
     rev = np.add(neg, mima)
     return rev
+
+
+def average(lst):
+    """
+    Avrages the values in a list.
+    """
+    return np.divide(np.sum(lst), len(lst))
+
+
+def percent_of(percent, whole, use_float=False):
+    """
+    Generic math method
+    """
+    result = np.divide(np.multiply(percent, whole), 100.0)
+    if not use_float:
+        result = its(result)
+    return result
+
+
+def percent_in(part, whole, use_float=False):
+    """
+    Generic math method
+    """
+    result = np.multiply(100.0, np.divide(part, whole))
+    if not use_float:
+        result = its(result)
+    return result

@@ -5,7 +5,8 @@ from PIL import Image
 from pathlib import Path
 from colour import Color
 from resizeimage import resizeimage
-from warehouse.utils import file_exists, file_rename, percent_of
+from warehouse.utils import file_exists, file_rename
+from warehouse.math import percent_of
 
 
 def to_color(limit_low, limit_high):

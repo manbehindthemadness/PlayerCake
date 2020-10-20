@@ -28,12 +28,12 @@ class Legs:
         self.debug = debug
         self.tc = Tc
         self.dummy = None
-        # TODO: Pack this into a loop so we can also populate the grid data into the real time model.
         self.l1 = self.tc(self.settings, 'LEG1', self.debug)
         self.l2 = self.tc(self.settings, 'LEG2', self.debug)
         self.l3 = self.tc(self.settings, 'LEG3', self.debug)
         self.l4 = self.tc(self.settings, 'LEG4', self.debug)
         self.legs = [self.l1, self.l2, self.l3, self.l4]
+        self.refresh()
 
     def refresh(self):
         """
@@ -51,10 +51,10 @@ class Servos:
         self.controller = controller
         self.settings = self.controller.settings
         self.rt_data = controller.rt_data
-        # self.temp = self.rt_data['temp']
         self.settings = self.controller.settings
         self.servo_config = self.settings.pwm
         self.pwm = self.rt_data['PWM']['RAD']
+        self.last = dict()
         self.servos = ServoKit(
             channels=16,
             reference_clock_speed=self.servo_config['clock'],
@@ -63,9 +63,9 @@ class Servos:
             min_pulse=self.servo_config['pmin'],
             max_pulse=self.servo_config['pmax']
         )
-        self.set()
+        self.set(init=True)
 
-    def set(self):
+    def set(self, init=False):
         """
         This takes the pwm values in the real time model and assigns them to the servo controller.
 
@@ -75,7 +75,43 @@ class Servos:
                 In addition to biomemetic feedback constraints and gravitational offset.
         """
         for chan in self.pwm:
+            if not init:
+                lst_frq = self.last[str(chan)]
+            else:
+                lst_frq = self.pwm[chan]
             freq = self.pwm[chan]
-            if self.settings.pwm[chan]:  # Check for reversal.
-                freq = rr(freq, (0, 180))
-            self.servos.servo[int(chan)].angle = freq
+            if freq != lst_frq:  # Check to see if we have a new value.
+                if self.settings.pwm[chan]:  # Check for reversal.
+                    freq = rr(freq, (0, 180))
+                self.servos.servo[int(chan)].angle = freq
+                self.last[str(chan)] = freq  # Store last pwm value
+
+
+def move_raw(controller, channel, angle):
+    """
+    This will move a servo from it's current position accounting for reverse settings.
+
+    NOTE: This is a relative movement, when we say move 10, it will move 10 from the current position.
+
+    'RAD': {   '0': 90,
+              '1': 90,
+              '10': 150,
+              '12': 90,
+              '13': 90,
+              '14': 150,
+              '2': 150,
+              '4': 90,
+              '5': 90,
+              '6': 90,
+              '8': 90,
+              '9': 90
+            },
+    """
+    rt_data = controller.rt_data
+    channel = str(channel)
+    pwm = rt_data['PWM']['RAD']
+    if channel not in pwm.keys():  # Add channel to real time data model if missing.
+        pwm[channel] = int(angle)
+    else:
+        current = pwm[channel]
+        pwm[channel] = current + angle

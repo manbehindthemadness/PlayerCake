@@ -8,14 +8,7 @@ import re
 import sys
 import pickle
 from os import path, rename, remove
-
-
-def average(lst):
-    """
-    Avrages the values in a list.
-    TODO: Convert this into numpy and move it to warehouse.math.
-    """
-    return sum(lst) / len(lst)
+from warehouse.math import average
 
 
 class Fade:
@@ -25,8 +18,6 @@ class Fade:
 
     def __new__(cls, depth, values, value):
         """
-        TODO: Convert this into numpy and move it to warehouse.math.
-
         :param depth: The number of samples to use.
         :type depth: int
         :param values: Array of values to evaluate.
@@ -327,38 +318,38 @@ def split_string(string):
     return re.split('[^a-zA-Z]', string)
 
 
-def ceiling(x):
-    """
-    Generic math method (rounds up int's instead of down)
-    """
-    n = int(x)
-    return n if n - 1 < x <= n else n + 1
-
-
-def percent_of(percent, whole, use_float=False):
-    """
-    Generic math method
-    """
-    if not percent or not whole:
-        result = 0
-    else:
-        result = (percent * whole) / 100.0
-        if not use_float:
-            result = ceiling(result)
-    return result
-
-
-def percent_in(part, whole, use_float=False):
-    """
-    Generic math method
-    """
-    if not whole:
-        result = 0
-    else:
-        result = 100 * part / whole
-        if not use_float:
-            result = ceiling(result)
-    return result
+# def ceiling(x):
+#     """
+#     Generic math method (rounds up int's instead of down)
+#     """
+#     n = int(x)
+#     return n if n - 1 < x <= n else n + 1
+#
+#
+# def percent_of(percent, whole, use_float=False):
+#     """
+#     Generic math method
+#     """
+#     if not percent or not whole:
+#         result = 0
+#     else:
+#         result = (percent * whole) / 100.0
+#         if not use_float:
+#             result = ceiling(result)
+#     return result
+#
+#
+# def percent_in(part, whole, use_float=False):
+#     """
+#     Generic math method
+#     """
+#     if not whole:
+#         result = 0
+#     else:
+#         result = 100 * part / whole
+#         if not use_float:
+#             result = ceiling(result)
+#     return result
 
 
 def file_rename(name, file, reverse=False):

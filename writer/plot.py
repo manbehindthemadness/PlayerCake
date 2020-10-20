@@ -8,7 +8,7 @@ import pymesh
 # from stl import mesh as mmesh
 import numpy as np
 # mport math
-from warehouse.utils import percent_of
+from warehouse.math import percent_of
 from warehouse.uxutils import to_color
 from collections import deque
 import matplotlib.pyplot as plt

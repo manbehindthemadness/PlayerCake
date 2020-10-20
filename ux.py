@@ -30,7 +30,8 @@ from PIL import Image as PilImage, ImageTk as PilImageTk
 # import settings
 from settings import settings
 from warehouse.system import system_command
-from warehouse.utils import percent_of, percent_in, file_rename
+from warehouse.math import percent_of, percent_in
+from warehouse.utils import file_rename
 from warehouse.uxutils import image_resize
 from writer.plot import pymesh_stl
 

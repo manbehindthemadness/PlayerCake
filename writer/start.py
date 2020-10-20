@@ -10,7 +10,9 @@ NOTE: THE X-SERVER MUST BE RUNNING!
 from tkinter import *
 from tkinter import ttk
 from warehouse.system import system_command
-from warehouse.utils import percent_of, percent_in, file_rename, image_resize
+from warehouse.utils import file_rename
+from warehouse.uxutils import image_resize
+from warehouse.math import percent_of  # , percent_in
 from writer import settings
 import os
 
@@ -65,9 +67,10 @@ class UX:
             relief=FLAT
         )
         writer_entry_button.pack()
-        button_window = canvas.create_window(self.prx(25), self.pry(25), anchor=NW, window=writer_entry_button)
+        canvas.create_window(self.prx(25), self.pry(25), anchor=NW, window=writer_entry_button)
 
         root.mainloop()
+
     @staticmethod
     def prx(percent):
         """
@@ -97,6 +100,3 @@ class UX:
                 aspect
             )
         return image
-
-
-

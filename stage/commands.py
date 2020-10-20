@@ -10,6 +10,7 @@ import time
 from warehouse.system import system_command
 from warehouse.utils import split_string
 from warehouse.loggers import dprint
+from stage.actors.servo import move_raw
 
 
 class Command:
@@ -163,35 +164,13 @@ class Command:
         """
         self.controller.datastream_term = True
 
-    def servo(self, channel, value):
+    def servo(self, channel, angle):
         """
         This will move a servo from it's current position accounting for reverse settings.
 
         NOTE: This is a relative movement, when we say move 10, it will move 10 from the current position.
-
-        TODO: We probably want to move this logic into servo.Legs...
-
-        'RAD': {   '0': 90,
-                  '1': 90,
-                  '10': 150,
-                  '12': 90,
-                  '13': 90,
-                  '14': 150,
-                  '2': 150,
-                  '4': 90,
-                  '5': 90,
-                  '6': 90,
-                  '8': 90,
-                  '9': 90
-                },
         """
-        channel = str(channel)
-        pwm = self.rt_data['PWM']['RAD']
-        if channel not in pwm.keys():  # Add channel to real time data model if missing.
-            pwm[channel] = int(value)
-        else:
-            current = pwm[channel]
-            pwm[channel] = current + value
+        move_raw(self.controller, channel, angle)
 
 
 def command_test():

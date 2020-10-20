@@ -11,7 +11,8 @@ from textwrap import wrap
 # import logging
 from luma.core import cmdline, error
 import os
-from warehouse.utils import percent_in, percent_of, check_dict
+from warehouse.utils import check_dict
+from warehouse.math import percent_in, percent_of
 
 
 # # logging
