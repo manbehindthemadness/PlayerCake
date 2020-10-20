@@ -11,7 +11,6 @@ feedback servo https://www.adafruit.com/product/1404
 """
 from warehouse.math import TranslateCoordinates as Tc, raw_reverse as rr
 from stage.oem.adafruit_servokit import ServoKit
-# import numpy as np
 
 
 class Legs:
@@ -48,24 +47,40 @@ class Servos:
     This is where we will send instructions directly to the PWM.
     """
     def __init__(self, controller):
+        self.ready = True
         self.controller = controller
         self.settings = self.controller.settings
         self.rt_data = controller.rt_data
         self.settings = self.controller.settings
         self.servo_config = self.settings.pwm
-        self.pwm = self.rt_data['PWM']['RAD']
+        self.pwm = None
         self.last = dict()
-        self.servos = ServoKit(
-            channels=16,
-            reference_clock_speed=self.servo_config['clock'],
-            frequency=self.servo_config['freq'],
-            actuation_range=self.servo_config['range'],
-            min_pulse=self.servo_config['pmin'],
-            max_pulse=self.servo_config['pmax']
-        )
-        self.set(init=True)
+        self.servos = None
+        self.ready = False
+        self.refresh()
+        self.set()
 
-    def set(self, init=False):
+    def refresh(self):
+        """
+        Reloads settings and environment
+        """
+        try:
+            self.pwm = self.rt_data['PWM']['RAD']
+            self.last = dict()
+            self.servos = ServoKit(
+                channels=16,
+                reference_clock_speed=self.servo_config['clock'],
+                frequency=self.servo_config['freq'],
+                actuation_range=self.servo_config['range'],
+                min_pulse=self.servo_config['pmin'],
+                max_pulse=self.servo_config['pmax']
+            )
+            self.ready = True
+            print('PWM Controller ready!')
+        except KeyError:
+            pass
+
+    def set(self):
         """
         This takes the pwm values in the real time model and assigns them to the servo controller.
 
@@ -74,17 +89,21 @@ class Servos:
         TODO: This is where acceleration and backlash are going to come into play, \
                 In addition to biomemetic feedback constraints and gravitational offset.
         """
-        for chan in self.pwm:
-            if not init:
-                lst_frq = self.last[str(chan)]
-            else:
-                lst_frq = self.pwm[chan]
-            freq = self.pwm[chan]
-            if freq != lst_frq:  # Check to see if we have a new value.
-                if self.settings.pwm[chan]:  # Check for reversal.
-                    freq = rr(freq, (0, 180))
-                self.servos.servo[int(chan)].angle = freq
-                self.last[str(chan)] = freq  # Store last pwm value
+        if self.ready:  # Wait for the real time model to populate.
+            # try:
+            for chan in self.pwm:
+                chan = str(chan)
+                if chan not in self.last.keys():
+                    self.last[chan] = -1
+                lst_frq = self.last[chan]
+                freq = self.pwm[chan]
+                if freq != lst_frq:  # Check to see if we have a new value.
+                    if self.settings.pwm[chan]:  # Check for reversal.
+                        freq = rr(freq, (0, 180))
+                    self.servos.servo[int(chan)].angle = freq
+                    self.last[chan] = freq  # Store last pwm value
+        else:
+            self.refresh()
 
 
 def move_raw(controller, channel, angle):
