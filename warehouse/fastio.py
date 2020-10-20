@@ -5,7 +5,7 @@ import time
 import board
 # import busio
 import serial
-from warehouse.utils import Fade
+from warehouse.math import Fade
 from stage import settings
 import adafruit_gps
 

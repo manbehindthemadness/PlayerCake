@@ -22,7 +22,8 @@ import datetime
 import pprint
 import socket
 from warehouse.display import Display
-from warehouse.utils import check_dict, Fade, update_dict
+from warehouse.utils import check_dict, update_dict
+from warehouse.math import Fade
 from warehouse.system import get_cpu_temperature, get_system_stats
 from warehouse.communication import NetScan, NetCom
 from warehouse.loggers import dprint, tprint

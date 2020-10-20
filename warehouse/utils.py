@@ -8,35 +8,7 @@ import re
 import sys
 import pickle
 from os import path, rename, remove
-from warehouse.math import average
-
-
-class Fade:
-    """
-    This smoothes a series of values by avaraging them ofer a set number of iterations.
-    """
-
-    def __new__(cls, depth, values, value):
-        """
-        :param depth: The number of samples to use.
-        :type depth: int
-        :param values: Array of values to evaluate.
-        :type values: list
-        :param value: The latest sampled value.
-        :type value: int, float
-        :Return: Updated array and values.
-        :rtype: list
-        """
-        data_len = len(values)  # Check the length of incoming values.
-        if data_len >= depth:  # Trim value if required.
-            del values[0]
-        if value:  # Add latest value.
-            values.append(value)
-        return_value = 0.0
-        if values:
-            return_value = average(values)
-
-        return [return_value, values]
+# from warehouse.math import average
 
 
 def fltr_al(value):
