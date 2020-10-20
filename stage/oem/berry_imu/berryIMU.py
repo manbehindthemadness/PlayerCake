@@ -20,6 +20,7 @@
 #    Distributed as-is; no warranty is given.
 #
 #    http://ozzmaker.com/
+# TODO: Rewrite this whole bastard and convert it into numpy.
 
 import datetime
 import math

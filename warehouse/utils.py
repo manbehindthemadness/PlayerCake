@@ -13,6 +13,7 @@ from os import path, rename, remove
 def average(lst):
     """
     Avrages the values in a list.
+    TODO: Convert this into numpy and move it to warehouse.math.
     """
     return sum(lst) / len(lst)
 
@@ -24,6 +25,8 @@ class Fade:
 
     def __new__(cls, depth, values, value):
         """
+        TODO: Convert this into numpy and move it to warehouse.math.
+
         :param depth: The number of samples to use.
         :type depth: int
         :param values: Array of values to evaluate.
