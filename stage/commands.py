@@ -16,17 +16,18 @@ class Command:
     """
     This is the command parser we will use to
     """
-    def __init__(self, rt_self):
+    def __init__(self, controller):
         """
-        :param rt_self: Pass the real time program here.
-        :type rt_self: stage.rt.Start
+        :param controller: Pass the real time program here.
+        :type controller: stage.rt.Start
         """
         self.imports = list(sys.modules.keys())
         self.imports.append('import')  # Prevent commands from importing modules (for saftey).
-        self.rt_self = rt_self
-        self.settings = self.rt_self.settings
+        self.controller = controller
+        self.rt_data = self.controller.rt_data
+        self.settings = self.controller.settings
         self.exceptions = self.settings.command_exceptions
-        self.lines = self.rt_self.lines
+        self.lines = self.controller.lines
         self.command = ''
         self.output = None
         self.whitelist = [
@@ -83,13 +84,13 @@ class Command:
         """
         This can be used to terminate the real time program.
         """
-        self.rt_self.close()
+        self.controller.close()
 
     def debug_mode(self, mode, skip=False):
         """
         Here we will change our screen debugging mode.
         """
-        self.rt_self.settings.debug_screen_mode = mode
+        self.controller.settings.debug_screen_mode = mode
         self.setting_change('debug_screen_mode', mode)
         if skip:
             self.settings.save()
@@ -114,7 +115,7 @@ class Command:
         """
         This triggers a network reset of the stage instance.
         """
-        self.rt_self.netcom.reconnect()
+        self.controller.netcom.reconnect()
 
     def reset_imu(self):
         """
@@ -136,14 +137,14 @@ class Command:
         """
         This resets the calibrations of the BNO055 9DOF.
         """
-        self.rt_self.dof.reset_calibration()
+        self.controller.dof.reset_calibration()
 
     def send_settings(self):
         """
         This will transmit our settings to director.
         """
         print('sending settings', self.settings.settings['debug_screen_mode'])
-        self.rt_self.send({'SENDER': self.settings.stage_id, 'DATA': {'SETTINGS': self.settings.settings}})
+        self.controller.send({'SENDER': self.settings.stage_id, 'DATA': {'SETTINGS': self.settings.settings}})
 
     def send_stream(self, requested_data, requested_cycletime, mode=None):
         """
@@ -154,18 +155,41 @@ class Command:
         if mode:
             self.debug_mode(mode, True)
             time.sleep(1)
-        self.rt_self.send_datastream(requested_data, requested_cycletime)
+        self.controller.send_datastream(requested_data, requested_cycletime)
 
     def close_stream(self):
         """
         This will close an outgoing datastream.
         """
-        self.rt_self.datastream_term = True
+        self.controller.datastream_term = True
 
-    def servo(self, pwm_value):
+    def servo(self, channel, value):
         """
         This will move a servo from it's current position accounting for reverse settings.
+
+        NOTE: This is a relative movement, when we say move 10, it will move 10 from the current position.
+
+        'RAD': {   '0': 90,
+                  '1': 90,
+                  '10': 150,
+                  '12': 90,
+                  '13': 90,
+                  '14': 150,
+                  '2': 150,
+                  '4': 90,
+                  '5': 90,
+                  '6': 90,
+                  '8': 90,
+                  '9': 90
+                },
         """
+        channel = str(channel)
+        pwm = self.rt_data['PWM']['RAD']
+        if channel not in pwm.keys():  # Add channel to real time data model if missing.
+            pwm[channel] = int(value)
+        else:
+            current = pwm[channel]
+            pwm[channel] = current + value
 
 
 def command_test():

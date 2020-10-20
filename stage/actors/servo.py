@@ -70,7 +70,7 @@ class Servos:
 
         TODO: We are going to need to add some conditions here for saftey.
 
-        # TODO: This is where acceleration and backlash are going to come into play, \
+        TODO: This is where acceleration and backlash are going to come into play, \
                 In addition to biomemetic feedback constraints and gravitational offset.
         """
         for chan in self.pwm:
