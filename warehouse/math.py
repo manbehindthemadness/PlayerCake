@@ -72,6 +72,8 @@ class TranslateCoordinates:
         self.x = None
         self.y = None
         self.z = None
+        # These values are for raw servo angle reversals.
+        self.raw_rom = list(range(0, 360))
 
     def refresh(self):
         """
@@ -580,3 +582,15 @@ def its(it, go=True):
         else:
             it = np.around(it)
     return it
+
+
+def raw_reverse(angle, ran):
+    """
+    This is used for performing a raw servo angle reversal.
+    Basicially (value * -1) + (min + max)
+    """
+    mi, ma = ran
+    neg = np.multiply(angle, -1)
+    mima = np.add(mi, ma)
+    rev = np.add(neg, mima)
+    return rev
