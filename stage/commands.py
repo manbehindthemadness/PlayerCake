@@ -36,7 +36,9 @@ class Command:
             'send_settings()',
             'settings_save()',
             'send_stream("[\'SUB_ADC\']", 0.05, "adc")',
-            'send_stream("[\'SUB_PWM\']", 0.05, "pwm")'
+            'send_stream("[\'SUB_PWM\']", 0.05, "pwm")',
+            'servo(0, 10)',
+            'servo(0, -10)'
         ]
         self.dummy = None
 

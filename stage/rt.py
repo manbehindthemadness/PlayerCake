@@ -175,6 +175,10 @@ class Start:
         self.imud = None
         self.addresses = self.rt_data['ADDRESSES'] = check_dict(self.rt_data, 'ADDRESSES')
         self.sonar = Sonar(self)
+        self.legs = Legs(self, debug=None)  # Fire up coordinate solvers.
+        self.servos = Servos(self)  # Fire up servo controller.
+        self.lines.append('system init complete')
+
         # self.dump()
 
         self.threads = [  # Create threads.
@@ -187,7 +191,7 @@ class Start:
             Thread(target=self.listen, args=()),
             Thread(target=self.send_ready_state, args=()),
             Thread(target=self.command_parser, args=(), daemon=True),
-            Thread(target=self.read_sonar, args=''),
+            Thread(target=self.read_sonar, args=()),
             Thread(target=self.command_pwm, args=()),
         ]
         if settings.debug:
@@ -195,12 +199,6 @@ class Start:
 
         for thread in self.threads:  # Launch threads.
             thread.start()
-
-        # self.init_leg = InitLeg(self, 1)  # This is for testing.
-        self.legs = Legs(self, debug=None)  # Fire up coordinate solvers.
-        self.servos = Servos(self)  # Fire up servo controller.
-        self.lines.append('system init complete')
-        self.init_complete = True  # Flag dependents as ready.
 
     def wait(self):
         """
@@ -594,25 +592,28 @@ class Start:
                           '8': (0, 0, 0),
                           '9': (0, 0, 0)}},
         """
-        leg_defaults = self.settings.legs
-        pwmdt = self.rt_data['PWM'] = dict()
-        grids = pwmdt['GRIDS'] = dict()
-        for leg in range(4):  # Populate local grids.
-            leg = str(leg + 1)
-            exec('leg = "LEG' + leg + '"')  # TODO: This is where we will place the local grid renderer.
-            grids[leg] = dict()
-        rad = pwmdt['RAD'] = dict()  # Populate radial PWM values.
-        for leg in ['LEG1', 'LEG2', 'LEG3', 'LEG4']:  # Here we set the legs to the configured neutral.
-            dt = leg_defaults[leg]
-            for axis in dt:
-                ax = dt[axis]
-                if len(axis) == 1:  # TODO: We might have to handle continous rotation here.
-                    rad[str(ax['pwm'])] = ax['nu']
-        xyz = pwmdt['XYZ'] = dict()  # Populate desired XYZ position.
-        for pos in range(16):  # TODO: This is where we will need to translate the default nautral value from RAD.
-            xyz[str(pos)] = (0, 0, 0)
-        if self.init_complete:
+        if not self.init_complete:
+            leg_defaults = self.settings.legs
+            pwmdt = self.rt_data['PWM'] = dict()
+            grids = pwmdt['GRIDS'] = dict()
+            for leg in range(4):  # Populate local grids.
+                leg = str(leg + 1)
+                exec('leg = "LEG' + leg + '"')  # TODO: This is where we will place the local grid renderer.
+                grids[leg] = dict()
+            rad = pwmdt['RAD'] = dict()  # Populate radial PWM values.
+            for leg in ['LEG1', 'LEG2', 'LEG3', 'LEG4']:  # Here we set the legs to the configured neutral.
+                dt = leg_defaults[leg]
+                for axis in dt:
+                    ax = dt[axis]
+                    if len(axis) == 1:  # TODO: We might have to handle continous rotation here.
+                        rad[str(ax['pwm'])] = ax['nu']
+            xyz = pwmdt['XYZ'] = dict()  # Populate desired XYZ position.
+            for pos in range(16):  # TODO: This is where we will need to translate the default nautral value from RAD.
+                xyz[str(pos)] = (0, 0, 0)
+            self.init_complete = True  # Flag dependents as ready.
+        while not self.term:
             self.servos.set()  # Read realtime servo position to the hardware controller.
+            time.sleep(settings.pwm_cycle)
 
 
 if __name__ == '__main__':

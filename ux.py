@@ -1845,8 +1845,8 @@ class Calibrations(Frame):
         ]
 
         commands = [
-            '',
-            '',
+            lambda: self.command_event('Calibrations', 'servo(0, 10)'),
+            lambda: self.command_event('Calibrations', 'servo(0, -10)'),
             '',
             '',
             '',
