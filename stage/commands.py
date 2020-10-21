@@ -35,6 +35,7 @@ class Command:
             'debug_mode("adc")',
             'send_settings()',
             'settings_save()',
+            'send_stream("[\'SUB_TEXT\']", 1, "text")',
             'send_stream("[\'SUB_ADC\']", 0.05, "adc")',
             'send_stream("[\'SUB_PWM\']", 0.05, "pwm")',
             'servo(0, 10)',
