@@ -1641,6 +1641,7 @@ class Calibrations(Frame):
         self.stage_buttons = []
         self.target = self.controller.target
         self.dummy = None
+        self.leg_util_frame = None
         #  ##############
         #  Configure base
         #  ##############
@@ -1848,10 +1849,10 @@ class Calibrations(Frame):
             lambda: self.command_event('Calibrations', 'servo(0, 10)'),
             lambda: self.command_event('Calibrations', 'servo(0, -10)'),
             '',
-            '',
-            '',
-            '',
-            ''
+            lambda q='LEG1': self.calibrate_leg(q),
+            lambda q='LEG2': self.calibrate_leg(q),
+            lambda q='LEG3': self.calibrate_leg(q),
+            lambda q='LEG4': self.calibrate_leg(q)
         ]
 
         button_array(
@@ -2082,6 +2083,9 @@ class Calibrations(Frame):
     def check_for_stage(self, target=None):
         """
         This checks that we have a stage selected, if not shows an error.
+
+        In the event of an error we will raise the error frame and return to the element specified
+        in the target variable when closed.
         """
         if not target:
             target = self.controller.target
@@ -2135,6 +2139,132 @@ class Calibrations(Frame):
             except KeyError:
                 rty += 1
         # print(self.rt_data)
+
+    def calibrate_leg(self, leg_id):
+        """
+        This is where we will set leg pinnings, min/max range of motion, gravity neutral, along with
+            ADC values by range.
+
+        NOTE: This is going to be one of the more involved calibration utilities as it will span the operation
+                of most of the various phisical control hardware.
+
+        TODO: We need to keep saftey in mind here, we don't want to cause physical damage to the machine.
+
+        Functions:
+        move per axis in increments of 1, 10, 50,
+        Jog per axis,
+        set max / neutral / min per axis.
+        Reverse axis,
+        Discover ADC values per-step (maybe)
+        Set PWM and ADC channels per axis.
+        Render local grid (Enhancement)
+        """
+        if self.check_for_stage('Calibrations'):
+            self.refresh_remote_settings()
+            legs = eval(self.remote_settings['legs'])  # Remember we will have to convert this back into a string when we save.
+            leg = legs[leg_id]
+            print(leg)
+            self.leg_util_frame = Frame(
+                self.base,
+                width=prx(69),
+                height=pry(89),
+                bg=theme['main'],
+            )
+            self.leg_util_frame.place(x=0, y=0)
+            center_weights(self.leg_util_frame)
+            # ##########
+            # Left panel
+            # ##########
+            left_panel = Frame(
+                self.leg_util_frame,
+                width=prx(22),
+                height=pry(84),
+                bg=theme['main'],
+            )
+            left_panel.grid(row=0, column=0)
+            names = [
+                'cancel',
+                'set channels',
+                'jog ρ rho Z',
+                'jog θ theta Y',
+                'jog ϕ phi X',
+                'save'
+            ]
+            commands = [
+                lambda: self.leg_util_frame.destroy(),
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+            ]
+            button_array(
+                left_panel,
+                names,
+                commands,
+                # rw=0,
+                vert=True
+            )
+            # #######
+            # Diagram
+            # #######
+            image_panel = Frame(
+                self.leg_util_frame,
+                width=prx(22),
+                height=pry(65),
+                bg=theme['main'],
+            )
+            image_panel.grid(row=0, column=1)
+            if leg_id in ['LEG1', 'LEG3']:
+                file = 'leg13.png'
+            else:
+                file = 'leg24.png'
+            leg_diagram = PhotoImage(file=img(file, 22, 65))
+            leg_diagram_label = Label(
+                image_panel,
+                bg=theme['main'],
+                width=prx(22),
+                height=pry(75),
+                image=leg_diagram,
+            )
+            leg_diagram_label.image = leg_diagram
+            leg_diagram_label.pack(fill="both", expand=True)
+            # ###########
+            # Right panel
+            # ###########
+            right_panel = Frame(
+                self.leg_util_frame,
+                width=prx(22),
+                height=pry(84),
+                bg=theme['main']
+            )
+            right_panel.grid(row=0, column=3)
+            names = [
+                'set ρ rho Z limits',
+                'set θ theta Y limits',
+                'set ϕ phi X limits',
+                'train ρ rho Z dist',
+                'train θ theta Y yaw',
+                'train ϕ phi X pitch',
+                'render local grids',
+            ]
+            commands = [
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+            ]
+            button_array(
+                right_panel,
+                names,
+                commands,
+                vert=True,
+                size=(15, 10),
+                aspect=False
+            )
 
 
 class Audience(Frame):
@@ -3637,15 +3767,6 @@ def stream_window(
         base,
     )
     exit_frame.grid(row=idx + 1, columnspan=2)
-    # exit_button = config_button(
-    #     Button(
-    #         exit_frame,
-    #         text='close',
-    #         command=command
-    #     ),
-    #     size=4
-    # )
-    # exit_button.pack()
 
     button_array(
         exit_frame,
@@ -3886,17 +4007,18 @@ def config_checkbox(parent, text, intvar, command=None):
 #         )
 
 
-def button_array(parent, tils, coms, rw=0, col=0, vert=False):
+def button_array(parent, tils, coms, rw=0, col=0, vert=False, size=(10, 10), aspect=True):
     """
     Creates a horizontal or vertical series of buttons.
     """
     # bgm = PhotoImage(file=img('fullbuttonframe.png', 10, 10))
+    x, y = size
     for idx, (title, command) in enumerate(zip(tils, coms)):
         t_frame = Frame(
             parent,
-            bg=theme['main'],
-            width=prx(20),
-            height=pry(10),
+            # bg=theme['main'],
+            width=prx(x),
+            height=pry(y),
         )
         if not vert:
             t_frame.grid(row=rw, column=idx + col)
@@ -3905,23 +4027,27 @@ def button_array(parent, tils, coms, rw=0, col=0, vert=False):
         config_single_button(
             t_frame,
             title,
-            command
+            command,
+            size,
+            aspect
         )
 
 
-def config_single_button(parent, text, command, size=None):
+def config_single_button(parent, text, command, size=None, aspect=True):
     """
     This creates a single button.
     """
     if not size:
         size = (10, 10)
-    bgm = PhotoImage(file=img('fullbuttonframe.png', *size))
+    x, y = size
+    file = img('fullbuttonframe.png', *size, aspect=aspect)
+    bgm = PhotoImage(file=file)
     btn = config_button(
         Button(
             parent,
             command=command,
-            width=prx(10),
-            height=pry(10),
+            width=prx(x),
+            height=pry(y),
             image=bgm
         )
     )

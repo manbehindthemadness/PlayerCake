@@ -1,7 +1,7 @@
 """
 This is where we will store our ux related utilities, we do this so the stage systems don't need the additional graphical packages installed.
 """
-from PIL import Image
+from PIL import Image  # , ImageOps
 from pathlib import Path
 from colour import Color
 from resizeimage import resizeimage
@@ -56,8 +56,8 @@ def image_resize(x, y, image, x_percent, y_percent, preserve_aspect=True, folder
     """
     ext = image.split('.')[1]
     base = Path.cwd()
-    x_pix = percent_of(x, x_percent)
-    y_pix = percent_of(y, y_percent)
+    x_pix = percent_of(x, x_percent) - 1
+    y_pix = percent_of(y, y_percent) - 1
     tp = base / Path('img/resize')
 
     tfn = tp / file_rename(str(x_pix) + '_' + str(y_pix), image)
@@ -78,10 +78,13 @@ def image_resize(x, y, image, x_percent, y_percent, preserve_aspect=True, folder
             else:  # Resize still image.
                 img = Image.open(sfn)
                 if preserve_aspect:
-                    img = resizeimage.resize_contain(img, [x_pix, y_pix])
+                    img2 = resizeimage.resize_contain(img, [x_pix, y_pix])
                 else:
-                    img = resizeimage.resize_cover(img, [x_pix, y_pix], validate=False)
-                img.save(tfn, img.format)
+                    # img = resizeimage.resize_cover(img, [x_pix, y_pix], validate=False)
+                    # img2 = ImageOps.fit(img, (x_pix, y_pix))
+                    img2 = img.resize((x_pix, y_pix), Image.ANTIALIAS)
+                    print('image', sfn, 'requested size', (x_pix, y_pix), 'new size', img2.size)
+                img2.save(tfn, img2.format)
         else:
             print('target file not found:', tfn)
             raise FileNotFoundError

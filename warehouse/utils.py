@@ -290,40 +290,6 @@ def split_string(string):
     return re.split('[^a-zA-Z]', string)
 
 
-# def ceiling(x):
-#     """
-#     Generic math method (rounds up int's instead of down)
-#     """
-#     n = int(x)
-#     return n if n - 1 < x <= n else n + 1
-#
-#
-# def percent_of(percent, whole, use_float=False):
-#     """
-#     Generic math method
-#     """
-#     if not percent or not whole:
-#         result = 0
-#     else:
-#         result = (percent * whole) / 100.0
-#         if not use_float:
-#             result = ceiling(result)
-#     return result
-#
-#
-# def percent_in(part, whole, use_float=False):
-#     """
-#     Generic math method
-#     """
-#     if not whole:
-#         result = 0
-#     else:
-#         result = 100 * part / whole
-#         if not use_float:
-#             result = ceiling(result)
-#     return result
-
-
 def file_rename(name, file, reverse=False):
     """
     This appends 'name' to a filename 'file' whilst preserving the extension.
