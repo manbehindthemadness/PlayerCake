@@ -30,7 +30,7 @@ from PIL import Image as PilImage, ImageTk as PilImageTk
 # import settings
 from settings import settings
 from warehouse.system import system_command
-from warehouse.math import percent_of, percent_in
+from warehouse.math import percent_of, percent_in, center
 from warehouse.utils import file_rename
 from warehouse.uxutils import image_resize
 from writer.plot import pymesh_stl
@@ -2159,6 +2159,8 @@ class Calibrations(Frame):
         Set PWM and ADC channels per axis.
         Render local grid (Enhancement)
         """
+        if self.leg_util_frame:
+            self.leg_util_frame.destroy()
         if self.check_for_stage('Calibrations'):
             self.refresh_remote_settings()
             legs = eval(self.remote_settings['legs'])  # Remember we will have to convert this back into a string when we save.
@@ -2166,11 +2168,12 @@ class Calibrations(Frame):
             print(leg)
             self.leg_util_frame = Frame(
                 self.base,
-                width=prx(69),
+                width=prx(50),
                 height=pry(89),
                 bg=theme['main'],
             )
-            self.leg_util_frame.place(x=0, y=0)
+            # Remember we have to center the child after we fill out it's contents.
+
             center_weights(self.leg_util_frame)
             # ##########
             # Left panel
@@ -2264,6 +2267,10 @@ class Calibrations(Frame):
                 vert=True,
                 size=(15, 10),
                 aspect=False
+            )
+            cparent(
+                self.base,
+                self.leg_util_frame
             )
 
 
@@ -4272,8 +4279,40 @@ def open_window(parent):
 def cp(to_move, to_correct):
     """
     This offsets the position of an object from the the side to the middle.
+
+    Note: This uses percentages.
     """
     return to_move - (to_correct / 2)
+
+
+def cparent(parent, child, border=True):
+    """
+    This will take the size of the parent widget, compare against the size of the child widget and then
+    center the child with respect to the parent.
+    """
+
+    parent.update()
+    p_w = parent.winfo_reqwidth()
+    p_h = parent.winfo_reqheight()
+    child.place(  # Place child out of signt until we can get the size.
+        x=999999,
+        y=999999
+    )
+    if border:
+        child.configure(
+            highlightthickness=pry(1),
+            highlightbackground=theme['entrybackground'],
+        )
+    child.update()
+    c_w = child.winfo_reqwidth()
+    c_h = child.winfo_reqheight()
+    x = center(p_w, c_w)
+    y = center(p_h, c_h)
+    child.place(  # Center child.
+        x=x,
+        y=y
+    )
+    return child
 
 
 def prx(percent, use_float=False):
