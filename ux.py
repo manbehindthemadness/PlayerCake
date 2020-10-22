@@ -1897,10 +1897,7 @@ class Calibrations(Frame):
                 mode='text',
                 command=lambda q=self: self.close_streamer()
             )
-            self.str_wdo.place(
-                x=prx(25),
-                y=pry(5)
-            )
+            cparent(self.base, self.str_wdo)  # Center frame.
 
     def stats(self):
         """
@@ -1922,10 +1919,7 @@ class Calibrations(Frame):
                 mode='stats',
                 command=lambda q=self: self.close_streamer()
             )
-            self.str_wdo.place(
-                x=prx(25),
-                y=pry(5)
-            )
+            cparent(self.base, self.str_wdo)  # Center frame.
 
     def adc(self):
         """
@@ -1947,10 +1941,7 @@ class Calibrations(Frame):
                 mode='adc',
                 command=lambda q=self: self.close_streamer()
             )
-            self.str_wdo.place(
-                x=prx(25),
-                y=pry(5)
-            )
+            cparent(self.base, self.str_wdo)  # Center frame.
 
     def pwm(self):
         """
@@ -1972,10 +1963,7 @@ class Calibrations(Frame):
                 mode='pwm',
                 command=lambda q=self: self.close_streamer()
             )
-            self.str_wdo.place(
-                x=prx(25),
-                y=pry(5)
-            )
+            cparent(self.base, self.str_wdo)  # Center frame.
 
     def pwmadc(self):
         """
@@ -2022,10 +2010,7 @@ class Calibrations(Frame):
                 mode='gyro',
                 command=lambda q=self: self.close_streamer()
             )
-            self.str_wdo.place(
-                x=prx(5),
-                y=pry(5)
-            )
+            cparent(self.base, self.str_wdo)  # Center frame.
 
     def calibrate_gyros(self):
         """
@@ -2039,10 +2024,7 @@ class Calibrations(Frame):
             highlightthickness=pry(1),
             highlightbackground=theme['entrybackground']
         )
-        gyro_cal_frame.place(
-            x=prx(15),
-            y=pry(8)
-        )
+        cparent(self.base, self.str_wdo)  # Center frame.
         if self.check_for_stage('Calibrations'):
             self.stream_term = False
             values = dict()
@@ -2059,7 +2041,6 @@ class Calibrations(Frame):
                 mode='gyro_calibrate',
                 command=lambda q=self: self.close_streamer(gyro_cal_frame),
                 no_border=True,
-                center=True
             )
             self.str_wdo.grid(row=0, columnspan=3)
         labels = [
@@ -2518,11 +2499,12 @@ class Editor(Frame):
             bg=theme['entrybackground'],
             borderwidth=pry(1),
         )
-        self.base.place(
-            x=cp(prx(37.5), prx(40)),
-            y=0
-        )
+        # self.base.place(
+        #     x=cp(prx(37.5), prx(40)),
+        #     y=0
+        # )
         self.refresh()
+        cparent(parent, self.base)  # Center frame.
 
     def exit(self):
         """
@@ -3704,7 +3686,7 @@ def stream_window(
         mode=None,
         command=None,
         no_border=False,
-        center=False
+        center_window=False
 
 ):
     """

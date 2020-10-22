@@ -658,4 +658,3 @@ def center(p, c):
     a = np.divide(p, 2)
     b = np.divide(c, 2)
     return int(np.subtract(a, b))
-
