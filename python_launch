@@ -1,0 +1,2 @@
+# /bin/bash
+nice -n 18 /home/pi/venv/bin/python3 $@
