@@ -649,3 +649,13 @@ class Fade:
             return_value = average(values)
 
         return [return_value, values]
+
+
+def center(p, c):
+    """
+    This is a little math function to center tkinter widgets.
+    """
+    a = np.divide(p, 2)
+    b = np.divide(c, 2)
+    return int(np.subtract(a, b))
+
