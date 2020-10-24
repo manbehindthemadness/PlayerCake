@@ -31,7 +31,7 @@ class Command:
         self.lines = self.controller.lines
         self.command = ''
         self.output = None
-        self.whitelist = [
+        self.whitelist = [  # TODO: It's becoming clear that this is going to need to be switched to regex...
             'debug_mode("adc")',
             'send_settings()',
             'settings_save()',
@@ -39,7 +39,20 @@ class Command:
             'send_stream("[\'SUB_ADC\']", 0.05, "adc")',
             'send_stream("[\'SUB_PWM\']", 0.05, "pwm")',
             'servo(0, 10)',
-            'servo(0, -10)'
+            'servo(0, -10)',
+            'jog_servo(\'LEG1\', \'x\')',
+            'jog_servo(\'LEG1\', \'y\')',
+            'jog_servo(\'LEG1\', \'z\')',
+            'jog_servo(\'LEG2\', \'x\')',
+            'jog_servo(\'LEG2\', \'y\')',
+            'jog_servo(\'LEG2\', \'z\')',
+            'jog_servo(\'LEG3\', \'x\')',
+            'jog_servo(\'LEG3\', \'y\')',
+            'jog_servo(\'LEG3\', \'z\')',
+            'jog_servo(\'LEG4\', \'x\')',
+            'jog_servo(\'LEG4\', \'y\')',
+            'jog_servo(\'LEG4\', \'z\')',
+
         ]
         self.dummy = None
 
@@ -174,6 +187,12 @@ class Command:
         NOTE: This is a relative movement, when we say move 10, it will move 10 from the current position.
         """
         move_raw(self.controller, channel, angle)
+
+    def jog_servo(self, leg, axis):
+        """
+        This will jog a servo on the specified leg and axis.
+        """
+        self.controller.legs.jog(leg, axis)
 
 
 def command_test():

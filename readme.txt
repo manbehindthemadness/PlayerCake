@@ -30,3 +30,4 @@ references:
 	Duplicate software environment: https://linuxize.com/post/how-to-list-installed-packages-on-ubuntu/
 	Take control of console session: https://www.tecmint.com/use-conspy-to-view-and-control-remote-linux-virtual-consoles/
 	Rotate screen properly: https://bbs.archlinux.org/viewtopic.php?id=255134
+	image backups: mount -t cifs //10.4.222.20/common /media/backups dd bs=4M if=/dev/mmcblk0 of=/media/backups/pihole-oct-2020.img status=progress

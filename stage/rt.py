@@ -1,7 +1,10 @@
 """
 This file contains the realtime sensor loop.
 
-TODO: Enhance debudder to use on-board reporting screen.
+TODO: Enhance debugger to use on-board reporting screen.
+
+
+modprobe i2c_bcm2708 baudrate=1200000
 """
 
 # from stage import settings
@@ -613,7 +616,7 @@ class Start:
             self.init_complete = True  # Flag dependents as ready.
         while not self.term:
             self.servos.set()  # Read realtime servo position to the hardware controller.
-            time.sleep(settings.pwm_cycle)
+            # time.sleep(settings.pwm_cycle)
 
 
 if __name__ == '__main__':

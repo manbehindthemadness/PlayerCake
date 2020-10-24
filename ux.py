@@ -1846,7 +1846,7 @@ class Calibrations(Frame):
         ]
 
         commands = [
-            lambda: self.command_event('Calibrations', 'servo(0, 10)'),
+            lambda: self.command_event('Calibrations', 'jog_servo(\'LEG1\', \'x\')'),
             lambda: self.command_event('Calibrations', 'servo(0, -10)'),
             '',
             lambda q='LEG1': self.calibrate_leg(q),
@@ -1886,17 +1886,9 @@ class Calibrations(Frame):
             values = dict()
             for key in range(8):
                 exec('values[\'s_' + str(key) + '\'] = StringVar()')
-            self.str_wdo = stream_window(
-                controller=self,
-                parent=self.base,
-                requested_data="['SUB_TEXT']",
-                requested_cycletime=1,
-                terminator=self.stream_term,
-                target='Calibrations',
-                varss=values,
-                mode='text',
-                command=lambda q=self: self.close_streamer()
-            )
+            self.str_wdo = stream_window(controller=self, parent=self.base, requested_data="['SUB_TEXT']",
+                                         requested_cycletime=1, terminator=self.stream_term, target='Calibrations',
+                                         varss=values, mode='text', command=lambda q=self: self.close_streamer())
             cparent(self.base, self.str_wdo)  # Center frame.
 
     def stats(self):
@@ -1908,17 +1900,9 @@ class Calibrations(Frame):
             values = dict()
             for key in range(8):
                 exec('values[\'s_' + str(key + 1) + '\'] = StringVar()')
-            self.str_wdo = stream_window(
-                controller=self,
-                parent=self.base,
-                requested_data="['SUB_STATS']",
-                requested_cycletime=1,
-                terminator=self.stream_term,
-                target='Calibrations',
-                varss=values,
-                mode='stats',
-                command=lambda q=self: self.close_streamer()
-            )
+            self.str_wdo = stream_window(controller=self, parent=self.base, requested_data="['SUB_STATS']",
+                                         requested_cycletime=1, terminator=self.stream_term, target='Calibrations',
+                                         varss=values, mode='stats', command=lambda q=self: self.close_streamer())
             cparent(self.base, self.str_wdo)  # Center frame.
 
     def adc(self):
@@ -1930,17 +1914,9 @@ class Calibrations(Frame):
             values = dict()
             for key in range(8):
                 exec('values[\'s_' + str(key) + '\'] = StringVar()')
-            self.str_wdo = stream_window(
-                controller=self,
-                parent=self.base,
-                requested_data="['SUB_ADC']",
-                requested_cycletime=0.05,
-                terminator=self.stream_term,
-                target='Calibrations',
-                varss=values,
-                mode='adc',
-                command=lambda q=self: self.close_streamer()
-            )
+            self.str_wdo = stream_window(controller=self, parent=self.base, requested_data="['SUB_ADC']",
+                                         requested_cycletime=0.05, terminator=self.stream_term, target='Calibrations',
+                                         varss=values, mode='adc', command=lambda q=self: self.close_streamer())
             cparent(self.base, self.str_wdo)  # Center frame.
 
     def pwm(self):
@@ -1952,17 +1928,9 @@ class Calibrations(Frame):
             values = dict()
             for key in range(8):
                 exec('values[\'s_' + str(key) + '\'] = StringVar()')
-            self.str_wdo = stream_window(
-                controller=self,
-                parent=self.base,
-                requested_data="['SUB_PWM']",
-                requested_cycletime=0.05,
-                terminator=self.stream_term,
-                target='Calibrations',
-                varss=values,
-                mode='pwm',
-                command=lambda q=self: self.close_streamer()
-            )
+            self.str_wdo = stream_window(controller=self, parent=self.base, requested_data="['SUB_PWM']",
+                                         requested_cycletime=0.05, terminator=self.stream_term, target='Calibrations',
+                                         varss=values, mode='pwm', command=lambda q=self: self.close_streamer())
             cparent(self.base, self.str_wdo)  # Center frame.
 
     def pwmadc(self):
@@ -1974,17 +1942,9 @@ class Calibrations(Frame):
             values = dict()
             for key in range(8):
                 exec('values[\'s_' + str(key) + '\'] = StringVar()')
-            self.str_wdo = stream_window(
-                controller=self,
-                parent=self.base,
-                requested_data="['SUB_PWMADC']",
-                requested_cycletime=0.05,
-                terminator=self.stream_term,
-                target='Calibrations',
-                varss=values,
-                mode='pwmadc',
-                command=lambda q=self: self.close_streamer()
-            )
+            self.str_wdo = stream_window(controller=self, parent=self.base, requested_data="['SUB_PWMADC']",
+                                         requested_cycletime=0.05, terminator=self.stream_term, target='Calibrations',
+                                         varss=values, mode='pwmadc', command=lambda q=self: self.close_streamer())
             self.str_wdo.place(
                 x=prx(25),
                 y=pry(5)
@@ -1999,17 +1959,9 @@ class Calibrations(Frame):
             values = dict()
             for key in range(8):
                 exec('values[\'s_' + str(key) + '\'] = StringVar()')
-            self.str_wdo = stream_window(
-                controller=self,
-                parent=self.base,
-                requested_data="['SUB_GYRO']",
-                requested_cycletime=0.05,
-                terminator=self.stream_term,
-                target='Calibrations',
-                varss=values,
-                mode='gyro',
-                command=lambda q=self: self.close_streamer()
-            )
+            self.str_wdo = stream_window(controller=self, parent=self.base, requested_data="['SUB_GYRO']",
+                                         requested_cycletime=0.05, terminator=self.stream_term, target='Calibrations',
+                                         varss=values, mode='gyro', command=lambda q=self: self.close_streamer())
             cparent(self.base, self.str_wdo)  # Center frame.
 
     def calibrate_gyros(self):
@@ -2030,18 +1982,11 @@ class Calibrations(Frame):
             values = dict()
             for key in range(6):
                 exec('values[\'s_' + str(key) + '\'] = StringVar()')
-            self.str_wdo = stream_window(
-                controller=self,
-                parent=gyro_cal_frame,
-                requested_data="['SUB_GYRO_CALIBRATE']",
-                requested_cycletime=0.05,
-                terminator=self.stream_term,
-                target='Calibrations',
-                varss=values,
-                mode='gyro_calibrate',
-                command=lambda q=self: self.close_streamer(gyro_cal_frame),
-                no_border=True,
-            )
+            self.str_wdo = stream_window(controller=self, parent=gyro_cal_frame,
+                                         requested_data="['SUB_GYRO_CALIBRATE']", requested_cycletime=0.05,
+                                         terminator=self.stream_term, target='Calibrations', varss=values,
+                                         mode='gyro_calibrate',
+                                         command=lambda q=self: self.close_streamer(gyro_cal_frame), no_border=True)
             self.str_wdo.grid(row=0, columnspan=3)
         labels = [
             'reset IMU',
@@ -2177,10 +2122,9 @@ class Calibrations(Frame):
             commands = [
                 lambda: self.leg_util_frame.destroy(),
                 '',
-                '',
-                '',
-                '',
-                '',
+                lambda q=leg_id: self.command_event('Calibrations', 'jog_servo(\'' + leg_id + '\', \'z\')'),
+                lambda q=leg_id: self.command_event('Calibrations', 'jog_servo(\'' + leg_id + '\', \'y\')'),
+                lambda q=leg_id: self.command_event('Calibrations', 'jog_servo(\'' + leg_id + '\', \'x\')'),
                 '',
             ]
             button_array(
@@ -3685,9 +3629,7 @@ def stream_window(
         varss,
         mode=None,
         command=None,
-        no_border=False,
-        center_window=False
-
+        no_border=False
 ):
     """
     This will create a simple frame listing titles on the left and values on the right.
@@ -3873,17 +3815,20 @@ def list_stages(controller, parent):
         if stage_entry in stages:
             if stages[stage_entry]['STATUS'] == 'confirmed':  # If connected, show in selector.
                 s_name = controller.settings.stages[stage_entry]['name']
-                controller.stage_buttons.append(
-                    config_stagelist_button(
-                        Button(
-                            parent.interior,
-                            text=s_name,
-                            command=lambda q=(s_id, s_name): select_stage(controller, *q)
-                        ),
-                        width=prx(20)
+                try:  # Handle incomplete realtime model.
+                    controller.stage_buttons.append(
+                        config_stagelist_button(
+                            Button(
+                                parent.interior,
+                                text=s_name,
+                                command=lambda q=(s_id, s_name): select_stage(controller, *q)
+                            ),
+                            width=prx(20)
+                        )
                     )
-                )
-                controller.stage_buttons[-1].pack()
+                    controller.stage_buttons[-1].pack()
+                except KeyError as err:
+                    print('stage list waiting for real time model', err)
             elif stage_entry == controller.stage_id:  # We need to check and remove the selected_stage here so we don't send network requests to a disconnected client.
                 clear_selected_stage(controller)
 
