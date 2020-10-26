@@ -2066,6 +2066,67 @@ class Calibrations(Frame):
                 rty += 1
         # print(self.rt_data)
 
+    def axis_mover(self, parent, grid, channel):
+        """
+        This will present us with a widget allowing for the manual movement of a single axis.
+        """
+        rw, cl, sp = grid
+        self.dummy = channel
+        mover_frame = Frame(
+            parent
+        )
+        channel = str(channel)
+        mover_frame.grid(row=rw, column=cl, columnspan=sp)
+        names = ['-50', '-10', '-1', '+1', '+10', '+50']
+        commands = list()
+        for name in names:
+            # noinspection PyPep8
+            com = lambda q=channel, u=name: self.command_event('Calibrations', 'servo(\'' + q + '\', \'' + u + '\')')
+            commands.append(com)
+        button_array(
+            mover_frame,
+            names,
+            commands,
+            size=(5, 10),
+            aspect=False
+        )
+        return mover_frame
+
+    def set_limits(self, parent, leg, axis):
+        """
+        This will present us with a series of options to explore and record the minimum, maximum and neutral
+        positions of a given axis.
+        """
+        limits_frame = Frame(
+            parent
+        )
+        names = ['cancel', 'lock\nmin', 'lock\nmax', 'lock\nneutral', 'reset', 'save']
+        commands = [
+            lambda: limits_frame.destroy(),
+            '',
+            '',
+            '',
+            '',
+            '',
+        ]
+        button_array(
+            limits_frame,
+            names,
+            commands,
+            size=(5, 10),
+            aspect=False
+        )
+        self.axis_mover(
+            limits_frame,
+            (1, 0, 6,),
+            leg[axis]['pwm']
+        )
+        cparent(
+            parent,
+            limits_frame
+        )
+        return limits_frame
+
     def calibrate_leg(self, leg_id):
         """
         This is where we will set leg pinnings, min/max range of motion, gravity neutral, along with
@@ -2178,9 +2239,9 @@ class Calibrations(Frame):
                 'render local grids',
             ]
             commands = [
-                '',
-                '',
-                '',
+                lambda q=leg, u='z': self.set_limits(self.leg_util_frame, q, u),
+                lambda q=leg, u='y': self.set_limits(self.leg_util_frame, q, u),
+                lambda q=leg, u='x': self.set_limits(self.leg_util_frame, q, u),
                 '',
                 '',
                 '',
