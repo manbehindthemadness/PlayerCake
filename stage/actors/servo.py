@@ -171,6 +171,11 @@ def move_raw(controller, channel, angle, relative=True):
             pwm[channel] = int(angle)
         else:
             current = pwm[channel]
-            pwm[channel] = current + angle
+            new_angle = current + angle
+            if new_angle > 180:
+                new_angle = 180
+            elif new_angle < 0:
+                new_angle = 0
+            pwm[channel] = new_angle
     else:
         pwm[channel] = int(angle)

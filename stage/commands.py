@@ -31,27 +31,14 @@ class Command:
         self.lines = self.controller.lines
         self.command = ''
         self.output = None
-        self.whitelist = [  # TODO: It's becoming clear that this is going to need to be switched to regex...
-            'debug_mode("adc")',
-            'send_settings()',
-            'settings_save()',
-            'send_stream("[\'SUB_TEXT\']", 1, "text")',
-            'send_stream("[\'SUB_ADC\']", 0.05, "adc")',
-            'send_stream("[\'SUB_PWM\']", 0.05, "pwm")',
-            'servo(0, 10)',
-            'servo(0, -10)',
-            'jog_servo(\'LEG1\', \'x\')',
-            'jog_servo(\'LEG1\', \'y\')',
-            'jog_servo(\'LEG1\', \'z\')',
-            'jog_servo(\'LEG2\', \'x\')',
-            'jog_servo(\'LEG2\', \'y\')',
-            'jog_servo(\'LEG2\', \'z\')',
-            'jog_servo(\'LEG3\', \'x\')',
-            'jog_servo(\'LEG3\', \'y\')',
-            'jog_servo(\'LEG3\', \'z\')',
-            'jog_servo(\'LEG4\', \'x\')',
-            'jog_servo(\'LEG4\', \'y\')',
-            'jog_servo(\'LEG4\', \'z\')',
+        self.whitelist = [
+            'debug_mode',
+            'send_settings',
+            'settings_save',
+            'send_stream',
+            'servo',
+            'jog_servo',
+            'reverse_axis',
 
         ]
         self.dummy = None
@@ -64,7 +51,8 @@ class Command:
         self.lines.append('CMD:' + self.command)
         print(self.command)
         command_digest = split_string(self.command)
-        if self.command not in self.whitelist:
+        cmd = self.command.split('(')[0]
+        if cmd not in self.whitelist:
             for digest in command_digest:
                 if digest not in self.exceptions:
                     for Import in self.imports:
@@ -193,6 +181,18 @@ class Command:
         This will jog a servo on the specified leg and axis.
         """
         self.controller.legs.jog(leg, axis)
+
+    def reverse_axis(self, channel):
+        """
+        This will reverse the direction of a servo on the specified channel.
+        """
+        value = False
+        pwm_settings = self.settings.pwm
+        pwm_val = pwm_settings[channel]
+        if not pwm_val:
+            value = True
+        pwm_settings[channel] = value
+        self.setting_change('pwm', pwm_settings)
 
 
 def command_test():

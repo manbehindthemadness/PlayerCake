@@ -2080,8 +2080,9 @@ class Calibrations(Frame):
         names = ['-50', '-10', '-1', '+1', '+10', '+50']
         commands = list()
         for name in names:
+            name = name.replace('+', '')
             # noinspection PyPep8
-            com = lambda q=channel, u=name: self.command_event('Calibrations', 'servo(\'' + q + '\', \'' + u + '\')')
+            com = lambda q=channel, u=name: self.command_event('Calibrations', 'servo(' + q + ', ' + u + ')')
             commands.append(com)
         button_array(
             mover_frame,
@@ -2100,13 +2101,13 @@ class Calibrations(Frame):
         limits_frame = Frame(
             parent
         )
-        names = ['cancel', 'lock\nmin', 'lock\nmax', 'lock\nneutral', 'reset', 'save']
+        names = ['cancel', 'lock\nmin', 'lock\nmax', 'lock\nneutral', 'reverse', 'save']
         commands = [
             lambda: limits_frame.destroy(),
             '',
             '',
             '',
-            '',
+            lambda: self.command_event('Calibrations', 'reverse_axis(\'' + str(leg[axis]['pwm']) + '\')'),
             '',
         ]
         button_array(
