@@ -2093,7 +2093,7 @@ class Calibrations(Frame):
         return mover_frame
 
     # noinspection PyDefaultArgument
-    def set_limits(self, parent, legs, leg_id, axis):
+    def set_limits(self, parent, leg_id, axis):
         """
         This will present us with a series of options to explore and record the minimum, maximum and neutral
         positions of a given axis.
@@ -2111,6 +2111,9 @@ class Calibrations(Frame):
             This will lock in an axis limit.
             """
             slf.command_event('Calibrations', 'lock_limit(' + _leg_id + ', ' + _name + ', ' + _axis + ')')
+
+        self.refresh_remote_settings()
+        legs = eval(self.remote_settings['legs'])
         leg = legs[leg_id]
         limits_frame = Frame(
             parent
@@ -2156,7 +2159,7 @@ class Calibrations(Frame):
         safe_raise(self.controller, 'NumPad', 'Calibrations')
         self.controller.show_frame('CloseWidget')
 
-    def channel_selector(self, parent, legs, leg_id):
+    def channel_selector(self, parent, leg_id):
         """
         This will produce a widget that allows us to set PWM and ADC channel mappings.
         """
@@ -2200,10 +2203,12 @@ class Calibrations(Frame):
             This sends a save command and destroys the widget.
             """
             slf.command_event('Calibrations', 'settings_save()')
+            slf.command_event('Calibrations', 'send_settings()')
             _parent.destroy()
 
         self.dummy = None
-
+        self.refresh_remote_settings()
+        legs = eval(self.remote_settings['legs'])
         leg = legs[leg_id]
         x_p, x_a = leg['x']['pwm'], leg['x']['adc']
         y_p, y_a = leg['y']['pwm'], leg['y']['adc']
@@ -2314,7 +2319,7 @@ class Calibrations(Frame):
             self.leg_util_frame.destroy()
         if self.check_for_stage('Calibrations'):
             self.refresh_remote_settings()
-            legs = eval(self.remote_settings['legs'])  # Remember we will have to convert this back into a string when we save.
+            legs = eval(self.remote_settings['legs'])
             leg = legs[leg_id]
             print(leg)
             self.leg_util_frame = Frame(
@@ -2346,7 +2351,7 @@ class Calibrations(Frame):
             ]
             commands = [
                 lambda: self.leg_util_frame.destroy(),
-                lambda: self.channel_selector(self.leg_util_frame, legs, leg_id),
+                lambda: self.channel_selector(self.leg_util_frame, leg_id),
                 lambda li=leg_id: self.command_event('Calibrations', 'jog_servo(\'' + li + '\', \'z\')'),
                 lambda li=leg_id: self.command_event('Calibrations', 'jog_servo(\'' + li + '\', \'y\')'),
                 lambda li=leg_id: self.command_event('Calibrations', 'jog_servo(\'' + li + '\', \'x\')'),
@@ -2402,7 +2407,7 @@ class Calibrations(Frame):
                 'train ϕ phi X pitch',
                 'render local grids',
             ]
-            q = (self.leg_util_frame, legs, leg_id)
+            q = (self.leg_util_frame, leg_id)
             commands = [
                 lambda u='z': self.set_limits(*q, u),
                 lambda u='y': self.set_limits(*q, u),
