@@ -126,11 +126,7 @@ class Servos:
             try:
                 for chan in self.pwm:
                     chan = str(chan)
-                    # if chan not in self.last.keys():  # Set dummy last value.
-                    #     self.last[chan] = -1
-                    # lst_frq = self.last[chan]
                     freq = self.pwm[chan]
-                    # if freq != lst_frq:  # Check to see if we have a new value.
                     if self.settings.pwm[chan]:  # Check for reversal.
                         freq = rr(freq, (0, 180))
                     self.servos.servo[int(chan)].angle = freq

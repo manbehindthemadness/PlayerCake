@@ -31,8 +31,8 @@ from PIL import Image as PilImage, ImageTk as PilImageTk
 from settings import settings
 from warehouse.system import system_command
 from warehouse.math import percent_of, percent_in, center
-from warehouse.utils import file_rename
-from warehouse.uxutils import image_resize
+from warehouse.utils import file_rename, str_quo as sq
+from warehouse.uxutils import image_resize, miv
 from writer.plot import pymesh_stl
 
 
@@ -2081,9 +2081,7 @@ class Calibrations(Frame):
         commands = list()
         for name in names:
             name = name.replace('+', '')
-            # noinspection PyPep8
-            com = lambda q=channel, u=name: self.command_event('Calibrations', 'servo(' + q + ', ' + u + ')')
-            commands.append(com)
+            commands.append(lambda q=channel, u=name: self.command_event('Calibrations', 'servo(' + q + ', ' + u + ')'))
         button_array(
             mover_frame,
             names,
@@ -2093,22 +2091,39 @@ class Calibrations(Frame):
         )
         return mover_frame
 
-    def set_limits(self, parent, leg, axis):
+    # noinspection PyDefaultArgument
+    def set_limits(self, parent, legs, leg_id, axis):
         """
         This will present us with a series of options to explore and record the minimum, maximum and neutral
         positions of a given axis.
         """
+        def save(slf, _parent):
+            """
+            This saves the leg settings and closes the dialog.
+            """
+            slf.command_event('Calibrations', 'settings_save()')
+            slf.command_event('Calibrations', 'send_settings()')
+            _parent.destroy()
+
+        def lock(slf, _leg_id, _axis, _name):
+            """
+            This will lock in an axis limit.
+            """
+            slf.command_event('Calibrations', 'lock_limit(' + _leg_id + ', ' + _name + ', ' + _axis + ')')
+        leg = legs[leg_id]
         limits_frame = Frame(
             parent
         )
         names = ['cancel', 'lock\nmin', 'lock\nmax', 'lock\nneutral', 'reverse', 'save']
+        lid = sq(leg_id)
+        ax = sq(axis)
         commands = [
             lambda: limits_frame.destroy(),
-            '',
-            '',
-            '',
+            lambda: lock(self, lid, ax, sq('min')),
+            lambda: lock(self, lid, ax, sq('max')),
+            lambda: lock(self, lid, ax, sq('nu')),
             lambda: self.command_event('Calibrations', 'reverse_axis(\'' + str(leg[axis]['pwm']) + '\')'),
-            '',
+            lambda a=limits_frame: save(self, a)
         ]
         button_array(
             limits_frame,
@@ -2127,6 +2142,89 @@ class Calibrations(Frame):
             limits_frame
         )
         return limits_frame
+
+    def channel_selector(self, parent, legs, leg_id):
+        """
+        This will produce a widget that allows us to set PWM and ADC channel mappings.
+        """
+        self.dummy = None
+        leg = legs[leg_id]
+        x_p, x_a = leg['x']['pwm'], leg['x']['adc']
+        y_p, y_a = leg['y']['pwm'], leg['y']['adc']
+        z_p, z_a = leg['z']['pwm'], leg['z']['adc']
+        f_a = leg['foot']['adc']
+        channel_pwm_vars = [miv(x_p), miv(y_p), miv(z_p)]
+        channel_pwm_coms = [
+            '',
+            '',
+            ''
+        ]
+        channel_adc_vars = [miv(x_a), miv(y_a), miv(z_a), miv(f_a)]
+        channel_adc_coms = [
+            '',
+            '',
+            '',
+            ''
+        ]
+        channel_name_vars = ['ϕ phi X: PWM / ADC', 'θ theta Y: PWM / ADC', 'ρ rho Z: PWM / ADC', 'foot ADC']
+        channel_name_coms = [
+            '',
+            '',
+            '',
+            ''
+        ]
+        channel_frame = Frame(
+            parent,
+            bg=theme['main']
+        )
+        names = ['cancel', 'save']
+        commands = [
+            lambda: channel_frame.destroy(),
+            ''
+        ]
+        options_frame = Frame(
+            channel_frame,
+            bg=theme['main']
+        )
+        options_frame.grid(row=0, column=0, columnspan=3)
+        button_array(
+            options_frame,
+            names,
+            commands
+        )
+        button_array(
+            channel_frame,
+            channel_name_vars,
+            channel_name_coms,
+            rw=1,
+            vert=True,
+            size=(1.6, 0),
+            label=True
+        )
+        button_array(
+            channel_frame,
+            channel_pwm_vars,
+            channel_pwm_coms,
+            rw=1,
+            col=1,
+            vert=True,
+            size=(5, 10),
+            aspect=False
+        )
+        button_array(
+            channel_frame,
+            channel_adc_vars,
+            channel_adc_coms,
+            rw=1,
+            col=2,
+            vert=True,
+            size=(5, 10),
+            aspect=False
+        )
+        cparent(
+            parent,
+            channel_frame
+        )
 
     def calibrate_leg(self, leg_id):
         """
@@ -2183,10 +2281,10 @@ class Calibrations(Frame):
             ]
             commands = [
                 lambda: self.leg_util_frame.destroy(),
-                '',
-                lambda q=leg_id: self.command_event('Calibrations', 'jog_servo(\'' + leg_id + '\', \'z\')'),
-                lambda q=leg_id: self.command_event('Calibrations', 'jog_servo(\'' + leg_id + '\', \'y\')'),
-                lambda q=leg_id: self.command_event('Calibrations', 'jog_servo(\'' + leg_id + '\', \'x\')'),
+                lambda: self.channel_selector(self.leg_util_frame, legs, leg_id),
+                lambda li=leg_id: self.command_event('Calibrations', 'jog_servo(\'' + li + '\', \'z\')'),
+                lambda li=leg_id: self.command_event('Calibrations', 'jog_servo(\'' + li + '\', \'y\')'),
+                lambda li=leg_id: self.command_event('Calibrations', 'jog_servo(\'' + li + '\', \'x\')'),
                 '',
             ]
             button_array(
@@ -2239,10 +2337,11 @@ class Calibrations(Frame):
                 'train ϕ phi X pitch',
                 'render local grids',
             ]
+            q = (self.leg_util_frame, legs, leg_id)
             commands = [
-                lambda q=leg, u='z': self.set_limits(self.leg_util_frame, q, u),
-                lambda q=leg, u='y': self.set_limits(self.leg_util_frame, q, u),
-                lambda q=leg, u='x': self.set_limits(self.leg_util_frame, q, u),
+                lambda u='z': self.set_limits(*q, u),
+                lambda u='y': self.set_limits(*q, u),
+                lambda u='x': self.set_limits(*q, u),
                 '',
                 '',
                 '',
@@ -4003,11 +4102,10 @@ def config_checkbox(parent, text, intvar, command=None):
 #         )
 
 
-def button_array(parent, tils, coms, rw=0, col=0, vert=False, size=(10, 10), aspect=True):
+def button_array(parent, tils, coms, rw=0, col=0, vert=False, size=(10, 10), aspect=True, label=False):
     """
     Creates a horizontal or vertical series of buttons.
     """
-    # bgm = PhotoImage(file=img('fullbuttonframe.png', 10, 10))
     x, y = size
     for idx, (title, command) in enumerate(zip(tils, coms)):
         t_frame = Frame(
@@ -4025,30 +4123,45 @@ def button_array(parent, tils, coms, rw=0, col=0, vert=False, size=(10, 10), asp
             title,
             command,
             size,
-            aspect
+            aspect,
+            label
         )
 
 
-def config_single_button(parent, text, command, size=None, aspect=True):
+def config_single_button(parent, text, command, size=None, aspect=True, label=False):
     """
     This creates a single button.
+
+    NOTE: We can now use this to create labels in the same manor.
     """
     if not size:
         size = (10, 10)
     x, y = size
-    file = img('fullbuttonframe.png', *size, aspect=aspect)
-    bgm = PhotoImage(file=file)
-    btn = config_button(
-        Button(
-            parent,
-            command=command,
-            width=prx(x),
-            height=pry(y),
-            image=bgm
+
+    if label:
+        btn = config_text(
+            Label(
+                parent,
+                width=prx(x),
+                height=pry(y),
+            ),
+            size=x,
+            pad=y
         )
-    )
-    btn.image = bgm
-    if isinstance(text, StringVar):
+    else:
+        file = img('fullbuttonframe.png', *size, aspect=aspect)
+        bgm = PhotoImage(file=file)
+        btn = config_button(
+            Button(
+                parent,
+                command=command,
+                width=prx(x),
+                height=pry(y),
+                image=bgm
+            )
+        )
+        btn.image = bgm
+    if isinstance(text, StringVar) or isinstance(text, IntVar):
         btn.configure(textvariable=text)
     else:
         btn.configure(text=text)

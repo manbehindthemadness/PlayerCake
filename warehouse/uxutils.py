@@ -1,6 +1,7 @@
 """
 This is where we will store our ux related utilities, we do this so the stage systems don't need the additional graphical packages installed.
 """
+from tkinter import *
 from PIL import Image  # , ImageOps
 from pathlib import Path
 from colour import Color
@@ -193,3 +194,21 @@ def extract_and_resize_frames(path, resize_to=None):
         pass
 
     return all_frames
+
+
+def msv(string):
+    """
+    This creates a textvariable and sets its value to the input string.
+    """
+    a = StringVar()
+    a.set(str(string))
+    return a
+
+
+def miv(integer):
+    """
+    This creates an intvariable and sets it's value to the input int.
+    """
+    a = IntVar()
+    a.set(int(integer))
+    return a
