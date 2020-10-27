@@ -40,6 +40,7 @@ class Command:
             'jog_servo',
             'reverse_axis',
             'lock_limit',
+            'channel_map'
 
         ]
         self.dummy = None
@@ -203,6 +204,14 @@ class Command:
         print(pwm_val, channel)
         legs = self.settings.legs
         legs[leg_id][axis][name] = pwm_val
+        self.settings.set('legs', legs)
+
+    def channel_map(self, leg_id, axis, name, value):
+        """
+        This will allow us to change the PWM and ADC channel mappings for a target leg by axis.
+        """
+        legs = self.settings.legs
+        legs[leg_id][axis][name] = int(value)
         self.settings.set('legs', legs)
 
 

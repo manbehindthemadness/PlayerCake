@@ -26,6 +26,7 @@ from tkinter import *
 from tkinter.filedialog import askopenfilename
 import pyqrcode
 from PIL import Image as PilImage, ImageTk as PilImageTk
+# import pprint
 
 # import settings
 from settings import settings
@@ -2143,36 +2144,100 @@ class Calibrations(Frame):
         )
         return limits_frame
 
+    def show_numpad(self, varname):
+        """
+        Lifts the numberpad page.
+
+        :param varname: String var to set.
+        :type varname: str
+        """
+        self.controller.target = 'Calibrations'
+        self.temp['number'].set(varname)
+        safe_raise(self.controller, 'NumPad', 'Calibrations')
+        self.controller.show_frame('CloseWidget')
+
     def channel_selector(self, parent, legs, leg_id):
         """
         This will produce a widget that allows us to set PWM and ADC channel mappings.
         """
+        class SetChannel:
+            """
+            Experiment
+            """
+            def __init__(self, controller, _leg_id, _name, _axis, _handoff_varname, _current_value):
+                """
+                This will pass the channel mapping command to the numpad so we can transmit values.
+                """
+                self.controller = controller
+                self.rt_data = controller.rt_data
+                self.rt_data['number'] = int(_current_value)
+                self.leg_id = leg_id
+                self.axis = _axis
+                self.name = _name
+                self.handoff_varname = _handoff_varname
+                self.handoff_variable = self.rt_data[self.handoff_varname]
+                self.current_value = _current_value
+
+            def entry(self):
+                """
+                This allows ut to init the class without executing the send_command method prematurely.
+                """
+                self.controller.controller.command = self.send_command
+                self.controller.show_numpad(self.handoff_varname)  # Show numpad and pass the handoff variable real time model key.
+
+            def send_command(self):
+                """
+                This transmits the remap command.
+                """
+                value = self.handoff_variable.get()
+                self.controller.command_event(  # Schedulte command event for transmission on closure of numpad.
+                    'Calibrations',
+                    'channel_map(' + sq(self.leg_id) + ', ' + sq(self.name) + ', ' + sq(self.axis) + ', ' + sq(value) + ')'
+                )
+
+        def save_channels(slf, _parent):
+            """
+            This sends a save command and destroys the widget.
+            """
+            slf.command_event('Calibrations', 'settings_save()')
+            _parent.destroy()
+
         self.dummy = None
+
         leg = legs[leg_id]
         x_p, x_a = leg['x']['pwm'], leg['x']['adc']
         y_p, y_a = leg['y']['pwm'], leg['y']['adc']
         z_p, z_a = leg['z']['pwm'], leg['z']['adc']
         f_a = leg['foot']['adc']
-        channel_pwm_vars = [miv(x_p), miv(y_p), miv(z_p)]
-        channel_pwm_coms = [
-            '',
-            '',
-            ''
-        ]
-        channel_adc_vars = [miv(x_a), miv(y_a), miv(z_a), miv(f_a)]
-        channel_adc_coms = [
-            '',
-            '',
-            '',
-            ''
-        ]
+
         channel_name_vars = ['ϕ phi X: PWM / ADC', 'θ theta Y: PWM / ADC', 'ρ rho Z: PWM / ADC', 'foot ADC']
+        rt_vars = [miv(x_p), miv(y_p), miv(z_p), miv(x_a), miv(y_a), miv(z_a), miv(f_a)]
+        rt_names = [
+            'xpwm', 'ypwm', 'zpwm', 'xadc', 'yadc', 'zadc', 'fadc'
+        ]
+        for name, var in zip(rt_names, rt_vars):
+            exec('self.rt_data[' + sq(name) + '] = var')  # Set realtime values.
+            exec('var = self.rt_data[' + sq(name) + ']')  # Instance them back.
+        channel_pwm_vars = rt_vars[0: -4]
+        channel_adc_vars = rt_vars[3:]
+        channel_pwm_coms = [
+            lambda: SetChannel(self, leg_id, 'x', 'pwm', 'xpwm', x_p).entry(),
+            lambda: SetChannel(self, leg_id, 'y', 'pwm', 'ypwm', x_p).entry(),
+            lambda: SetChannel(self, leg_id, 'z', 'pwm', 'zpwm', x_p).entry(),
+        ]
+        channel_adc_coms = [
+            lambda: SetChannel(self, leg_id, 'x', 'adc', 'xadc', x_p).entry(),
+            lambda: SetChannel(self, leg_id, 'y', 'adc', 'yadc', x_p).entry(),
+            lambda: SetChannel(self, leg_id, 'z', 'adc', 'zadc', x_p).entry(),
+            lambda: SetChannel(self, leg_id, 'foot', 'adc', 'fadc', x_p).entry(),
+        ]
         channel_name_coms = [
             '',
             '',
             '',
             ''
         ]
+
         channel_frame = Frame(
             parent,
             bg=theme['main']
@@ -2180,7 +2245,7 @@ class Calibrations(Frame):
         names = ['cancel', 'save']
         commands = [
             lambda: channel_frame.destroy(),
-            ''
+            lambda: save_channels(self, channel_frame)
         ]
         options_frame = Frame(
             channel_frame,
@@ -2902,8 +2967,8 @@ class NumPad(Frame):
                 num = str(self.controller.num_max)
             self.get_num().set(num)
             self.temp['number'].set('0')
-        self.controller.show_frame(self.controller.target)
-        self.numvar.set('')
+        self.controller.show_frame(self.controller.target)  # Raise parent.
+        self.numvar.set('')  # Clear temp vars.
         self.number = None
         if self.controller.command:
             self.controller.command()  # Execute optional command.
