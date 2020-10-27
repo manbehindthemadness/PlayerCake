@@ -39,6 +39,7 @@ class Command:
             'servo',
             'jog_servo',
             'reverse_axis',
+            'lock_limit',
 
         ]
         self.dummy = None
@@ -83,7 +84,6 @@ class Command:
                 dprint(self.settings, ('Command executed:', self.command,))
             except (TypeError, NameError) as err:
                 print('exec + ', self.command, err)
-        # self.command = ''
 
     def close(self):
         """
@@ -193,6 +193,17 @@ class Command:
             value = True
         pwm_settings[channel] = value
         self.setting_change('pwm', pwm_settings)
+
+    def lock_limit(self, leg_id, name, axis):
+        """
+        This will set the axis limit on a specific leg by axis by name.
+        """
+        channel = str(self.settings.legs[leg_id][axis]['pwm'])
+        pwm_val = self.controller.rt_data['PWM']['RAD'][channel]
+        print(pwm_val, channel)
+        legs = self.settings.legs
+        legs[leg_id][axis][name] = pwm_val
+        self.settings.set('legs', legs)
 
 
 def command_test():

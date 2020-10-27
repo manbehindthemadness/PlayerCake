@@ -337,3 +337,11 @@ def get_size(obj):
     """Recursively finds size of objects"""
     bts = sys.getsizeof(pickle.dumps(obj))  # I bet CBOR would be MUCH faster.
     return round(bytesto(bts, 'm'), 2)
+
+
+def str_quo(string):
+    """
+    This adds escaped quotes to our string
+    """
+    string = '\'' + str(string) + '\''
+    return string

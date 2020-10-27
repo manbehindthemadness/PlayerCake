@@ -149,6 +149,8 @@ def move_raw(controller, channel, angle, relative=True):
 
     NOTE: This is a relative movement, when we say move 10, it will move 10 from the current position.
 
+    NOTE: This does not take into account software minimum and maximum values as it's used to locate said values.
+
     'RAD': {   '0': 90,
               '1': 90,
               '10': 150,
