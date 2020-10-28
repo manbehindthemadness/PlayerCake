@@ -59,22 +59,22 @@ class Start:
                                   -0.01531982421875,
                                   0.64617919921875,
                                   0.7628173828125)},
-    'ADC': {   'ADCPort0': 172,
-               'ADCPort1': 99,
-               'ADCPort10': 351,
-               'ADCPort11': 332,
-               'ADCPort12': 237,
-               'ADCPort13': 311,
-               'ADCPort14': 363,
-               'ADCPort15': 334,
-               'ADCPort2': 144,
-               'ADCPort3': 142,
-               'ADCPort4': 100,
-               'ADCPort5': 117,
-               'ADCPort6': 143,
-               'ADCPort7': 139,
-               'ADCPort8': 135,
-               'ADCPort9': 140},
+    'ADC': {   '0': 172,
+               '1': 99,
+               '10': 351,
+               '11': 332,
+               '12': 237,
+               '13': 311,
+               '14': 363,
+               '15': 334,
+               '2': 144,
+               '3': 142,
+               '4': 100,
+               '5': 117,
+               '6': 143,
+               '7': 139,
+               '8': 135,
+               '9': 140},
     'ADDRESSES': {},
     'GPS': {   'ALT': 45.833050081662506,
                'LAT': 0.0,
@@ -443,6 +443,7 @@ class Start:
     def read_adc(self):
         """
         Here is where we read the ADC inputs in real-time.
+
         """
         self.lines.append('launching adc thread')
         self.rt_data['ADC'] = dict()

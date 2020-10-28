@@ -237,7 +237,7 @@ class Command:
             repeat = 0
             while repeat < 5:
                 # TODO: We are clamping this value to two digits... This might need to be a configurable settings in the future.
-                adc = self.controller.rt_data['ADC']['ADCPort' + str(ax['adc'])]  # Fetch ADC input.
+                adc = self.controller.rt_data['ADC'][str(ax['adc'])]  # Fetch ADC input.
                 if adc not in mapping:
                     print(angle, adc)
                     mapping.append(adc)

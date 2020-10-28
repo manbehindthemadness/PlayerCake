@@ -225,7 +225,7 @@ class Display:
             col_1 = list()
             col_2 = list()
             for port in range(16):
-                text = str(port) + ': ' + str(a_inputs['ADCPort' + str(port)])
+                text = str(port) + ': ' + str(a_inputs[str(port)])
                 if port < 8:
                     col_1.append(text)
                 else:
@@ -302,7 +302,7 @@ class Display:
                 """
                 This will get us an adc value based on a legs axis.
                 """
-                ret = str(a_in['ADCPort' + str(lg[ax]['adc'])])
+                ret = str(a_in[str(lg[ax]['adc'])])
                 return ret
             result = list()
             for axis in ['x', 'y', 'z', 'foot']:
