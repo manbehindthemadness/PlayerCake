@@ -7,3 +7,4 @@ import os
 from warehouse.utils import BuildSettings
 setpath = os.path.abspath(os.path.join(os.path.dirname(__file__)))
 settings = BuildSettings('settings.ini', 'defaults.ini', setpath)
+grids = BuildSettings('grids.ini', 'griddef.ini', setpath)
