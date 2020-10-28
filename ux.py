@@ -2403,18 +2403,17 @@ class Calibrations(Frame):
                 'set θ theta Y limits',
                 'set ϕ phi X limits',
                 'train ρ rho Z dist',
-                'train θ theta Y yaw',
-                'train ϕ phi X pitch',
-                'render local grids',
+                'train θ theta Y pitch',
+                'train ϕ phi X yaw',
             ]
             q = (self.leg_util_frame, leg_id)
             commands = [
                 lambda u='z': self.set_limits(*q, u),
                 lambda u='y': self.set_limits(*q, u),
                 lambda u='x': self.set_limits(*q, u),
-                '',
-                '',
-                '',
+                lambda: self.command_event('Calibrations', 'train_axis(' + sq(leg_id) + ', \'z\')'),
+                lambda: self.command_event('Calibrations', 'train_axis(' + sq(leg_id) + ', \'y\')'),
+                lambda: self.command_event('Calibrations', 'train_axis(' + sq(leg_id) + ', \'x\')'),
             ]
             button_array(
                 right_panel,
@@ -4044,9 +4043,9 @@ def list_stages(controller, parent):
         s_id = stage_entry
         stages = controller.rt_data['LISTENER']  # Get stages data model.
         if stage_entry in stages:
-            if stages[stage_entry]['STATUS'] == 'confirmed':  # If connected, show in selector.
-                s_name = controller.settings.stages[stage_entry]['name']
-                try:  # Handle incomplete realtime model.
+            try:
+                if stages[stage_entry]['STATUS'] == 'confirmed':  # If connected, show in selector.
+                    s_name = controller.settings.stages[stage_entry]['name']
                     controller.stage_buttons.append(
                         config_stagelist_button(
                             Button(
@@ -4058,10 +4057,12 @@ def list_stages(controller, parent):
                         )
                     )
                     controller.stage_buttons[-1].pack()
-                except KeyError as err:
-                    print('stage list waiting for real time model', err)
-            elif stage_entry == controller.stage_id:  # We need to check and remove the selected_stage here so we don't send network requests to a disconnected client.
-                clear_selected_stage(controller)
+                elif stage_entry == controller.stage_id:  # We need to check and remove the selected_stage here so we don't send network requests to a disconnected client.
+                    clear_selected_stage(controller)
+            except KeyError as err:
+                print('stage list waiting for real time model', err)
+                time.sleep(1)
+                list_stages(controller, parent)
 
 
 def select_stage(controller, s_id, s_name):

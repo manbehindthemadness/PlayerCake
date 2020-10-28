@@ -7,6 +7,7 @@ NOTE: We will evaluate the imports to a list so we can cross check the ingress a
 
 import sys
 import time
+import traceback
 from warehouse.system import system_command
 from warehouse.utils import split_string
 from warehouse.loggers import dprint
@@ -27,6 +28,7 @@ class Command:
         self.controller = controller
         self.rt_data = self.controller.rt_data
         self.settings = self.controller.settings
+        self.grids = self.controller.grids
         self.exceptions = self.settings.command_exceptions
         self.lines = self.controller.lines
         self.command = ''
@@ -40,7 +42,8 @@ class Command:
             'jog_servo',
             'reverse_axis',
             'lock_limit',
-            'channel_map'
+            'channel_map',
+            'train_axis',
 
         ]
         self.dummy = None
@@ -85,6 +88,7 @@ class Command:
                 dprint(self.settings, ('Command executed:', self.command,))
             except (TypeError, NameError) as err:
                 print('exec + ', self.command, err)
+                traceback.print_exc()
 
     def close(self):
         """
@@ -213,6 +217,35 @@ class Command:
         legs = self.settings.legs
         legs[leg_id][axis][name] = int(value)
         self.settings.set('legs', legs)
+
+    def train_axis(self, leg_id, axis):
+        """
+        This will record the adc values on a specific leg axis and add the mappings into the grids.ini file.
+        """
+        ax = self.settings.legs[leg_id][axis]  # Fetch axis info.
+
+        rom = list(range(ax['min'], ax['max']))  # Get range of motion.
+        fb = self.grids.feedback  # Fetch feedback mappings.
+        mapp = {
+            'p2a': dict(),
+            'a2p': dict(),
+        }
+        # TODO: We need to stick this into a function as we need to run at least once in each direction.
+        for angle in rom:
+            self.controller.rt_data['PWM']['RAD'][str(ax['pwm'])] = angle  # Set axis position.
+            mapping = mapp['p2a'][str(angle)] = list()
+            repeat = 0
+            while repeat < 5:
+                # TODO: We are clamping this value to two digits... This might need to be a configurable settings in the future.
+                adc = self.controller.rt_data['ADC']['ADCPort' + str(ax['adc'])]  # Fetch ADC input.
+                if adc not in mapping:
+                    print(angle, adc)
+                    mapping.append(adc)
+                time.sleep(0.1)  # Wait a moment to sample variations.
+                repeat += 1
+        fb[str(ax['adc'])] = mapp
+        self.grids.set('feedback', fb)
+        self.grids.save()
 
 
 def command_test():

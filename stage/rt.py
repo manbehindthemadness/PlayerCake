@@ -1,14 +1,13 @@
 """
 This file contains the realtime sensor loop.
 
-TODO: Enhance debugger to use on-board reporting screen.
 
 
 modprobe i2c_bcm2708 baudrate=1200000
 """
 
 # from stage import settings
-from stage.settings import settings
+from stage.settings import settings, grids
 from stage.commands import Command
 from stage.improvisors.berryimu import ReadIMU, ReadAlt
 from stage.improvisors.gps_lkp import ReadGPS
@@ -147,6 +146,7 @@ class Start:
         self.sending = False
         self.lines = ['system init']
         self.settings = settings
+        self.grids = grids
         self.rt_data = rt_data  # Pass realtime data.
         self.execute = Command(self).execute
         listener = self.rt_data['LISTENER'] = dict()
