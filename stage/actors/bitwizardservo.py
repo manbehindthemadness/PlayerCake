@@ -57,6 +57,7 @@ channel_timeout_registers = [
     0x3D,  # 61
     0x3E,  # 62
 ]
+channel_global_register = 0x50  # 80
 channel_read_register = 0x87  # 135
 unlock_address_register = 0xF2  # 243
 change_address_register = 0xF0  # 240
