@@ -600,7 +600,7 @@ def average(lst):
     """
     Avrages the values in a list.
     """
-    return np.divide(np.sum(lst), len(lst))
+    return np.mean(lst)
 
 
 def percent_of(percent, whole, use_float=False):
