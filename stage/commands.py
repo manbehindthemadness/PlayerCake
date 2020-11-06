@@ -217,6 +217,11 @@ class Command:
         legs = self.settings.legs
         legs[leg_id][axis][name] = int(value)
         self.settings.set('legs', legs)
+        if name == 'adc':  # Apply filters to servo position ports.
+            filtered_ports = self.settings.filtered_adc_ports
+            if int(value) not in filtered_ports:
+                filtered_ports.append(int(value))
+            self.settings.set('filtered_adc_ports', filtered_ports)
 
     def train_axis(self, leg_id, axis):
         """
@@ -231,18 +236,20 @@ class Command:
             'a2p': dict(),
         }
         # TODO: We need to stick this into a function as we need to run at least once in each direction.
-        for angle in rom:
+        for idx, angle in enumerate(rom):
             self.controller.rt_data['PWM']['RAD'][str(ax['pwm'])] = angle  # Set axis position.
+            if not idx:
+                time.sleep(1)  # Wait for us to stabalize.
             mapping = mapp['p2a'][str(angle)] = list()
             repeat = 0
             while repeat < 5:
-                # TODO: We are clamping this value to two digits... This might need to be a configurable settings in the future.
                 adc = self.controller.rt_data['ADC'][str(ax['adc'])]  # Fetch ADC input.
                 if adc not in mapping:
                     print(angle, adc)
                     mapping.append(adc)
-                time.sleep(0.1)  # Wait a moment to sample variations.
+                time.sleep(0.2)  # Wait a moment to sample variations.
                 repeat += 1
+
         fb[str(ax['adc'])] = mapp
         self.grids.set('feedback', fb)
         self.grids.save()

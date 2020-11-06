@@ -10,6 +10,12 @@ feedback servo https://www.adafruit.com/product/1404
 
 i3c config https://www.raspberrypi.org/forums/viewtopic.php?t=34734
 
+### DOCUMENTATION for the SPI servo interfaces:
+
+http://www.bitwizard.nl/wiki/Servo
+
+http://www.bitwizard.nl/wiki/Servo_1.0_protocol
+
 """
 from warehouse.math import TranslateCoordinates as Tc, raw_reverse as rr
 from stage.oem.adafruit_servokit import ServoKit

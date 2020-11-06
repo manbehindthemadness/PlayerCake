@@ -451,8 +451,8 @@ class Start:
         while not self.term:
             try:
                 mcp.scan()
-            except TypeError:
-                print('unable to read ADC, skipping')
+            except TypeError as err:
+                print('unable to read ADC, skipping', err)
 
     def read_imu(self):
         """
