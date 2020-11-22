@@ -109,12 +109,8 @@ class BWServo:
         self._cs = cs
         self._spi = spi
         self._spi_dev = None
-        self._bits = 8
         self._read_buffer = bytearray(4)
-        self._read_buffer[0] = self._raddr
         self._write_buffer = bytearray(4)
-        self._write_buffer[0] = self._waddr
-        self._num_chans = 7
         self._pol = None
         self._hz = None
         self._ph = None
@@ -122,7 +118,7 @@ class BWServo:
 
         self.configure()
 
-    def configure(self, pol=0, phase=0, bits=8, hz=1250000):
+    def configure(self, pol=0, phase=0, bits=8, hz=125000000):
         """
         This allows us to change the default chip configuration.
 
@@ -167,7 +163,7 @@ class BWServo:
         This ensures our read and write buffers are the same size.
         """
         if len(self._write_buffer) > 4:
-            self._write_buffer = self._write_buffer[0:3]
+            self._write_buffer = self._write_buffer[:4]
 
     @staticmethod
     def _chkchan(channel):
@@ -201,7 +197,7 @@ class BWServo:
         :return: Tuple of 2 8bit values ordered with the lower bits first.
         :rtype: tuple
         """
-        post, pre = hex(bits >> 8), hex(bits & 255)
+        post, pre = int(bits >> 8), int(bits & 255)
         return pre, post
 
     @staticmethod
@@ -256,6 +252,7 @@ class BWServo:
         """
         Send write buffer to the slave.
         """
+        self._write_buffer[0] = self._waddr
         with self._spi_dev as spi:
             # pylint: disable=no-member
             spi.write(self._write_buffer)
@@ -271,7 +268,7 @@ class BWServo:
             # pylint: disable=no-member
             spi.write_readinto(self._write_buffer, self._read_buffer)
         if self.debug:
-            print('wrightbuffer', self._write_buffer, 'readbuffer', self._read_buffer)
+            print('writebuffer', self._write_buffer, 'readbuffer', self._read_buffer)
 
     def _write_reg(self, offset, register, value):
         """
@@ -283,14 +280,17 @@ class BWServo:
         :type register: int, hex, bin
         :param value: 1-16bit value to write into the target register.
         """
+        self._normalize()
         if value > 65535:
             raise ValueError
         _reg = register | offset
+        if self.debug:
+            print('writing values', hex(self._write_buffer[0]), hex(_reg), hex(value))
         self._write_buffer[1] = _reg
-        if value > 8:  # Handle 16 bit writes.
+        if value > 255:  # Handle 16 bit writes.
             self._write_buffer[2], self._write_buffer[3] = self._splitbits(value)
         else:
-            self._write_buffer[2] = value
+            self._write_buffer[2] = self._write_buffer[3] = value
         self._write()
 
     def _writemany_reg(self, register, values):
@@ -314,10 +314,13 @@ class BWServo:
         :type offset: int, hex, bin
         :param register: The port register to operate on.
         """
+        self.configure(hz=25000)
         self._chkchan(offset)
         _reg = register | offset
+        self._write_buffer[0] = self._raddr
         self._write_buffer[1] = _reg
         self._write_readinto()
+        self.configure()
 
     def move_deg(self, channel, value):
         """
@@ -343,7 +346,7 @@ class BWServo:
         """
         if self._np:
             values = self._np.array(values)
-            values = bytearray(list(self._np.multiply(values, 1.415).round(0)))
+            values = bytearray(list(self._np.multiply(values, 1.415).astype(int)))
             self._writemany_reg(0x50, values)
         else:
             print('Aborted: this method requires numpy')
@@ -368,9 +371,8 @@ class BWServo:
         :type values: list
         """
         vals = []  # type: list
-        for idx, value in enumerate(values):
-            ids = idx * 2
-            vals[ids], vals[ids + 1] = self._splitbits(value)
+        for value in values:
+            vals += list(self._splitbits(value))
         self._writemany_reg(0x51, bytearray(vals))
 
     def get_deg(self, channel):
@@ -463,39 +465,49 @@ class BWServo:
         """
         This will perform a test of the logic within this module.
         """
-        print('beginning tests')
+        print('beginning tests\n')
         time.sleep(1)
 
-        print('servo 0 single sweep degrees')
+        print('\nidentifying board\n')
+        self._read_reg(0, 0x01)
+        print(self._read_buffer)
+
+        print('\nservo 0 single sweep degrees\n')
         self.move_deg(0, 1)
         time.sleep(1)
         self.move_deg(0, 180)
 
-        print('servo 0 read degrees')
-        print(self.get_deg(0))
+        print('\nservo 0 read degrees\n')
+        pos = self.get_deg(0)
+        if pos != 180:
+            print('read degrees test failed! value', pos, 'should be', 180)
         time.sleep(2)
 
-        positions = [0, 0, 0, 0, 0, 0, 0]
-        print('servo array sweep degrees')
+        positions = [1, 1, 1, 1, 1, 1, 1]
+        print('\nservo array sweep degrees\n')
         self.moveall_deg(positions)
         positions[0] = 180
         time.sleep(1)
         self.moveall_deg(positions)
         time.sleep(2)
 
-        print('servo 0 single sweep microseconds')
+        print('\nservo 0 single sweep microseconds\n')
         self.move_ms(0, 1000)
         time.sleep(1)
         self.move_ms(0, 2000)
 
-        print('servo 0 read microseconds')
-        print(self.get_ms(0))
+        print('\nservo 0 read microseconds\n')
+        pos = self.get_ms(0)
+        if pos != 2000:
+            print('read microseconds test failed! value', pos, 'should be', 2000)
         time.sleep(2)
 
         positions = [1000, 1000, 1000, 1000, 1000, 1000, 1000]
-        print('servo array sweep microseconds')
+        print('\nservo array sweep microseconds\n')
         self.moveall_ms(positions)
         positions[0] = 2000
         time.sleep(1)
         self.moveall_ms(positions)
+
+        print('movement tests complete')
 
