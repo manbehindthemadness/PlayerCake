@@ -44,13 +44,14 @@ NOTE:
 
 NOTE: Speed change reference: https://www.raspberrypi.org/forums/viewtopic.php?t=177965
 
-EXPERIMENT
+*Flashing procedure*
 
-import Adafruit_GPIO.SPI as SPI
-spi = SPI.SpiDev(0, 0)
-spi.set_clock_hz(200000)
-spi.set_mode(0)
-spi.set_bit_order(SPI.MSBFIRST)
+1. disable spi overlays in config.txt and reboot.
+2. run the flashit script.
+3. short pads 2-3 (the ones without the thin solder strip).
+4. whilst shorting the above pads, re-run the flashit script.
+Results should indicate a successful flash.
+Pin assignments can be altered in avrdude.conf
 """
 
 from adafruit_bus_device.spi_device import SPIDevice
@@ -117,9 +118,18 @@ class ATTiny44BW:
 
         self.configure()
 
-    def configure(self, pol=0, phase=0, bits=8, hz=1000000):
+    def configure(self, pol=0, phase=0, bits=8, hz=1250000):
         """
         This allows us to change the default chip configuration.
+
+        :param pol: SPI bus polarity.
+        :type pol: int
+        :param phase: SPI bus phase.
+        :type phase: int
+        :param bits: SPI transaction bit length.
+        :type bits: int
+        :param hz: SPI baudrate.
+        :type hz: int
         """
         try:  # Lock the SPI bus and configure.
             while not self._spi.try_lock():
@@ -149,6 +159,9 @@ class ATTiny44BW:
     def _chkchan(channel):
         """
         This ensures our channel value is sane.
+
+        :param channel: Value to confirm is within the range of channels.
+        :type channel: int
         """
         if channel not in range(0, 6):
             raise ValueError
@@ -157,6 +170,9 @@ class ATTiny44BW:
     def _chkdeg(degrees):
         """
         This checks to ensure our angle is sane.
+
+        :param degrees: Value to confirm is within the range of motion (1-180).
+        :type degrees: int
         """
         if degrees not in range(1, 180):
             raise ValueError
@@ -165,22 +181,39 @@ class ATTiny44BW:
     def _splitbits(bits):
         """
         This takes a bit value longer than 8 and splits it in two
+
+        :param bits: Value between 9 and 16 bits.
+        :type bits: int, hex, bin
+        :return: Tuple of 2 8bit values ordered with the lower bits first.
+        :rtype: tuple
         """
-        pre, post = hex(bits >> 8), hex(bits & 255)
+        post, pre = hex(bits >> 8), hex(bits & 255)
         return pre, post
 
     @staticmethod
     def _mergebits(pre, post):
         """
         This takes two hex byte values and merges them into a 16bit value.
+
+        :param pre: 8bit value of lower bits.
+        :type pre: int, hex, bin
+        :param post: 8bit value of higher bits.
+        :type post: int, hex, bin
+        :return: Integer value between 9 and 16 bits in length.
+        :rtype: int
         """
         pre, post = bin(pre), bin(post)
-        mg = eval(pre + post[2:])
+        mg = eval(post + pre[2:])
         return mg
 
     def _convfromdeg(self, number):
         """
         This simply converts a number within 1-180 into a pwm value in 1-255.
+
+        :param number: Value to be converted to PWM.
+        :type number: int, hex, bin
+        :return: PWM friendly integer.
+        :rtype: int
         """
         if self._np:
             answer = self._np.multiply(number, 1.415)
@@ -193,6 +226,11 @@ class ATTiny44BW:
     def _convfrompwm(self, number):
         """
         This takes a pwm value in 1-255 and converts it into degrees 1-180.
+
+        :param number: Value to be converted into degrees.
+        :type number: int, hex, bin
+        :return: Angular friendly integer.
+        :rtype: int
         """
         if self._np:
             answer = self._np.divide(number, 1.415)
@@ -217,102 +255,168 @@ class ATTiny44BW:
             # pylint: disable=no-member
             spi.write_readinto(self._write_buffer, self._read_buffer)
 
+    def _write_reg(self, offset, register, value):
+        """
+        This performs a write operation on the specified register + offset.
+
+        :param offset: Value to move from base register (register + offset).
+        :type offset: int, hex, bin
+        :param register: The base port register to operate on.
+        :type register: int, hex, bin
+        :param value: 1-16bit value to write into the target register.
+        """
+        if value > 65535:
+            raise ValueError
+        _reg = register | offset
+        self._write_buffer[1] = _reg
+        if value > 8:  # Handle 16 bit writes.
+            self._write_buffer[2], self._write_buffer[3] = self._splitbits(value)
+        else:
+            self._write_buffer[2] = value
+        self._write()
+
+    def _writemany_reg(self, register, values):
+        """
+        This will take a byte array of values, and write them to the specified register.
+
+        :param register: The port register to operate on.
+        :type register: int, hex, bin
+        :param values: Array of values to be written to the target register.
+        :type values: bytearray
+        """
+        self._write_buffer[1] = register
+        self._write_buffer = self._write_buffer[:2] + values
+        self._write()
+
+    def _read_reg(self, offset, register):
+        """
+        This performs a read operation on the specified register + offset and populates the 4 byte read buffer.
+
+        :param offset: Value to move from base register (register + offset).
+        :type offset: int, hex, bin
+        :param register: The port register to operate on.
+        """
+        self._chkchan(offset)
+        _reg = register | offset
+        self._write_buffer[1] = _reg
+        self._write_readinto()
+
     def move_deg(self, channel, value):
         """
         This moves the target servo channel to the position of value in degrees (1-180).
-        """
-        self._chkdeg(value)
-        self._chkchan(channel)
-        wb = self._write_buffer
-        _chan = channel | 0x20
-        _val = self._convfromdeg(value)
-        wb[1] = _chan
-        wb[2] = _val
-        self._write()
 
-    def move_array(self, values):
+        ;param channel: Servo channel (0-6) to operate on.
+        :type channel: int, hex, bin
+        :param value: Value to move the target server in degrees.
+        :type value: int, hex, bin
+        """
+        self._write_reg(channel, 0x20, value)
+
+    def moveall_deg(self, values):
         """
         This will take an array of values in degrees and pass them to all the channels in a single transaction.
 
         NOTE: This is only function in the custom firmware from BitWizard. and only functions with use_np set True.
+
+        TODO: We really need to write a non-numpy method for this.
+
+        :param values: Array of values in degrees to move servos.
+        :type values: list
         """
         if self._np:
             values = self._np.array(values)
             values = bytearray(list(self._np.multiply(values, 1.415).round(0)))
-            w_buf = bytearray([self._waddr, 0x50])
-            w_buf += values
-            self._write_buffer = w_buf
-            self._write()
+            self._writemany_reg(0x50, values)
         else:
             print('Aborted: this method requires numpy')
 
     def move_ms(self, channel, value):
         """
         This sets the target servo channel in microseconds (used for overdriving).
+
+        :param channel: Servo channel (0-6) to operate on.
+        :type channel: int, hex, bin
+        :param value: Value to move the target server in microseconds.
+        :type value: int, hex, bin
         """
         if value not in range(50, 2500):
             raise ValueError
-        self._chkchan(channel)
-        wb = self._write_buffer
-        _chan = channel | 0x28
-        wb[1] = _chan
-        wb[2], wb[3] = self._splitbits(value)
-        self._write()
+        self._write_reg(channel, 0x28, value)
+
+    def moveall_ms(self, values):
+        """
+        This takes a list of 16bit timing values (in microseconds) and moves all channels in a single transaction.
+        :param values: Array of timings.
+        :type values: list
+        """
+        vals = []  # type: list
+        for idx, value in enumerate(values):
+            ids = idx * 2
+            vals[ids], vals[ids + 1] = self._splitbits(value)
+        self._writemany_reg(0x51, bytearray(vals))
 
     def get_deg(self, channel):
         """
         This reads the current position of a channel in degrees
+
+        :param channel: This specifies the servo channel to read.
+        :type channel: in, hex, bin
+        :return: Servo position in degrees.
+        :rtype: int
         """
-        self._chkchan(channel)
-        _chan = channel | 0x20
-        self._write_buffer[1] = _chan
-        self._write_readinto()
+        self._read_reg(channel, 0x20)
         answer = self._convfrompwm(self._read_buffer[2])
         return answer
 
     def get_ms(self, channel):
         """
         This reads back the timing value for the requested channel.
+
+        :param channel: This specifies the servo channel to read.
+        :type channel: in, hex, bin
+        :return: Servo position in microseconds.
+        :rtype: int
         """
-        self._chkchan(channel)
-        _chan = channel | 0x28
-        self._write_buffer[1] = _chan
-        self._write_readinto()
+        self._read_reg(channel, 0x20)
         answer = self._mergebits(self._read_buffer[2], self._read_buffer[3])
         return answer
 
     def set_timeout(self, channel, timeout):
         """
         This sets the timeout (return to nautral position) value for the specified channel in tenths of a second.
+
+        :param channel: This specifies the servo channel.
+        :type channel: in, hex, bin
+        :param timeout: Servo timeout in tenths of a second.
+        :type timeout: int, hex, bin
         """
-        self._chkchan(channel)
-        wb = self._write_buffer
-        _chan = channel | 0x38
-        wb[1] = _chan
-        wb[2] = timeout
-        self._write()
+        self._write_reg(channel, 0x38, timeout)
 
     def set_default(self, channel, value):
         """
         This sets the default position of a specific channel in degrees.
+
+        :param channel: This specifies the servo channel.
+        :type channel: in, hex, bin
+        :param value: Default position in degrees.
+        :type value: int, hex, bin
         """
-        self._chkdeg(value)
-        self._chkchan(channel)
-        wb = self._write_buffer
-        wb[2] = channel | 0x30
-        wb[3] = self._convfromdeg(value)
-        self._write()
+        self._chkdeg(value)  # Ensure our position is sane.
+        self._write_reg(channel, 0x30, self._convfrompwm(value))
 
     def change_address(self, address):
         """
         This changes the address of the slave.
 
-        TODO: THis is untested and needs further validation that we won't brick the unit before being used.
+        :param address: This specifies the new 8bit address that will be assigned to the module.
+        :type address: int, hex, bin
         """
         wb = self._write_buffer
-        wb[1], wb[2] = 0xf1, 0x55
-        self._write()
-        wb[1], wb[2] = 0xf2, 0xaa
-        self._write()
-        wb[1], wb[2] = address, 0x0
-        self._write()
+        registers = [
+            (0xf1, 0x55),
+            (0xf2, 0xaa),
+            (address, 0x0)
+        ]
+        for register in registers:
+            wb[1], wb[2] = register
+            self._write()
