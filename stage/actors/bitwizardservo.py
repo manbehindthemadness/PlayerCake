@@ -54,6 +54,7 @@ Results should indicate a successful flash.
 Pin assignments can be altered in avrdude.conf
 """
 
+import time
 from adafruit_bus_device.spi_device import SPIDevice
 
 __version__ = "0.1"
@@ -69,18 +70,18 @@ def showbits(val):
     print('raw ' + str(len(str(val))) + 'bit', val, hex(int(val)))
     val = int(val, 2)
     print('intconv', val, hex(int(val)))
-    pre, post = val >> 8, val & 255
-    print('8bit split, second', bin(pre), hex(pre), 'first', bin(post), hex(post))
+    post, pre = val >> 8, val & 255
+    print('8bit split, low', bin(pre), hex(pre), 'high', bin(post), hex(post))
 
 
-class ATTiny44BW:
+class BWServo:
     """
     This is the driver class for the BitWizard SPI servo controller SIP based on the ATTiny-44 processor.
-
+    https://bitwizard.nl/wiki/Servo
     Note: We do not support software (bitbang) at this time.
     """
 
-    def __init__(self, spi, cs, address=0x86, use_numpy=False):
+    def __init__(self, spi, cs, address=0x86, use_numpy=False, debug=False):
         """Initialize ATTiny-44 device with software SPI on the specified CLK,
         CS, and DO pins.  Alternatively can specify hardware SPI by sending an
         Adafruit_GPIO.SPI.SpiDev device in the spi parameter.
@@ -91,11 +92,14 @@ class ATTiny44BW:
        :param cs: This is the chip select pin from digitalio: cs = digitalio.DigitalInOut(board.CE0).
        :param address: This is the assigned write address for the controller, defaults to 0x86
        :param use_numpy: This toggles numpy for the math functions.
+       :param debug: Enables debugging messages.
        :type spi: busio.SPI
        :type cs: digitalio.DigitalInOut
        :type address: int
        :type use_numpy: bool
+       :type debug: bool
         """
+        self.debug = debug
         self._waddr = address
         self._raddr = address | 1
         self._np = use_numpy
@@ -147,6 +151,16 @@ class ATTiny44BW:
             self._spi_dev = SPIDevice(self._spi, self._cs)
         finally:
             self._spi.unlock()
+
+    def dbg(self, value):
+        """
+        When debug is set to true this will return the various forms of bits, bytes and hex values being used.
+
+        :param value: This is the value decoded and returned in the debug message.
+        :type value: int, hex, bin
+        """
+        if self.debug:
+            showbits(value)
 
     def _normalize(self):
         """
@@ -245,6 +259,8 @@ class ATTiny44BW:
         with self._spi_dev as spi:
             # pylint: disable=no-member
             spi.write(self._write_buffer)
+        if self.debug:
+            print('writebuffer', self._write_buffer)
 
     def _write_readinto(self):
         """
@@ -254,6 +270,8 @@ class ATTiny44BW:
         with self._spi_dev as spi:
             # pylint: disable=no-member
             spi.write_readinto(self._write_buffer, self._read_buffer)
+        if self.debug:
+            print('wrightbuffer', self._write_buffer, 'readbuffer', self._read_buffer)
 
     def _write_reg(self, offset, register, value):
         """
@@ -392,6 +410,26 @@ class ATTiny44BW:
         """
         self._write_reg(channel, 0x38, timeout)
 
+    def set_base_freq(self, value):
+        """
+        This lets us customize the base frequency of the PWM.
+
+        :param value: 16bit value to set the base frequency in microseconds.
+        :type value: int,, hex, bin
+        """
+        self._write_reg(0, 0x58, value)
+
+    def set_base_multiplier(self, value):
+        """
+        This lets us customize the multiplier from the base frequency per-step in microseconds.
+
+        base_frequency + multiplier * byte
+
+        :param value: 8bit value in microseconds to step from the base frequency.
+        :type value: int, hex, bin
+        """
+        self._write_reg(0, 0x59, value)
+
     def set_default(self, channel, value):
         """
         This sets the default position of a specific channel in degrees.
@@ -420,3 +458,44 @@ class ATTiny44BW:
         for register in registers:
             wb[1], wb[2] = register
             self._write()
+
+    def test(self):
+        """
+        This will perform a test of the logic within this module.
+        """
+        print('beginning tests')
+        time.sleep(1)
+
+        print('servo 0 single sweep degrees')
+        self.move_deg(0, 1)
+        time.sleep(1)
+        self.move_deg(0, 180)
+
+        print('servo 0 read degrees')
+        print(self.get_deg(0))
+        time.sleep(2)
+
+        positions = [0, 0, 0, 0, 0, 0, 0]
+        print('servo array sweep degrees')
+        self.moveall_deg(positions)
+        positions[0] = 180
+        time.sleep(1)
+        self.moveall_deg(positions)
+        time.sleep(2)
+
+        print('servo 0 single sweep microseconds')
+        self.move_ms(0, 1000)
+        time.sleep(1)
+        self.move_ms(0, 2000)
+
+        print('servo 0 read microseconds')
+        print(self.get_ms(0))
+        time.sleep(2)
+
+        positions = [1000, 1000, 1000, 1000, 1000, 1000, 1000]
+        print('servo array sweep microseconds')
+        self.moveall_ms(positions)
+        positions[0] = 2000
+        time.sleep(1)
+        self.moveall_ms(positions)
+
