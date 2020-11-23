@@ -168,6 +168,9 @@ class BWServo:
         """
         This shifts the bits in the read buffer so we can clearly see our data.
 
+        For 8bit values we shift the register by two.
+        For 16bit reads we get the lowest bits in the third byte and the highest in the fourth, so we reverse and combine.
+
         :param size: Specifies the size of the read: 8 or 16 bits.
         :type size: int
         """
@@ -190,29 +193,31 @@ class BWServo:
         :type length: int
         """
         self._write_buffer = self._write_buffer[:2]
-        self._write_buffer += bytearray(list(self._np.zeros(length - 2, dtype=int)))
-        self._read_buffer = bytearray(list(self._np.zeros(length, dtype=int)))
+        self._write_buffer += bytearray(length - 2)
+        self._read_buffer = bytearray(length)
 
-    @staticmethod
-    def _chkchan(channel):
+    def _chkchan(self, channel):
         """
         This ensures our channel value is sane.
+
+        NOTE: This is a debug function only.
 
         :param channel: Value to confirm is within the range of channels.
         :type channel: int
         """
-        if channel not in range(0, 6):
+        if channel not in range(0, 6) and self.debug:
             raise ValueError
 
-    @staticmethod
-    def _chkdeg(degrees):
+    def _chkdeg(self, degrees):
         """
         This checks to ensure our angle is sane.
+
+        NOTE: This is a debug function only.
 
         :param degrees: Value to confirm is within the range of motion (1-180).
         :type degrees: int
         """
-        if degrees not in range(1, 180):
+        if degrees not in range(1, 180) and self.debug:
             raise ValueError
 
     @staticmethod
@@ -377,23 +382,26 @@ class BWServo:
             value = self._convfromdeg(value)
         self._write_reg(channel, 0x20, value)
 
-    def moveall_deg(self, values):
+    def moveall_deg(self, values, raw=False):
         """
         This will take an array of values in degrees and pass them to all the channels in a single transaction.
 
         NOTE: This is only function in the custom firmware from BitWizard. and only functions with use_np set True.
 
-        TODO: We really need to write a non-numpy method for this.
-
         :param values: Array of values in degrees to move servos.
         :type values: list
+        :param raw: When set to True we will write in PWM values from 1-255.
+        :type raw: bool
         """
-        if self._np:
-            values = self._np.array(values)
-            values = bytearray(list(self._np.multiply(values, 1.415).astype(int)))
-            self._writemany_reg(0x50, values)
-        else:
-            print('Aborted: this method requires numpy')
+        if not raw:
+            if self._np:
+                values = self._np.array(values)
+                values = list(self._np.multiply(values, 1.415).astype(int))
+            else:
+                for idx, value in enumerate(values):
+                    values[idx] = int(value * 1.4)
+
+        self._writemany_reg(0x50, bytearray(values))
 
     def move_ms(self, channel, value):
         """
@@ -492,6 +500,12 @@ class BWServo:
         """
         This changes the address of the slave.
 
+        NOTE: Addresses are handled in bytes with the lowest bit set to zero. The 7 higher bits represent the address
+                whilst the lowest bit signals read (high) or write (low). An example of this from the defaults can be
+                seen here:
+                address = 0x86 10000110 (write)
+                          0x87 10000111 (read)
+
         :param address: This specifies the new 8bit address that will be assigned to the module.
         :type address: int, hex, bin
         """
@@ -508,6 +522,10 @@ class BWServo:
     def test(self):
         """
         This will perform a test of the logic within this module.
+
+        NOTE: When doing read operations it's important to keep in mind that the position read will not always
+                be the position written. This is bacause we are clamped to increments of the
+                base multiplier (default 4) from the base frequency (default 988).
         """
         print('beginning tests\n')
         time.sleep(1)
@@ -536,7 +554,7 @@ class BWServo:
         positions[0] = 180
         time.sleep(1)
         self.moveall_deg(positions)
-        time.sleep(2)
+        time.sleep(1)
 
         print('\nservo 0 single sweep microseconds\n')
         self.move_ms(0, 1000)
@@ -560,4 +578,3 @@ class BWServo:
         self.moveall_ms(positions)
 
         print('movement tests complete')
-
