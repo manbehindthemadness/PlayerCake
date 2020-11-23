@@ -1,8 +1,26 @@
+# Copyright (c) 2020
+# Author: Kevin Eales
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
 """
-This is our SPI driver for the bitwizard 7 channel SPI servo controller SIP.
-
-* Author: Kevin Eales
-
+SPI driver for the bitwizard 7 channel SPI servo controller SIP.
 
 **Software and Dependencies:**
 
@@ -11,38 +29,9 @@ This is our SPI driver for the bitwizard 7 channel SPI servo controller SIP.
 
 ** Notes and references:**
 
-https://wiki.python.org/moin/BitwiseOperators
-
-reference: https://readthedocs.org/projects/adafruit-circuitpython-busdevice/downloads/pdf/latest/
-
-NOTE: Rememmber our binary operators.
-        x << y
-        Returns x with the bits shifted to the left by y places (and new bits on the right-hand-side are zeros). This is the same as multiplying x by 2**y.
-        x >> y
-        Returns x with the bits shifted to the right by y places. This is the same as //'ing x by 2**y.
-        x & y
-        Does a "bitwise and". Each bit of the output is 1 if the corresponding bit of x AND of y is 1, otherwise it's 0.
-        x | y
-        Does a "bitwise or". Each bit of the output is 0 if the corresponding bit of x AND of y is 0, otherwise it's 1.
-        ~ x
-        Returns the complement of x - the number you get by switching each 1 for a 0 and each 0 for a 1. This is the same as -x - 1.
-        x ^ y
-        Does a "bitwise exclusive or". Each bit of the output is the same as the corresponding bit in x if that bit in y is 0, and it's the complement of the bit in x if that bit in y is 1.
-
-NOTE:
-        Official "servo" standard says that servo signals are 1-2 ms long repeating at 20ms intervals (50 times per second).
-        Now many servos will accept signals outside that range. Either by design or by accident. So most servos are built do turn about 180 degrees for the 1-2 ms signal range.
-        But mechanically it is really easy to get about 270 degrees of rotation out of a servo. So many servo-manufacturers allow you to use say 0.75-2.25 range to address the whole
-        270 degree range. The module uses its idea of a microsecond as a unit. So to be able to quickly (1 byte) specify a position,
-        the units are 4 microsecond steps. I haven't looked closely at the code in a while but I'd expect that the pulses generated are 1000 microseconds + 4* the value you send.
-        So in the longer pulses direction, you probably already have 20 microseconds of extra range. (1000+255*4 = 2020 microseconds).
-        I think there are also 16-bit registers that allow you full access to the actual microseconds internal variable.
-        About the "its idea of a microsecond": That's based on the internal 8MHz clock of the chip, That's an RC-oscillator,
-        which could in theory vary by about 10%. In practice it is a lot more accurate.
-        Keep in mind that the pulses are generated sequentially, The Tiny processor inside there is not well equipped to handle multiple signals accurately at the same time,
-        but it can generate these sequential pulses very accurately. (About 125ns jitter IIRC).
-
-NOTE: Speed change reference: https://www.raspberrypi.org/forums/viewtopic.php?t=177965
+bitwise operators: https://wiki.python.org/moin/BitwiseOperators
+speed change: https://www.raspberrypi.org/forums/viewtopic.php?t=177965
+module documentation: https://bitwizard.nl/wiki/Servo
 
 *Flashing procedure*
 
