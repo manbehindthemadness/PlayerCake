@@ -115,6 +115,12 @@ class BWServo:
         self._hz = None
         self._ph = None
         self._bts = None
+        self._ostart = 0
+        self._oend = None
+        self._istart = 0
+        self._iend = None
+        self._multi = 4
+        self._base_freq = 988
 
         self.configure()
 
@@ -158,12 +164,34 @@ class BWServo:
         if self.debug:
             showbits(value)
 
-    def _normalize(self):
+    def _shiftread(self, size):
+        """
+        This shifts the bits in the read buffer so we can clearly see our data.
+
+        :param size: Specifies the size of the read: 8 or 16 bits.
+        :type size: int
+        """
+        sb = None
+        rb = self._read_buffer
+        if size == 8:
+            sb = self._read_buffer[2] << 0x2
+        elif size == 16:
+            a, b = bin(rb[3]), bin(rb[2])
+            sb = eval(a + b[2:])
+        if self.debug:
+            print('shifting bits for size', size, 'result', sb)
+        return sb
+
+    def _normalize(self, length=4):
         """
         This ensures our read and write buffers are the same size.
+
+        :param length: Resize the read and write buffers length.
+        :type length: int
         """
-        if len(self._write_buffer) > 4:
-            self._write_buffer = self._write_buffer[:4]
+        self._write_buffer = self._write_buffer[:2]
+        self._write_buffer += bytearray(list(self._np.zeros(length - 2, dtype=int)))
+        self._read_buffer = bytearray(list(self._np.zeros(length, dtype=int)))
 
     @staticmethod
     def _chkchan(channel):
@@ -255,7 +283,11 @@ class BWServo:
         self._write_buffer[0] = self._waddr
         with self._spi_dev as spi:
             # pylint: disable=no-member
-            spi.write(self._write_buffer)
+            spi.write(
+                self._write_buffer,
+                self._ostart,
+                self._oend
+            )
         if self.debug:
             print('writebuffer', self._write_buffer)
 
@@ -263,12 +295,21 @@ class BWServo:
         """
         This sends the write buffer to the slave and reads the response into the read_buffer.
         """
-        self._normalize()
+        self.configure(hz=50000)
+        self._normalize(5)
         with self._spi_dev as spi:
             # pylint: disable=no-member
-            spi.write_readinto(self._write_buffer, self._read_buffer)
+            spi.write_readinto(
+                self._write_buffer,
+                self._read_buffer,
+                self._ostart,
+                self._oend,
+                self._istart,
+                self._iend
+            )
         if self.debug:
             print('writebuffer', self._write_buffer, 'readbuffer', self._read_buffer)
+        self.configure()
 
     def _write_reg(self, offset, register, value):
         """
@@ -314,15 +355,14 @@ class BWServo:
         :type offset: int, hex, bin
         :param register: The port register to operate on.
         """
-        self.configure(hz=25000)
+
         self._chkchan(offset)
         _reg = register | offset
         self._write_buffer[0] = self._raddr
         self._write_buffer[1] = _reg
         self._write_readinto()
-        self.configure()
 
-    def move_deg(self, channel, value):
+    def move_deg(self, channel, value, raw=False):
         """
         This moves the target servo channel to the position of value in degrees (1-180).
 
@@ -330,7 +370,11 @@ class BWServo:
         :type channel: int, hex, bin
         :param value: Value to move the target server in degrees.
         :type value: int, hex, bin
+        :param raw: This is just for testing the raw pwm values.
+        :type raw: bool
         """
+        if not raw:
+            value = self._convfromdeg(value)
         self._write_reg(channel, 0x20, value)
 
     def moveall_deg(self, values):
@@ -385,7 +429,7 @@ class BWServo:
         :rtype: int
         """
         self._read_reg(channel, 0x20)
-        answer = self._convfrompwm(self._read_buffer[2])
+        answer = self._convfrompwm(self._shiftread(8))
         return answer
 
     def get_ms(self, channel):
@@ -397,8 +441,8 @@ class BWServo:
         :return: Servo position in microseconds.
         :rtype: int
         """
-        self._read_reg(channel, 0x20)
-        answer = self._mergebits(self._read_buffer[2], self._read_buffer[3])
+        self._read_reg(channel, 0x28)
+        answer = self._shiftread(16)
         return answer
 
     def set_timeout(self, channel, timeout):
@@ -479,9 +523,12 @@ class BWServo:
 
         print('\nservo 0 read degrees\n')
         pos = self.get_deg(0)
-        if pos != 180:
-            print('read degrees test failed! value', pos, 'should be', 180)
-        time.sleep(2)
+        if pos not in range(178, 182):  # Remember we are clamped to a step of 4.
+            print('read degrees test failed! value:', pos, 'should be:', 180)
+        time.sleep(1)
+
+        self.move_deg(0, 254, raw=True)
+        print('\nlow position:', self.get_deg(0), '\n')
 
         positions = [1, 1, 1, 1, 1, 1, 1]
         print('\nservo array sweep degrees\n')
@@ -498,9 +545,12 @@ class BWServo:
 
         print('\nservo 0 read microseconds\n')
         pos = self.get_ms(0)
-        if pos != 2000:
-            print('read microseconds test failed! value', pos, 'should be', 2000)
-        time.sleep(2)
+        if pos not in range(1996, 2004):
+            print('read microseconds test failed! value:', pos, 'should be:', 2000)
+        time.sleep(1)
+
+        self.move_ms(0, 988)
+        print('\nlow position:', self.get_ms(0), '\n')
 
         positions = [1000, 1000, 1000, 1000, 1000, 1000, 1000]
         print('\nservo array sweep microseconds\n')
