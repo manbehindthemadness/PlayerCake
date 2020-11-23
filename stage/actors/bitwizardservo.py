@@ -33,12 +33,31 @@ bitwise operators: https://wiki.python.org/moin/BitwiseOperators
 speed change: https://www.raspberrypi.org/forums/viewtopic.php?t=177965
 module documentation: https://bitwizard.nl/wiki/Servo
 
+** Example Usage: **
+
+
+import busio
+import board
+import digitalio
+from adafruit_bus_device.spi_device import SPIDevice
+from bitwizardservo import BWServo
+
+
+cs = digitalio.DigitalInOut(board.CE0)
+spi_bus = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
+
+srv = BWServo(spi_bus, cs)
+srv.test()
+
+
+### The below procedure only applies when writing a firmware revision and is kept only for reference ###
+
 *Flashing procedure*
 
 1. disable spi overlays in config.txt and reboot.
 2. run the flashit script.
-3. short pads 2-3 (the ones without the thin solder strip).
-4. whilst shorting the above pads, re-run the flashit script.
+3. short pads 2-3 (the ones without the thin solder strip on the bottom of the board).
+4. whilst shorting the above pads, re-run the flashit script (best to use a time delay script).
 Results should indicate a successful flash.
 Pin assignments can be altered in avrdude.conf
 """
@@ -80,7 +99,7 @@ class BWServo:
        :param spi: busio.SPI instance of the spi interface (sck/mosi, sck_1/mosi_1).
        :param cs: This is the chip select pin from digitalio: cs = digitalio.DigitalInOut(board.CE0).
        :param address: This is the assigned write address for the controller, defaults to 0x86
-       :param use_numpy: This toggles numpy for the math functions.
+       :param use_numpy: This toggles numpy for the math functions (much faster).
        :param debug: Enables debugging messages.
        :type spi: busio.SPI
        :type cs: digitalio.DigitalInOut
