@@ -87,6 +87,10 @@ class BWServo:
     This is the driver class for the BitWizard SPI servo controller SIP based on the ATTiny-44 processor.
     https://bitwizard.nl/wiki/Servo
     Note: We do not support software (bitbang) at this time.
+
+    NOTE: When reading the positional value of one of the servo channels it's expected for it to not be the exact value
+            that was written. This is due to the positional value being clamped to an increment of the base multiplier
+            plus the base frequency.
     """
 
     def __init__(self, spi, cs, address=0x86, use_numpy=False, debug=False):
@@ -128,7 +132,7 @@ class BWServo:
         self._istart = 0
         self._iend = None
         self._multi = 4
-        self._base_freq = 988
+        self._freq = 988
 
         self.configure()
 
@@ -172,7 +176,24 @@ class BWServo:
         if self.debug:
             showbits(value)
 
-    def _shiftread(self, size):
+    def _round_nearest(self, value, nearest):
+        """
+        This will round the value to the nearest increment.
+
+        :param value: Number to be rounded.
+        :type value: int
+        :param nearest: The increment that we will round to.
+        :type nearest: int
+        :return: Value rounded to the nearest.
+        :rtype: int
+        """
+        if self._np:
+            answer = self._np.multiply(nearest, self._np.round(self._np.divide(value, nearest)))
+        else:
+            answer = nearest * round(value / value)
+        return answer
+
+    def _shiftread(self, size, skip=False):
         """
         This shifts the bits in the read buffer so we can clearly see our data.
 
@@ -182,15 +203,19 @@ class BWServo:
         :param size: Specifies the size of the read: 8 or 16 bits.
         :type size: int
         """
-        sb = None
         rb = self._read_buffer
-        if size == 8:
-            sb = self._read_buffer[2] << 0x2
-        elif size == 16:
-            a, b = bin(rb[3]), bin(rb[2])
-            sb = eval(a + b[2:])
-        if self.debug:
-            print('shifting bits for size', size, 'result', sb)
+        if not skip:
+            if size == 8:
+                sb = self._read_buffer[2] << 0x2
+            elif size == 16:  # TODO: Lets move this into _mergebits.
+                a, b = bin(rb[3]), bin(rb[2])
+                sb = eval(a + b[2:])
+            else:
+                sb = rb
+            if self.debug:
+                print('shifting bits for size', size, 'result', sb)
+        else:
+            sb = rb[2]
         return sb
 
     def _normalize(self, length=4):
@@ -304,12 +329,15 @@ class BWServo:
         if self.debug:
             print('writebuffer', self._write_buffer)
 
-    def _write_readinto(self):
+    def _write_readinto(self, length=5):
         """
         This sends the write buffer to the slave and reads the response into the read_buffer.
+
+        :param length: This can be used to adjust the read buffer length.
+        :type length: int
         """
         self.configure(hz=50000)
-        self._normalize(5)
+        self._normalize(length)
         with self._spi_dev as spi:
             # pylint: disable=no-member
             spi.write_readinto(
@@ -360,20 +388,23 @@ class BWServo:
         self._write_buffer = self._write_buffer[:2] + values
         self._write()
 
-    def _read_reg(self, offset, register):
+    def _read_reg(self, offset, register, length=5):
         """
         This performs a read operation on the specified register + offset and populates the 4 byte read buffer.
 
         :param offset: Value to move from base register (register + offset).
         :type offset: int, hex, bin
         :param register: The port register to operate on.
+        :type register: int hex bin
+        :param length: This can be used to adjust the read buffer length.
+        :type length: int
         """
 
         self._chkchan(offset)
         _reg = register | offset
         self._write_buffer[0] = self._raddr
         self._write_buffer[1] = _reg
-        self._write_readinto()
+        self._write_readinto(length)
 
     def move_deg(self, channel, value, raw=False):
         """
@@ -408,7 +439,6 @@ class BWServo:
             else:
                 for idx, value in enumerate(values):
                     values[idx] = int(value * 1.4)
-
         self._writemany_reg(0x50, bytearray(values))
 
     def move_ms(self, channel, value):
@@ -446,6 +476,8 @@ class BWServo:
         """
         self._read_reg(channel, 0x20)
         answer = self._convfrompwm(self._shiftread(8))
+        if not answer:
+            answer = 1
         return answer
 
     def get_ms(self, channel):
@@ -459,6 +491,32 @@ class BWServo:
         """
         self._read_reg(channel, 0x28)
         answer = self._shiftread(16)
+        return answer
+
+    def get_timeout(self, channel):
+        """
+        This reads back the timeout value for the requested channel (time inactive before it reverts to default position).
+
+        :param channel: This specifies the servo channel to read.
+        :type channel: in, hex, bin
+        :return: Servo position in microseconds.
+        :rtype: int
+        """
+        self._read_reg(channel, 0x38)
+        answer = self._shiftread(8, skip=True)
+        return answer
+
+    def get_default(self, channel):
+        """
+        This reads back the neutral (default) position a servo will move to during power on or after a timeout.
+
+        :param channel: This specifies the servo channel to read.
+        :type channel: in, hex, bin
+        :return: Servo default in microseconds.
+        :rtype: int
+        """
+        self._read_reg(channel, 0x30)
+        answer = self._shiftread(8, skip=True)
         return answer
 
     def set_timeout(self, channel, timeout):
@@ -479,6 +537,7 @@ class BWServo:
         :param value: 16bit value to set the base frequency in microseconds.
         :type value: int,, hex, bin
         """
+        self._freq = value
         self._write_reg(0, 0x58, value)
 
     def set_base_multiplier(self, value):
@@ -490,9 +549,10 @@ class BWServo:
         :param value: 8bit value in microseconds to step from the base frequency.
         :type value: int, hex, bin
         """
+        self._multi = value
         self._write_reg(0, 0x59, value)
 
-    def set_default(self, channel, value):
+    def set_default(self, channel, value, raw=False):
         """
         This sets the default position of a specific channel in degrees.
 
@@ -500,9 +560,13 @@ class BWServo:
         :type channel: in, hex, bin
         :param value: Default position in degrees.
         :type value: int, hex, bin
+        :param raw: When set to True we will write in PWM values from 1-255.
+        :type raw: bool
         """
         self._chkdeg(value)  # Ensure our position is sane.
-        self._write_reg(channel, 0x30, self._convfrompwm(value))
+        if not raw:
+            value = self._convfrompwm(value)
+        self._write_reg(channel, 0x30, value)
 
     def change_address(self, address):
         """
@@ -527,6 +591,17 @@ class BWServo:
             wb[1], wb[2] = register
             self._write()
 
+    def identify(self):
+        """
+        This reads back the neutral (default) position a servo will move to during power on or after a timeout.
+
+        :return: Board identification.
+        :rtype: int
+        """
+        self._read_reg(0, 0x01, length=15)
+        answer = self._shiftread(15)
+        return answer[2:]
+
     def test(self):
         """
         This will perform a test of the logic within this module.
@@ -537,52 +612,84 @@ class BWServo:
         """
         print('beginning tests\n')
         time.sleep(1)
+        print('identifying board\n')
+        print(self.identify())
+        print('reading config:\n')
+        print('channel 0 timeout:', self.get_timeout(0))
+        print('channel 0 default:', self.get_default(0))
 
-        print('\nidentifying board\n')
-        self._read_reg(0, 0x01)
-        print(self._read_buffer)
-
-        print('\nservo 0 single sweep degrees\n')
+        print('servo 0 single sweep degrees\n')
         self.move_deg(0, 1)
         time.sleep(1)
         self.move_deg(0, 180)
 
-        print('\nservo 0 read degrees\n')
+        print('servo 0 read degrees\n')
         pos = self.get_deg(0)
         if pos not in range(178, 182):  # Remember we are clamped to a step of 4.
             print('read degrees test failed! value:', pos, 'should be:', 180)
         time.sleep(1)
 
         self.move_deg(0, 254, raw=True)
-        print('\nlow position:', self.get_deg(0), '\n')
+        print('low position:', self.get_deg(0), '\n')
 
         positions = [1, 1, 1, 1, 1, 1, 1]
-        print('\nservo array sweep degrees\n')
+        print('servo array sweep degrees\n')
         self.moveall_deg(positions)
         positions[0] = 180
         time.sleep(1)
         self.moveall_deg(positions)
         time.sleep(1)
 
-        print('\nservo 0 single sweep microseconds\n')
+        print('servo 0 single sweep microseconds\n')
         self.move_ms(0, 1000)
         time.sleep(1)
         self.move_ms(0, 2000)
 
-        print('\nservo 0 read microseconds\n')
+        print('servo 0 read microseconds\n')
         pos = self.get_ms(0)
         if pos not in range(1996, 2004):
             print('read microseconds test failed! value:', pos, 'should be:', 2000)
         time.sleep(1)
 
         self.move_ms(0, 988)
-        print('\nlow position:', self.get_ms(0), '\n')
+        print('low position:', self.get_ms(0), '\n')
 
         positions = [1000, 1000, 1000, 1000, 1000, 1000, 1000]
-        print('\nservo array sweep microseconds\n')
+        print('servo array sweep microseconds\n')
         self.moveall_ms(positions)
         positions[0] = 2000
         time.sleep(1)
         self.moveall_ms(positions)
+        time.sleep(1)
+
+        print('changing frequency and multiplier to 700-2485, 7\n')
+        self.set_base_freq(700)
+        self.set_base_multiplier(7)
+
+        print('servo 0 single sweep pwm\n')
+        self.move_deg(0, 1, raw=True)
+        time.sleep(1)
+        self.move_deg(0, 255, raw=True)
+        time.sleep(1)
+
+        print('setting channel 0 default to 90 degrees')
+        self.set_default(0, 255, raw=True)
+        print('setting channel 0 timeout to 1 second')
+        self.set_timeout(0, 20)
+        print('reading back values')
+        print('channel 0 timeout:', self.get_timeout(0))
+        print('channel 0 default:', self.get_default(0))
+        time.sleep(3)
+        print('timeout position custom freq:', self.get_deg(0), self.get_ms(0), '\n')
+
+        # self.move_deg(0, 127, raw=True)
+
+        print('reverting base values\n')
+        self.set_base_freq(988)
+        self.set_base_multiplier(4)
+
+        self.move_deg(0, 1, raw=True)
+        time.sleep(3)
+        print('timeout position default freq:', self.get_deg(0), self.get_ms(0), '\n')
 
         print('movement tests complete')
