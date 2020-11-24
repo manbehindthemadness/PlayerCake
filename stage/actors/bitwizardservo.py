@@ -1,4 +1,4 @@
-# Copyright (c) 2020
+# Copyright (c) 2020 Kevin Eales
 # Author: Kevin Eales
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -29,12 +29,10 @@ SPI driver for the bitwizard 7 channel SPI servo controller SIP.
 
 ** Notes and references:**
 
-bitwise operators: https://wiki.python.org/moin/BitwiseOperators
 speed change: https://www.raspberrypi.org/forums/viewtopic.php?t=177965
 module documentation: https://bitwizard.nl/wiki/Servo
 
 ** Example Usage: **
-
 
 import busio
 import board
@@ -85,8 +83,8 @@ def showbits(val):
 class BWServo:
     """
     This is the driver class for the BitWizard SPI servo controller SIP based on the ATTiny-44 processor.
-    https://bitwizard.nl/wiki/Servo
-    Note: We do not support software (bitbang) at this time.
+
+    NOTE: We do not support software (bitbang) at this time.
 
     NOTE: When reading the positional value of one of the servo channels it's expected for it to not be the exact value
             that was written. This is due to the positional value being clamped to an increment of the base multiplier
@@ -202,14 +200,17 @@ class BWServo:
 
         :param size: Specifies the size of the read: 8 or 16 bits.
         :type size: int
+        :param skip: Handy switch to bypass shifting opperations when needed.
+        :type skip: bool
+        :return: Normalized byte value.
+        :rtype: int
         """
         rb = self._read_buffer
         if not skip:
             if size == 8:
                 sb = self._read_buffer[2] << 0x2
-            elif size == 16:  # TODO: Lets move this into _mergebits.
-                a, b = bin(rb[3]), bin(rb[2])
-                sb = eval(a + b[2:])
+            elif size == 16:
+                sb = self._mergebits(rb[2], rb[3])
             else:
                 sb = rb
             if self.debug:
@@ -316,7 +317,7 @@ class BWServo:
 
     def _write(self):
         """
-        Send write buffer to the slave.
+        Send write buffer.
         """
         self._write_buffer[0] = self._waddr
         with self._spi_dev as spi:
@@ -395,7 +396,7 @@ class BWServo:
         :param offset: Value to move from base register (register + offset).
         :type offset: int, hex, bin
         :param register: The port register to operate on.
-        :type register: int hex bin
+        :type register: int, hex, bin
         :param length: This can be used to adjust the read buffer length.
         :type length: int
         """
@@ -465,17 +466,21 @@ class BWServo:
             vals += list(self._splitbits(value))
         self._writemany_reg(0x51, bytearray(vals))
 
-    def get_deg(self, channel):
+    def get_deg(self, channel, raw=False):
         """
         This reads the current position of a channel in degrees
 
         :param channel: This specifies the servo channel to read.
-        :type channel: in, hex, bin
+        :type channel: int, hex, bin
+        :param raw: When set to True we will read in PWM values from 1-255.
+        :type raw: bool
         :return: Servo position in degrees.
         :rtype: int
         """
         self._read_reg(channel, 0x20)
-        answer = self._convfrompwm(self._shiftread(8))
+        answer = self._shiftread(8)
+        if not raw:
+            answer = self._convfrompwm(answer)
         if not answer:
             answer = 1
         return answer
@@ -485,7 +490,7 @@ class BWServo:
         This reads back the timing value for the requested channel.
 
         :param channel: This specifies the servo channel to read.
-        :type channel: in, hex, bin
+        :type channel: int, hex, bin
         :return: Servo position in microseconds.
         :rtype: int
         """
@@ -498,7 +503,7 @@ class BWServo:
         This reads back the timeout value for the requested channel (time inactive before it reverts to default position).
 
         :param channel: This specifies the servo channel to read.
-        :type channel: in, hex, bin
+        :type channel: int, hex, bin
         :return: Servo position in microseconds.
         :rtype: int
         """
@@ -511,7 +516,7 @@ class BWServo:
         This reads back the neutral (default) position a servo will move to during power on or after a timeout.
 
         :param channel: This specifies the servo channel to read.
-        :type channel: in, hex, bin
+        :type channel: int, hex, bin
         :return: Servo default in microseconds.
         :rtype: int
         """
@@ -524,7 +529,7 @@ class BWServo:
         This sets the timeout (return to nautral position) value for the specified channel in tenths of a second.
 
         :param channel: This specifies the servo channel.
-        :type channel: in, hex, bin
+        :type channel: int, hex, bin
         :param timeout: Servo timeout in tenths of a second.
         :type timeout: int, hex, bin
         """
@@ -535,7 +540,7 @@ class BWServo:
         This lets us customize the base frequency of the PWM.
 
         :param value: 16bit value to set the base frequency in microseconds.
-        :type value: int,, hex, bin
+        :type value: int, hex, bin
         """
         self._freq = value
         self._write_reg(0, 0x58, value)
@@ -557,7 +562,7 @@ class BWServo:
         This sets the default position of a specific channel in degrees.
 
         :param channel: This specifies the servo channel.
-        :type channel: in, hex, bin
+        :type channel: int, hex, bin
         :param value: Default position in degrees.
         :type value: int, hex, bin
         :param raw: When set to True we will write in PWM values from 1-255.
@@ -596,7 +601,7 @@ class BWServo:
         This reads back the neutral (default) position a servo will move to during power on or after a timeout.
 
         :return: Board identification.
-        :rtype: int
+        :rtype: bytestring
         """
         self._read_reg(0, 0x01, length=15)
         answer = self._shiftread(15)
@@ -610,10 +615,24 @@ class BWServo:
                 be the position written. This is bacause we are clamped to increments of the
                 base multiplier (default 4) from the base frequency (default 988).
         """
+        def fail(value, expected_value, fail_message):
+            """
+            This just confirms a value meets the expected value, if not iw will print the fail_message and return False.
+            """
+            result = True
+            if value != expected_value:
+                print(*fail_message)
+                result = False
+            return result
+
+        success = []
+
         print('beginning tests\n')
         time.sleep(1)
         print('identifying board\n')
-        print(self.identify())
+        ident = self.identify()
+        print(ident.decode())
+        success.append(fail(ident.decode()[:9], 'spi_servo', ('failed to identify board!',)))
         print('reading config:\n')
         print('channel 0 timeout:', self.get_timeout(0))
         print('channel 0 default:', self.get_default(0))
@@ -625,12 +644,15 @@ class BWServo:
 
         print('servo 0 read degrees\n')
         pos = self.get_deg(0)
-        if pos not in range(178, 182):  # Remember we are clamped to a step of 4.
-            print('read degrees test failed! value:', pos, 'should be:', 180)
+
+        success.append(fail(pos, 178, ('read degrees test failed! value:', pos, 'should be:', 178)))
         time.sleep(1)
 
-        self.move_deg(0, 254, raw=True)
-        print('low position:', self.get_deg(0), '\n')
+        self.move_deg(0, 252, raw=True)
+        lpos = self.get_deg(0, raw=True)
+        print('low position:', lpos)
+        print('expected value: 252\n')
+        success.append(fail(lpos, 252, ('failure!',)))
 
         positions = [1, 1, 1, 1, 1, 1, 1]
         print('servo array sweep degrees\n')
@@ -647,12 +669,14 @@ class BWServo:
 
         print('servo 0 read microseconds\n')
         pos = self.get_ms(0)
-        if pos not in range(1996, 2004):
-            print('read microseconds test failed! value:', pos, 'should be:', 2000)
+        success.append(fail(pos, 2000, ('read microseconds test failed! value:', pos, 'should be:', 2000)))
         time.sleep(1)
 
         self.move_ms(0, 988)
-        print('low position:', self.get_ms(0), '\n')
+        lpos = self.get_ms(0)
+        print('low position:', lpos)
+        print('expected value: 988\n')
+        success.append(fail(lpos, 988, ('Failure!',)))
 
         positions = [1000, 1000, 1000, 1000, 1000, 1000, 1000]
         print('servo array sweep microseconds\n')
@@ -677,12 +701,19 @@ class BWServo:
         print('setting channel 0 timeout to 1 second')
         self.set_timeout(0, 20)
         print('reading back values')
-        print('channel 0 timeout:', self.get_timeout(0))
-        print('channel 0 default:', self.get_default(0))
-        time.sleep(3)
-        print('timeout position custom freq:', self.get_deg(0), self.get_ms(0), '\n')
+        tmot = self.get_timeout(0)
+        print('channel 0 timeout:', tmot)
+        success.append(fail(tmot, 20, ('set timeout failure!',)))
 
-        # self.move_deg(0, 127, raw=True)
+        deft = self.get_default(0)
+        print('channel 0 default:', deft)
+        success.append(fail(deft, 255, ('set default failure!',)))
+
+        time.sleep(3)
+        dg, ms = self.get_deg(0), self.get_ms(0)
+        print('timeout position custom freq:', dg, ms, '\n')
+        fail(dg, 180, ('warning: read pwm value not updated after timeout',))
+        success.append((ms, 2485, ('timeout movement failure!',)))
 
         print('reverting base values\n')
         self.set_base_freq(988)
@@ -690,6 +721,12 @@ class BWServo:
 
         self.move_deg(0, 1, raw=True)
         time.sleep(3)
-        print('timeout position default freq:', self.get_deg(0), self.get_ms(0), '\n')
+        dg, ms = self.get_deg(0), self.get_ms(0)
+        print('timeout position default freq:', dg, ms, '\n')
+        fail(dg, 180, ('warning: read pwm value not updated after timeout',))
+        success.append((ms, 2485, ('timeout movement failure!',)))
 
-        print('movement tests complete')
+        if False not in success:
+            print('\nself-test passed!\n')
+        else:
+            print('\nself-test failed!\n')
