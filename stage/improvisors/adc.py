@@ -1,5 +1,14 @@
 """
 This is our ADC code.
+
+
+Timeit values from tests.adc:
+
+single: 9.833299554884434e-05
+all: 0.0004996329953428358
+both: 0.0008892149926396087
+
+
 """
 import time
 import Adafruit_GPIO.SPI as SPI
@@ -20,7 +29,7 @@ class MCP3008:
         self.controller = controller
         self.settings = self.controller.settings
         self.rt_data = self.controller.rt_data
-        self.mcp_1 = Adafruit_MCP3008.MCP3008(spi=SPI.SpiDev(0, 0))
+        self.mcp_1 = Adafruit_MCP3008.MCP3008(spi=SPI.SpiDev(0, 0))  # port, device, max_speed_hz=500000
         self.mcp_2 = Adafruit_MCP3008.MCP3008(spi=SPI.SpiDev(0, 1))
         self.reading = None
         self.filtered_ports = None

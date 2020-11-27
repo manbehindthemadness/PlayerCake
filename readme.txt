@@ -31,3 +31,10 @@ references:
 	Take control of console session: https://www.tecmint.com/use-conspy-to-view-and-control-remote-linux-virtual-consoles/
 	Rotate screen properly: https://bbs.archlinux.org/viewtopic.php?id=255134
 	image backups: mount -t cifs //10.4.222.20/common /media/backups dd bs=4M if=/dev/mmcblk0 of=/media/backups/pihole-oct-2020.img status=progress
+
+	NEW SERVO DRIVER:
+	http://www.bitwizard.nl/wiki/Servo#Datasheets
+	http://www.bitwizard.nl/wiki/Servo_1.0_protocol
+	https://www.cs.princeton.edu/courses/archive/fall07/cos109/bc.html
+	https://wiki.python.org/moin/BitwiseOperators
+	https://wiki.python.org/moin/BitManipulation
