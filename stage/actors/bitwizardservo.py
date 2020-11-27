@@ -174,6 +174,21 @@ class BWServo:
         if self.debug:
             showbits(value)
 
+    @staticmethod
+    def _ex_buf(buf):
+        """
+        This explosed a buffer into easy to read hex.
+
+        :param buf: Buffer to be exploded.
+        :type buf: bytearray
+        :return: List of bytes.
+        :rtype: list
+        """
+        buf_seq = list()
+        for byt in buf:
+            buf_seq.append(hex(byt))
+        return buf_seq
+
     def _round_nearest(self, value, nearest):
         """
         This will round the value to the nearest increment.
@@ -214,7 +229,7 @@ class BWServo:
             else:
                 sb = rb
             if self.debug:
-                print('shifting bits for size', size, 'result', sb)
+                print('* shifting bits for size', size, 'result', sb)
         else:
             sb = rb[2]
         return sb
@@ -327,8 +342,9 @@ class BWServo:
                 self._ostart,
                 self._oend
             )
-        if self.debug:
-            print('writebuffer', self._write_buffer)
+        if self.debug:  # TODO Put this into it's own method.
+            buf_seq = self._ex_buf(self._write_buffer)
+            print('* sending writebuffer:', buf_seq)
 
     def _write_readinto(self, length=5):
         """
@@ -350,10 +366,12 @@ class BWServo:
                 self._iend
             )
         if self.debug:
-            print('writebuffer', self._write_buffer, 'readbuffer', self._read_buffer)
+            w_buf_seq = self._ex_buf(self._write_buffer)
+            r_buf_seq = self._ex_buf(self._read_buffer)
+            print('* writebuffer', w_buf_seq, 'readbuffer', w_buf_seq)
         self.configure()
 
-    def _write_reg(self, offset, register, value):
+    def _write_reg(self, offset, register, value, length=4):
         """
         This performs a write operation on the specified register + offset.
 
@@ -362,18 +380,20 @@ class BWServo:
         :param register: The base port register to operate on.
         :type register: int, hex, bin
         :param value: 1-16bit value to write into the target register.
+        :param length: This allows us to control the size of the write buffer.
+        :type length: int
         """
-        self._normalize()
+        self._normalize(length)
         if value > 65535:
             raise ValueError
         _reg = register | offset
-        if self.debug:
-            print('writing values', hex(self._write_buffer[0]), hex(_reg), hex(value))
         self._write_buffer[1] = _reg
         if value > 255:  # Handle 16 bit writes.
             self._write_buffer[2], self._write_buffer[3] = self._splitbits(value)
         else:
-            self._write_buffer[2] = self._write_buffer[3] = value
+            self._write_buffer[2] = value
+            if length > 3:
+                self._write_buffer[3] = value
         self._write()
 
     def _writemany_reg(self, register, values):
@@ -568,14 +588,16 @@ class BWServo:
         :param raw: When set to True we will write in PWM values from 1-255.
         :type raw: bool
         """
-        self._chkdeg(value)  # Ensure our position is sane.
         if not raw:
+            self._chkdeg(value)  # Ensure our position is sane.
             value = self._convfrompwm(value)
         self._write_reg(channel, 0x30, value)
 
     def change_address(self, address):
         """
         This changes the address of the slave.
+
+        bw_tool -a 86 -W f1:55:b f2:aa:b f0:40:b
 
         NOTE: Addresses are handled in bytes with the lowest bit set to zero. The 7 higher bits represent the address
                 whilst the lowest bit signals read (high) or write (low). An example of this from the defaults can be
@@ -586,15 +608,17 @@ class BWServo:
         :param address: This specifies the new 8bit address that will be assigned to the module.
         :type address: int, hex, bin
         """
-        wb = self._write_buffer
         registers = [
-            (0xf1, 0x55),
-            (0xf2, 0xaa),
-            (address, 0x0)
+            (0, 0xf1, 0x55, 3),
+            (0, 0xf2, 0xaa, 3),
+            (0, 0xf0, address, 3),
         ]
         for register in registers:
-            wb[1], wb[2] = register
-            self._write()
+            self._write_reg(*register)
+        self._waddr = address
+        self._raddr = address | 1
+        if self.debug:
+            print('* changing address to: write', hex(self._waddr), 'read', hex(self._raddr))
 
     def identify(self):
         """
@@ -606,6 +630,26 @@ class BWServo:
         self._read_reg(0, 0x01, length=15)
         answer = self._shiftread(15)
         return answer[2:]
+
+    def search(self):
+        """
+        In the event we have a lost board address, this will cycle through all the address values and attempt to identify
+        the board.
+        """
+        skip = False
+        if self.debug:
+            skip = True
+        if skip:
+            self.debug = False
+        for address in range(1, 255):
+            self._raddr = address
+            self._waddr = address - 1
+            ident = self.identify()
+            if b'spi' in ident:
+                print('write/read', hex(self._waddr), hex(self._raddr), ident)
+                break
+        if skip:
+            self.debug = True
 
     def test(self):
         """
@@ -725,6 +769,20 @@ class BWServo:
         print('timeout position default freq:', dg, ms, '\n')
         fail(dg, 180, ('warning: read pwm value not updated after timeout',))
         success.append((ms, 2485, ('timeout movement failure!',)))
+
+        print('performing change address test')
+        orig_addr = int(self._waddr)
+        self.change_address(0x40)
+        time.sleep(1)
+        ident = self.identify().decode()[:9]
+        addr_fail = fail(ident, 'spi_servo', ('failed to change address!, should be 0x40, 0x41',))
+        if not addr_fail:
+            self.search()
+        success.append(addr_fail)
+
+        print('reverting to original address')
+        self.change_address(orig_addr)
+        self.search()
 
         if False not in success:
             print('\nself-test passed!\n')
