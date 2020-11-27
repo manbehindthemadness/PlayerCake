@@ -20,7 +20,8 @@ class MCP3008:
     """
     This is where we will read the ADC data and update the real time data model.
 
-    TODO: We need to add filtration to this, probably a kalman.
+    TODO: We need to swap this out for the adafruit _mcp3xxx module as the current one doesn't let us \
+            specify a custom chip select.
 
     TODO: Aslo we need to reduce the names to just the channel number.
     """
