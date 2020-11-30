@@ -1,0 +1,9 @@
+resetgpio 8
+resetgpio 9
+resetgpio 10
+resetgpio 11
+
+/home/gwiz/flashit
+echo 'short pins now and hold unil complete'
+sleep 10
+/home/gwiz/flashit
