@@ -101,6 +101,8 @@ class BWServo:
 
         NOTE: This only supports the SPI version of this module, I2C has proven to be far too slow for our application.
 
+        TODO: I don't think we even use the chip select value... Investigate removal.
+
        :param spi: busio.SPI instance of the spi interface (sck/mosi, sck_1/mosi_1).
        :param cs: This is the chip select pin from digitalio: cs = digitalio.DigitalInOut(board.CE0).
        :param address: This is the assigned write address for the controller, defaults to 0x86
@@ -158,7 +160,7 @@ class BWServo:
                 """
                 self.device.write(buffer)
 
-            def write_readinto(self, write_buffer, read_buffer, wstart, wend, rstart, rend):
+            def write_readinto(self, write_buffer, read_buffer=None, wstart=None, wend=None, rstart=None, rend=None):
                 """
                 This mirrors the functionality of busio.spi.write_readinto.
                 """
@@ -170,11 +172,26 @@ class BWServo:
                 read_buffer = self.device.transfer(write_buffer)
                 return read_buffer
 
-        if use_spidev:
-            self._spidevice = SpiWrapper(spi)
+            def unlock(self):
+                """
+                Dummy method.
+                """
+                self.dummy = None
+
+            def try_lock(self):
+                """
+                Dummy method.
+                """
+                self.dummy = None
+                return True
+
+        self.spidev = use_spidev
+        if self.spidev:
+            self._spi = self._spidevice = SpiWrapper(spi)
         else:
             from adafruit_bus_device.spi_device import SPIDevice
             self._spidevice = SPIDevice
+            self._spi = spi
         self.debug = debug
         self._waddr = address
         self._raddr = address | 1
@@ -183,7 +200,7 @@ class BWServo:
             import numpy as np
             self._np = np
         self._cs = cs
-        self._spi = spi
+
         self._spi_dev = None
         self._read_buffer = bytearray(4)
         self._write_buffer = bytearray(4)
@@ -198,11 +215,15 @@ class BWServo:
         self._multi = 4
         self._freq = 988
 
-        self.configure(skip=True)
+        skip = True
+        if self.spidev:
+            skip = False
+
+        self.configure(skip=skip)
         # self.set_base_multiplier(8)
         # self.set_base_freq(496)
 
-    def configure(self, pol=0, phase=0, bits=8, hz=100000, mode=0, skip=False):
+    def configure(self, pol=0, phase=0, bits=8, hz=50000, mode=0, skip=False):
         """
         This allows us to change the default chip configuration.
 
@@ -250,7 +271,10 @@ class BWServo:
                     phase=self._ph,
                     bits=self._bts
                 )
-            self._spi_dev = self._spidevice(self._spi, self._cs)
+            if not self.spidev:
+                self._spi_dev = self._spidevice(self._spi, self._cs)
+            else:
+                self._spi_dev = self._spidevice
         finally:
             self._spi.unlock()
 
@@ -425,13 +449,16 @@ class BWServo:
         Send write buffer.
         """
         self._write_buffer[0] = self._waddr
-        with self._spi_dev as spi:
-            # pylint: disable=no-member
-            spi.write(
-                self._write_buffer,
-                self._ostart,
-                self._oend
-            )
+        if self.spidev:
+            self._spi_dev.write(self._write_buffer)
+        else:
+            with self._spi_dev as spi:
+                # pylint: disable=no-member
+                spi.write(
+                    self._write_buffer,
+                    self._ostart,
+                    self._oend
+                )
         if self.debug:  # TODO Put this into it's own method.
             buf_seq = self._ex_buf(self._write_buffer)
             print('* sending writebuffer:', buf_seq)
@@ -444,16 +471,21 @@ class BWServo:
         :type length: int
         """
         self._normalize(length)
-        with self._spi_dev as spi:
-            # pylint: disable=no-member
-            spi.write_readinto(
-                self._write_buffer,
-                self._read_buffer,
-                self._ostart,
-                self._oend,
-                self._istart,
-                self._iend
+        if self.spidev:
+            self._read_buffer = self._spi_dev.write_readinto(
+                self._write_buffer
             )
+        else:
+            with self._spi_dev as spi:
+                # pylint: disable=no-member
+                spi.write_readinto(
+                    self._write_buffer,
+                    self._read_buffer,
+                    self._ostart,
+                    self._oend,
+                    self._istart,
+                    self._iend
+                )
         if self.debug:
             w_buf_seq = self._ex_buf(self._write_buffer)
             r_buf_seq = self._ex_buf(self._read_buffer)
