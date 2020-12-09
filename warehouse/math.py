@@ -8,6 +8,8 @@ https://einsteinpy-einsteinpy.readthedocs.io/en/latest/api/utils/coord_transform
 https://github.com/numba/numba/issues/3670
 install numba using apt
 """
+import time
+import timeit
 import numpy as np
 from warehouse.utils import find_minmax as fmm, iterate_to_dict as i2d
 # import pprint
@@ -15,6 +17,24 @@ from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 from matplotlib import cm
 mp3 = mplot3d
+
+
+def time_offset(last_time, delay):
+    """
+    This is an attempt to create a time offset scaler to stabalize our clock.
+    """
+    def wait(dly):
+        """
+        This handles the actual delay.
+        """
+        time.sleep(dly)
+
+    tm = last_time
+    varience = np.round(np.subtract(delay, last_time), 5)
+    if varience:
+        tm = np.round(np.add(varience, delay), 5)
+    result = np.round(timeit.timeit(lambda: wait(tm), number=1), 5)
+    return result
 
 
 class TranslateCoordinates:
