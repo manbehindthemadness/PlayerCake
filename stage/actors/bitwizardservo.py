@@ -58,10 +58,13 @@ srv.test()
 4. whilst shorting the above pads, re-run the flashit script (best to use a time delay script).
 Results should indicate a successful flash.
 Pin assignments can be altered in avrdude.conf
+
+TODO: We need to write a version of this that uses spidev instead of the busio variation as the latter has problems with spi1.
+
+TODO: File a bug report after we finish testing: https://github.com/adafruit/Adafruit_Python_PureIO
 """
 
 import time
-from adafruit_bus_device.spi_device import SPIDevice
 
 __version__ = "0.1"
 
@@ -91,7 +94,7 @@ class BWServo:
             plus the base frequency.
     """
 
-    def __init__(self, spi, cs, address=0x86, use_numpy=False, debug=False):
+    def __init__(self, spi, cs=None, address=0x86, use_numpy=False, use_spidev=False, debug=False):
         """Initialize ATTiny-44 device with software SPI on the specified CLK,
         CS, and DO pins.  Alternatively can specify hardware SPI by sending an
         Adafruit_GPIO.SPI.SpiDev device in the spi parameter.
@@ -102,13 +105,76 @@ class BWServo:
        :param cs: This is the chip select pin from digitalio: cs = digitalio.DigitalInOut(board.CE0).
        :param address: This is the assigned write address for the controller, defaults to 0x86
        :param use_numpy: This toggles numpy for the math functions (much faster).
+       :param use_spidev: This toggles inbetween the use of adafruit pureio (modern but has problems with spi1), or spidev.
        :param debug: Enables debugging messages.
-       :type spi: busio.SPI
-       :type cs: digitalio.DigitalInOut
+       :type spi: busio.SPI, Adafruit_GPIO.SPI.SpiDev
+       :type cs: digitalio.DigitalInOut, NoneType
        :type address: int
        :type use_numpy: bool
+       :type use_spidev: bool
        :type debug: bool
         """
+
+        class SpiWrapper:
+            """
+            This is a wrapper to make adafruit_gpio.spi behave like busio.spi.
+            """
+            def __init__(self, device):
+                """
+                :param device: instance of SPI.SpiDev.
+                :type device: Adafruit_GPIO.SPI.SpiDev
+                :return: wrapped spi instance.
+                """
+                self.device = device
+                self.dummy = None
+
+            def configure(
+                    self,
+                    baudrate=500000,
+                    polarity=0,
+                    phase=0,
+                    bits=8
+            ):
+                """
+                This mirrors the functionality of busio.spi.configure.
+                """
+                po, ph, hz = polarity, phase, baudrate
+                md = (po, ph)
+                mode = 0
+                if md == (0, 1):
+                    mode = 1
+                elif md == (1, 0):
+                    mode = 2
+                elif md == (1, 1):
+                    mode = 3
+                self.device.set_clock_hz(hz)
+                self.device.set_mode(mode)
+                self.device.set_bit_order(0)
+                self.dummy = bits
+
+            def write(self, buffer):
+                """
+                This mirrors the functionality of busio.spi.write.
+                """
+                self.device.write(buffer)
+
+            def write_readinto(self, write_buffer, read_buffer, wstart, wend, rstart, rend):
+                """
+                This mirrors the functionality of busio.spi.write_readinto.
+                """
+                self.dummy = read_buffer
+                self.dummy = wstart
+                self.dummy = wend
+                self.dummy = rstart
+                self.dummy = rend
+                read_buffer = self.device.transfer(write_buffer)
+                return read_buffer
+
+        if use_spidev:
+            self._spidevice = SpiWrapper(spi)
+        else:
+            from adafruit_bus_device.spi_device import SPIDevice
+            self._spidevice = SPIDevice
         self.debug = debug
         self._waddr = address
         self._raddr = address | 1
@@ -132,11 +198,20 @@ class BWServo:
         self._multi = 4
         self._freq = 988
 
-        self.configure()
+        self.configure(skip=True)
+        # self.set_base_multiplier(8)
+        # self.set_base_freq(496)
 
-    def configure(self, pol=0, phase=0, bits=8, hz=125000000):
+    def configure(self, pol=0, phase=0, bits=8, hz=100000, mode=0, skip=False):
         """
         This allows us to change the default chip configuration.
+
+        Modes:
+
+        0 - logic low: Data sampled on rising edge and shifted out on the falling edge
+        1 - logic_low: Data sampled on the falling edge and shifted out on the rising edge
+        2 - logic high: Data sampled on the falling edge and shifted out on the rising edge
+        3 - logic high: Data sampled on the rising edge and shifted out on the falling edge
 
         :param pol: SPI bus polarity.
         :type pol: int
@@ -146,6 +221,9 @@ class BWServo:
         :type bits: int
         :param hz: SPI baudrate.
         :type hz: int
+        :param mode: This just sets polarity and phase according.
+        :param skip: This skips the configuration and just sets the local variables.
+        :type skip: bool
         """
         try:  # Lock the SPI bus and configure.
             while not self._spi.try_lock():
@@ -154,13 +232,25 @@ class BWServo:
             self._ph = phase
             self._bts = bits
             self._hz = hz
-            self._spi.configure(
-                baudrate=self._hz,
-                polarity=self._pol,
-                phase=self._ph,
-                bits=self._bts
-            )
-            self._spi_dev = SPIDevice(self._spi, self._cs)
+            if self._pol or self._ph and not mode:
+                self._pol = self._ph = 0
+            if mode == 1:
+                self._ph = 1
+                self._pol = 0
+            elif mode == 2:
+                self._ph = 0
+                self._pol = 1
+            elif mode == 3:
+                self._ph = 1
+                self._pol = 1
+            if not skip:
+                self._spi.configure(
+                    baudrate=self._hz,
+                    polarity=self._pol,
+                    phase=self._ph,
+                    bits=self._bts
+                )
+            self._spi_dev = self._spidevice(self._spi, self._cs)
         finally:
             self._spi.unlock()
 
@@ -234,7 +324,7 @@ class BWServo:
             sb = rb[2]
         return sb
 
-    def _normalize(self, length=4):
+    def _normalize(self, length=3):
         """
         This ensures our read and write buffers are the same size.
 
@@ -353,7 +443,6 @@ class BWServo:
         :param length: This can be used to adjust the read buffer length.
         :type length: int
         """
-        self.configure(hz=50000)
         self._normalize(length)
         with self._spi_dev as spi:
             # pylint: disable=no-member
@@ -368,7 +457,7 @@ class BWServo:
         if self.debug:
             w_buf_seq = self._ex_buf(self._write_buffer)
             r_buf_seq = self._ex_buf(self._read_buffer)
-            print('* writebuffer', w_buf_seq, 'readbuffer', w_buf_seq)
+            print('* writebuffer', w_buf_seq, 'readbuffer', r_buf_seq)
         self.configure()
 
     def _write_reg(self, offset, register, value, length=4):
@@ -440,7 +529,7 @@ class BWServo:
         """
         if not raw:
             value = self._convfromdeg(value)
-        self._write_reg(channel, 0x20, value)
+        self._write_reg(channel, 0x20, value, 3)
 
     def moveall_deg(self, values, raw=False):
         """
@@ -449,13 +538,14 @@ class BWServo:
         NOTE: This is only function in the custom firmware from BitWizard. and only functions with use_np set True.
 
         :param values: Array of values in degrees to move servos.
-        :type values: list
+        :type values: list, numpy.ndarray
         :param raw: When set to True we will write in PWM values from 1-255.
         :type raw: bool
         """
         if not raw:
             if self._np:
-                values = self._np.array(values)
+                if not isinstance(values, self._np.ndarray):
+                    values = self._np.array(values)
                 values = list(self._np.multiply(values, 1.415).astype(int))
             else:
                 for idx, value in enumerate(values):
@@ -497,7 +587,7 @@ class BWServo:
         :return: Servo position in degrees.
         :rtype: int
         """
-        self._read_reg(channel, 0x20)
+        self._read_reg(channel, 0x20, 3)
         answer = self._shiftread(8)
         if not raw:
             answer = self._convfrompwm(answer)
@@ -637,6 +727,8 @@ class BWServo:
         the board.
         """
         skip = False
+        orig_waddr = self._waddr
+        orig_raddr = self._raddr
         if self.debug:
             skip = True
         if skip:
@@ -647,9 +739,10 @@ class BWServo:
             ident = self.identify()
             if b'spi' in ident:
                 print('write/read', hex(self._waddr), hex(self._raddr), ident)
-                break
         if skip:
             self.debug = True
+        self._waddr = orig_waddr
+        self._raddr = orig_raddr
 
     def test(self):
         """
