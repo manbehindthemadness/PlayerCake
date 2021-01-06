@@ -223,7 +223,7 @@ class BWServo:
         # self.set_base_multiplier(8)
         # self.set_base_freq(496)
 
-    def configure(self, pol=0, phase=0, bits=8, hz=50000, mode=0, skip=False):
+    def configure(self, pol=0, phase=0, bits=8, hz=1000000, mode=0, skip=False):
         """
         This allows us to change the default chip configuration.
 
@@ -233,6 +233,9 @@ class BWServo:
         1 - logic_low: Data sampled on the falling edge and shifted out on the rising edge
         2 - logic high: Data sampled on the falling edge and shifted out on the rising edge
         3 - logic high: Data sampled on the rising edge and shifted out on the falling edge
+        
+        read=500000
+        write=1000000
 
         :param pol: SPI bus polarity.
         :type pol: int
@@ -448,6 +451,8 @@ class BWServo:
         """
         Send write buffer.
         """
+        if self._hz != 1000000:
+            self.configure(hz=1000000)
         self._write_buffer[0] = self._waddr
         if self.spidev:
             self._spi_dev.write(self._write_buffer)
@@ -470,6 +475,8 @@ class BWServo:
         :param length: This can be used to adjust the read buffer length.
         :type length: int
         """
+        if self._hz != 500000:
+            self.configure(hz=500000)
         self._normalize(length)
         if self.spidev:
             self._read_buffer = self._spi_dev.write_readinto(
